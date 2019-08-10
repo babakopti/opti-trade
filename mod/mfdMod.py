@@ -26,7 +26,7 @@ class MfdMod:
                     minTrnDate, 
                     maxTrnDate,
                     maxOosDate,
-                    varNames     = None,
+                    velNames,
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
@@ -35,8 +35,7 @@ class MfdMod:
                     maxBias      = 0.2,
                     varFiltFlag  = True,
                     validFlag    = True,
-                    smoothDays   = None,
-                    cumulFlag    = False,
+                    smoothCount  = None,
                     verbose      = 1          ):
 
 
@@ -61,48 +60,26 @@ class MfdMod:
             self.regCoef    = regCoef
             self.optRegFlag = False
         
-        df = pd.read_csv( dfFile )
+        self.velNames = velNames
 
-        assert 'Date' in df.columns, 'Date not found in the data file!'
+        self.varNames = []
 
-        if varNames is not None:
-            self.varNames = varNames
-        else:
-            self.varNames = []
+        for velName in self.velNames:
 
-            for varName in df.columns:
-
-                if varName == 'Date':
-                    continue
-
-                tmpVec = varName.split( '_' )
-
-                if cumulFlag:
-                    if tmpVec[-1] != 'Cumul':
-                        continue
-                else:
-                    if tmpVec[-1] == 'Cumul':
-                        continue
-                    if tmpVec[-1] == 'Diff':
-                        continue
-
-                self.varNames.append( varName )
-
-        self.velNames = []
-
-        for varName in self.varNames:
-            if cumulFlag:
-                tmpList = varName.split( '_' )[:-1]
-                velName = '_'.join( tmpList )
+            tmpList = velName.split( '_' )
+            
+            if tmpList[-1] == 'Diff':
+                varName = '_'.join( tmpList[:-1] )
             else:
-                velName = varName + '_Diff'
-            self.velNames.append( velName )
+                varName = velName + '_Cumul'
+
+            self.varNames.append( varName )
 
         self.trmFuncDict = {}
 
-        if smoothDays is not None :
+        if smoothCount is not None :
             for velName in self.velNames:
-                self.trmFuncDict[ velName ] = lambda x : x.rolling( int( smoothDays ), 
+                self.trmFuncDict[ velName ] = lambda x : x.rolling( int( smoothCount ), 
                                                                     win_type = 'blackman',
                                                                     center   = True ).mean()
 
