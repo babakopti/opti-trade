@@ -122,7 +122,7 @@ class EcoMfdCBase:
         self.bcSol       = np.zeros( shape = ( nDims ),            dtype = 'd' )    
         self.varOffsets  = np.zeros( shape = ( nDims ),            dtype = 'd' )
 
-        self.setDf()
+        self.setDf()        
 
         self.nSteps      = self.nTimes - 1
         nTimes           = self.nTimes
@@ -133,8 +133,10 @@ class EcoMfdCBase:
 
     def setDf( self ):
 
+        t0             = time.time()
         dfFile         = self.dfFile
         fileExt        = dfFile.split( '.' )[-1]
+
         if fileExt == 'csv':
             df = pd.read_csv( dfFile ) 
         elif fileExt == 'pkl':
@@ -187,6 +189,11 @@ class EcoMfdCBase:
 
             self.trnDf[ varName ] = trnVec
             self.oosDf[ varName ] = oosVec
+
+        if self.verbose > 0:
+            print( '\nSetting data frame:', 
+                   round( time.time() - t0, 2 ), 
+                   'seconds.\n'         )
 
     def trmVars( self, df ):
  

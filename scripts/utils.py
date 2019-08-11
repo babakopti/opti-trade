@@ -55,7 +55,7 @@ def getDf( quandlDir, piDir, velNames ):
 
     qDf[ 'Date' ] = qDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%Y-%m-%d' ) )
 
-    print( 'Done with getting macros!; Time =', time.time() - t0 )
+    print( 'Done with getting macros!; Time =', round( time.time() - t0, 2 ) )
 
     t0 = time.time()
 
@@ -102,7 +102,7 @@ def getDf( quandlDir, piDir, velNames ):
     pDf[ 'Date' ] = pDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%m/%d/%Y' ) )
 
     print( 'Done with getting intraday data! ; Time =',
-           time.time() - t0 )
+           round( time.time() - t0, 2 ) )
 
     t0 = time.time()
 
@@ -119,6 +119,6 @@ def getDf( quandlDir, piDir, velNames ):
     print( df.head() )
 
     print( 'Done with merging all data! ; Time =',
-           time.time() - t0 )
+           round( time.time() - t0, 2 ) )
 
     return df

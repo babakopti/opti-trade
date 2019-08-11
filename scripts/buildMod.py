@@ -19,7 +19,7 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-dataFlag    = False
+dataFlag    = True
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile.pkl'
@@ -37,6 +37,8 @@ modFileName = 'model_' + minTrnDate + '_' + maxTrnDate + '.dill'
 
 if dataFlag:
     df = getDf( quandlDir, piDir, velNames )
+    df = df[ df.Date >= minTrnDate ]
+    df = df[ df.Date <= maxOosDate ]
     df.to_pickle( dfFile )
 
 # ***********************************************************************
