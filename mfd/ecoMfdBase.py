@@ -235,6 +235,8 @@ class EcoMfdCBase:
 
     def setVarOffsets( self ):
 
+        return
+
         nDims          = self.nDims
         nTimes         = self.nTimes
         dateName       = self.dateName

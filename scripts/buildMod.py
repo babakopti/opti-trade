@@ -19,6 +19,7 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
+dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile.pkl'
@@ -31,14 +32,13 @@ velNames    = [ 'HPI_NYC', 'METAL_GOLD', 'ES', 'NQ', 'US' ]
 modFileName = 'model_' + minTrnDate + '_' + maxTrnDate + '.dill'
 
 # ***********************************************************************
-# Get data
+# Get data and save to pickle file
 # ***********************************************************************
 
-df = getDf( quandlDir, piDir, velNames )
+if dataFlag:
+    df = getDf( quandlDir, piDir, velNames )
+    df.to_pickle( dfFile )
 
-df.to_pickle( dfFile )
-
-sys.exit()
 # ***********************************************************************
 # Build model
 # ***********************************************************************
