@@ -19,15 +19,15 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-dataFlag    = True
+dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile.pkl'
-minTrnDate  = '2000-01-01'
-maxTrnDate  = '2016-12-31'
-maxOosDate  = '2019-05-01'
+minTrnDate  = '2015-01-01'
+maxTrnDate  = '2015-03-31'
+maxOosDate  = '2015-04-30'
 
-velNames    = [ 'HPI_NYC', 'METAL_GOLD', 'ES', 'NQ', 'US' ]
+velNames    = [ 'ES', 'NQ', 'US' ]
 
 modFileName = 'model_' + minTrnDate + '_' + maxTrnDate + '.dill'
 
@@ -37,8 +37,6 @@ modFileName = 'model_' + minTrnDate + '_' + maxTrnDate + '.dill'
 
 if dataFlag:
     df = getDf( quandlDir, piDir, velNames )
-    df = df[ df.Date >= minTrnDate ]
-    df = df[ df.Date <= maxOosDate ]
     df.to_pickle( dfFile )
 
 # ***********************************************************************
@@ -56,8 +54,8 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     regCoef      = 1.0e-4,
                     minMerit     = 0.65,
                     maxBias      = 0.10,
-                    varFiltFlag  = True,
-                    validFlag    = True,
+                    varFiltFlag  = False,
+                    validFlag    = False,
                     smoothCount  = None,
                     verbose      = 1          )
 
@@ -67,11 +65,4 @@ print( 'Success :', validFlag )
 
 mfdMod.save( modFileName )
 
-#mfdMod.ecoMfd.pltResults( rType = 'oos', pType = 'vel' )
-#mfdMod.ecoMfd.pltResults( rType = 'oos', pType = 'var' )
-mfdMod.ecoMfd.pltResults( rType = 'all', pType = 'vel' )
-#mfdMod.ecoMfd.pltResults( rType = 'all', pType = 'var' )
-
-#print( mfdMod.ecoMfd.getMeanErrs( rType = 'oos', vType = 'vel' ) )
-#print( mfdMod.ecoMfd.getMeanErrs( rType = 'oos', vType = 'var' ) )
-
+mfdMod.ecoMfd.pltResults( rType = 'trn', pType = 'vel' )

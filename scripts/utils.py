@@ -10,18 +10,17 @@ import numpy as np
 import pandas as pd
 
 # ***********************************************************************
-# getDf(): Get a df from data
+# getQuandlDf(): Get a df from quandl data
 # ***********************************************************************
 
-def getDf( quandlDir, piDir, velNames ):
-
-    t0 = time.time()
+def getQuandlDf( quandlDir, velNames ):
 
     print( 'Getting macros...' )
 
-    dataPaths = []
+    t0    = time.time()
+    qDf   = pd.DataFrame()
+    qFlag = False
 
-    tmpFlag = True
     for fileName in os.listdir( quandlDir ):
 
         tmpList  = fileName.split( '.' )
@@ -43,25 +42,30 @@ def getDf( quandlDir, piDir, velNames ):
         else:
             assert False, 'Unknown file %s' % filePath
 
-        if tmpFlag:
-            qDf = tmpDf
-            tmpFlag = False
+        if not qFlag:
+            qDf   = tmpDf
+            qFlag = True
         else:
             qDf = qDf.merge( tmpDf, how = 'outer', on = [ 'Date' ] )
 
-    qDf = qDf.interpolate( method = 'linear' )
-    qDf = qDf.dropna()
-    qDf = qDf.reset_index()
+    if qFlag:
+        qDf = qDf.interpolate( method = 'linear' )
+        qDf = qDf.dropna()
+        qDf = qDf.reset_index( drop = True )
 
-    qDf[ 'Date' ] = qDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%Y-%m-%d' ) )
+        qDf[ 'Date' ] = qDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%Y-%m-%d' ) )
 
     print( 'Done with getting macros!; Time =', round( time.time() - t0, 2 ) )
 
-    t0 = time.time()
+    return qDf
+
+def getPiDf( piDir, velNames ):
 
     print( 'Getting intraday data...' )
 
-    tmpFlag = True
+    t0    = time.time()
+    pDf   = pd.DataFrame()
+    pFlag = False
 
     for fileName in os.listdir( piDir ):
 
@@ -89,36 +93,54 @@ def getDf( quandlDir, piDir, velNames ):
         tmpDf[ fileBase ] = tmpDf.Open
         tmpDf = tmpDf[ [ 'Date', 'Time', fileBase ] ]
 
-        if tmpFlag:
-            pDf = tmpDf
-            tmpFlag = False
+        if not pFlag:
+            pDf   = tmpDf
+            pFlag = True
         else:
-            pDf = pDf.merge( tmpDf, how = 'outer', on = [ 'Date', 'Time' ] )
+            pDf = pDf.merge( tmpDf, how = 'inner', on = [ 'Date', 'Time' ] )
 
-    pDf = pDf.interpolate( method = 'linear' )
-    pDf = pDf.dropna()
-    pDf = pDf.reset_index()
-
-    pDf[ 'Date' ] = pDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%m/%d/%Y' ) )
+    if pFlag:
+        pDf = pDf.dropna()
+        pDf = pDf.reset_index( drop = True )
+        
+        pDf[ 'Date' ] = pDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%m/%d/%Y' ) )
 
     print( 'Done with getting intraday data! ; Time =',
            round( time.time() - t0, 2 ) )
 
-    t0 = time.time()
+    return pDf
 
-    print( 'Merging all data...' )
-
-    df = pDf.merge( qDf, how = 'left', on = [ 'Date' ] )
-
-    df = df.interpolate( method = 'linear' )
+def getDf( quandlDir, piDir, velNames ):
     
-    df = df.dropna()
-    df = df.reset_index()
-    df = df[ [ 'Date', 'Time' ] + velNames ]
+    qDf = getQuandlDf( quandlDir, velNames )
+    df  = getPiDf( piDir, velNames )
+    if qDf.shape[0] > 0 and df.shape[0] > 0:
+        df = df.merge( qDf, how = 'left', on = [ 'Date' ] )
+    elif qDf.shape[0] > 0:
+        df = qDf
 
-    print( df.head() )
+    df.reset_index( drop = True )
 
-    print( 'Done with merging all data! ; Time =',
-           round( time.time() - t0, 2 ) )
+    dates          = np.array( df[ 'Date' ] )
+    times          = np.array( df[ 'Time' ] )
+    nRows          = df.shape[0]
+        
+    for i in range( nRows ):
+
+        tmpStr = str( times[i] )
+        nTmp   = len( tmpStr )
+
+        if  nTmp < 4:
+            nTmp1  = 4 - nTmp
+            tmpStr = ''.join( ['0'] * nTmp1 ) + tmpStr
+
+        hour     = int( tmpStr[:2] )
+        minute   = int( tmpStr[2:] )
+        dates[i] = dates[i] +\
+            np.timedelta64( hour,   'h' ) +\
+            np.timedelta64( minute, 'm' )
+
+    df[ 'Date' ] = dates
 
     return df
+    

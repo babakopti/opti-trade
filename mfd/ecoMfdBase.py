@@ -151,15 +151,17 @@ class EcoMfdCBase:
         nDims          = self.nDims
         varNames       = self.varNames
         velNames       = self.velNames
-
-        df             = df[ [dateName] + velNames ]
+        
+        df             = df[ [ dateName ] + velNames ]
         df[ dateName ] = pd.to_datetime( df[ dateName ] )
         df             = df.interpolate( method = 'linear' )
         df             = df.dropna()
         df             = df[ df[ dateName ] >= minDt ]
+        df             = df[ df[ dateName ] <= maxOosDt ]
         df             = self.trmVars( df )
         df             = df.dropna()
-        df             = df.reset_index()
+        df             = df.sort_values( [ dateName ] )
+        df             = df.reset_index( drop = True )
         df[ 'time' ]   = df.index
 
         if self.pcaFlag:
@@ -171,24 +173,6 @@ class EcoMfdCBase:
 
         self.nTimes      = self.trnDf.shape[0]
         self.nOosTimes   = self.oosDf.shape[0]
-
-        self.setVarOffsets()
-
-        for varId in range( nDims ):
-            varName = varNames[varId]
-            velName = velNames[varId]
-
-            ( slope, intercept )  = self.deNormHash[ velName ]
-            invFunc = lambda x : slope * x + intercept
-            trnVec  = np.array( self.trnDf[ velName ] )
-            trnVec  = invFunc( trnVec )
-            trnVec  = self.intgVel( trnVec, varId, True  ) 
-            oosVec  = np.array( self.oosDf[ velName ] )
-            oosVec  = invFunc( oosVec )
-            oosVec  = self.intgVel( oosVec, varId, False ) 
-
-            self.trnDf[ varName ] = trnVec
-            self.oosDf[ varName ] = oosVec
 
         if self.verbose > 0:
             print( '\nSetting data frame:', 
@@ -212,7 +196,7 @@ class EcoMfdCBase:
                 trmFunc      = trmFuncDict[ varVel ]
                 df[ varVel ] = trmFunc( df[ varVel ] )
 
-            fct          = 1.0e-3
+            fct          = 5.0 * 1.0e-4
             velMax       = np.max(  df[ varVel ] )
             velMin       = np.min(  df[ varVel ] )
             df[ varVel ] = ( df[ varVel ] - velMin ) / ( velMax - velMin )
@@ -715,7 +699,7 @@ class EcoMfdCBase:
         velNames  = self.velNames
 
         df = self.trnDf
-        x  = df[ self.dateName ]
+        x  = df.time #df[ self.dateName ]
 
         for m in range( nDims ):
             varName = varNames[m]

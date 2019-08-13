@@ -443,8 +443,8 @@ class EcoMfdConst( EcoMfdCBase ):
         velNames  = self.velNames
         actSol    = self.actSol
         actOosSol = self.actOosSol
-        x         = np.array( trnDf[ 'Date' ] )
-        xOos      = np.array( oosDf[ 'Date' ] )
+        x         = np.array( trnDf[ 'time' ] )
+        xOos      = np.array( oosDf[ 'time' ] )
         odeObj    = self.getSol( self.GammaVec )
         oosOdeObj = self.getOosSol()
         sol       = odeObj.getSol()
