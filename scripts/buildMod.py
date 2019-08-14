@@ -23,13 +23,13 @@ dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile.pkl'
-minTrnDate  = '2015-01-01'
-maxTrnDate  = '2015-03-31'
-maxOosDate  = '2015-04-30'
+minTrnDate  = pd.to_datetime( '2015-01-01 00:00:00' )
+maxTrnDate  = pd.to_datetime( '2015-01-31 23:59:00' )
+maxOosDate  = pd.to_datetime( '2015-02-15 23:59:00' )
 
-velNames    = [ 'ES', 'NQ', 'US' ]
+velNames    = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-modFileName = 'model_' + minTrnDate + '_' + maxTrnDate + '.dill'
+modFileName = 'model.dill'
 
 # ***********************************************************************
 # Get data and save to pickle file

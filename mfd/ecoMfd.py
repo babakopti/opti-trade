@@ -504,7 +504,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
                 plt.fill_between( xOos, yLowOos, yHighOos, alpha = 0.2 ) 
 
-            plt.xlabel( 'Date' )
+            plt.xlabel( 'Time' )
 
             if pType == 'var':
                 plt.ylabel( varNames[m] )

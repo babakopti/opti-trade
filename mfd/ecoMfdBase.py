@@ -144,13 +144,13 @@ class EcoMfdCBase:
         else:
             assert False, 'Unknown input file extension %s' % fileExt
 
-        minDt          = pd.to_datetime( self.minTrnDate )
-        maxDt          = pd.to_datetime( self.maxTrnDate )
-        maxOosDt       = pd.to_datetime( self.maxOosDate )
         dateName       = self.dateName
         nDims          = self.nDims
         varNames       = self.varNames
         velNames       = self.velNames
+        minDt          = pd.to_datetime( self.minTrnDate )
+        maxDt          = pd.to_datetime( self.maxTrnDate )
+        maxOosDt       = pd.to_datetime( self.maxOosDate )
         
         df             = df[ [ dateName ] + velNames ]
         df[ dateName ] = pd.to_datetime( df[ dateName ] )
@@ -167,9 +167,21 @@ class EcoMfdCBase:
         if self.pcaFlag:
             df       = self.setPcaVars( df )
 
-        self.trnDf = df[ df[ dateName ] <= maxDt ]
-        df         = df[ df[ dateName ] >= maxDt ]
-        self.oosDf = df[ df[ dateName ] <= maxOosDt ]
+        dates      = list( df[ dateName ] )
+        nRows      = df.shape[0]
+        trnCnt     = 0
+        for rowId in range( nRows ):
+            if dates[rowId] == maxDt:
+                trnCnt = rowId + 1
+                break
+            elif dates[rowId] > maxDt:
+                trnCnt = rowId
+                break
+
+        oosCnt     = nRows - trnCnt + 1
+
+        self.trnDf = df.head( trnCnt )
+        self.oosDf = df.tail( oosCnt )
 
         self.nTimes      = self.trnDf.shape[0]
         self.nOosTimes   = self.oosDf.shape[0]
