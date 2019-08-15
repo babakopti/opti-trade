@@ -4,51 +4,83 @@
 
 import os
 import sys
+import dill
 import pickle
 import time
 import numpy as np
 import pandas as pd
 import scipy as sp
+import matplotlib.pyplot as plt
 
 sys.path.append( os.path.abspath( '../' ) )
 
+from mod.mfdMod import MfdMod
+
 from ode.odeGeo import OdeGeoConst
+from ode.odeGeo import OdeAdjConst
 
 # ***********************************************************************
 # Some definitions
 # ***********************************************************************
 
-Gamma  = pickle.load( open( 'gamma.pkl', 'rb' ) )
-bcTime = 66545.0
-bcSol  = np.array([6.56000000e-05, 6.13789778e-05, 7.35751295e-05])
-nSteps = 66545
-nSols  = 20
+mfdMod = dill.load( open( 'model_2015-01-01_2015-12-31.dill', 'rb' ) )
+ecoMfd = mfdMod.ecoMfd
+Gamma  = ecoMfd.getGammaArray( ecoMfd.GammaVec )
+bcTime = list( ecoMfd.trnDf.time )[-1]
+nSols  = 1
 
 # ***********************************************************************
 # Parameters
 # ***********************************************************************
 
-tol      = 1.0e-6
+tol      = 1.0e-3
 nMaxItrs = 1000
 
 # ***********************************************************************
-# Solve and record time
+# Solve and record time 
 # ***********************************************************************
 
 t0     = time.time()
 
 for i in range( nSols ):
     odeObj   = OdeGeoConst(  Gamma    = Gamma,
-                             bcVec    = bcSol,
+                             bcVec    = ecoMfd.bcSol,
                              bcTime   = bcTime,
                              timeInc  = 1.0,
-                             nSteps   = nSteps,
-                             intgType = 'vode', 
+                             nSteps   = ecoMfd.nSteps,
+                             intgType = 'LSODA', 
                              tol      = tol, 
                              nMaxItrs = nMaxItrs         )
     sFlag = odeObj.solve()
 
-print( sFlag )
+    sol   = odeObj.getSol()
 
-print( 'Solutions took %0.2f seconds!' % 
+print( 'OdeGeoConst took %0.2f seconds!' % 
        round( time.time() - t0, 2 ) )
+
+bcVec  = np.zeros( shape = ( ecoMfd.nDims ), dtype = 'd' )
+t0     = time.time()
+
+for i in range( nSols ):
+    adjOdeObj = OdeAdjConst( Gamma     = Gamma,
+                             bcVec     = bcVec,
+                             bcTime    = 0.0,
+                             timeInc   = 1.0,
+                             nSteps    = ecoMfd.nSteps,
+                             intgType  = 'RK45',
+                             actSol    = ecoMfd.actSol,
+                             adjSol    = sol,
+                             tol       = tol,
+                             nMaxItrs  = 1000,
+                             verbose   = ecoMfd.verbose       )
+
+    sFlag  = adjOdeObj.solve()
+
+    adjSol = adjOdeObj.getSol()
+
+print( 'OdeAjdConst took %0.2f seconds!' % 
+       round( time.time() - t0, 2 ) )
+
+#plt.plot( np.linspace( 0, bcTime, sol1.shape[1] ), sol1[1], 'r',
+#          np.linspace( bcTime, 0, sol2.shape[1] ), sol2[1], 'b' )
+#plt.show()

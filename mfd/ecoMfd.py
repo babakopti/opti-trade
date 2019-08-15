@@ -25,8 +25,13 @@ from sklearn.decomposition import KernelPCA
 from mfd.ecoMfdBase import EcoMfdCBase
 from ode.odeGeo import OdeGeoConst 
 from ode.odeGeo import OdeAdjConst 
-from ode.odeGeo import OdeGeoExp 
-from ode.odeGeo import OdeAdjExp 
+
+# ***********************************************************************
+# Some defintions
+# ***********************************************************************
+
+GEO_TOL = 1.0e-3
+ADJ_TOL = 1.0e-3
 
 # ***********************************************************************
 # Class EcoMfdConst: Constant curv. manifold 
@@ -215,9 +220,8 @@ class EcoMfdConst( EcoMfdCBase ):
                                 bcTime   = bcTime,
                                 timeInc  = 1.0,
                                 nSteps   = self.nSteps,
-                                intgType = 'vode',
-                                tol      = 1.0e-6,
-                                nMaxItrs = 1000,
+                                intgType = 'LSODA',
+                                tol      = GEO_TOL,
                                 srcCoefs = self.srcCoefs,
                                 srcTerm  = self.srcTerm,
                                 verbose  = self.verbose       )
@@ -246,21 +250,22 @@ class EcoMfdConst( EcoMfdCBase ):
         nDims    = self.nDims
         Gamma    = self.getGammaArray( GammaVec )
         sol      = odeObj.getSol()
-
+        bcVec    = np.zeros( shape = ( nDims ), dtype = 'd' )
         bkFlag   = not self.endBcFlag
 
         if self.verbose > 1:
             print( '\nSolving adjoint geodesic equation...\n' )
-    
+
         adjOdeObj = OdeAdjConst( Gamma    = Gamma,
-                                 actSol   = self.actSol,
-                                 adjSol   = sol,
-                                 varCoefs = self.varCoefs,
-                                 nDims    = self.nDims,
-                                 nSteps   = self.nSteps,
-                                 timeInc  = 1.0,
-                                 bkFlag   = bkFlag,
-                                 verbose  = self.verbose )
+                                 bcVec    = bcVec,
+                                 bcTime    = 0.0,
+                                 timeInc   = 1.0,
+                                 nSteps    = self.nSteps,
+                                 intgType  = 'RK45',
+                                 actSol    = self.actSol,
+                                 adjSol    = sol,
+                                 tol       = ADJ_TOL,
+                                 verbose   = self.verbose       )
 
         sFlag  = adjOdeObj.solve()
 
@@ -321,9 +326,8 @@ class EcoMfdConst( EcoMfdCBase ):
                                 bcTime   = 0.0,
                                 timeInc  = 1.0,
                                 nSteps   = nOosTimes - 1,
-                                intgType = 'vode',
-                                tol      = 1.0e-6,
-                                nMaxItrs = 1000,
+                                intgType = 'LSODA',
+                                tol      = GEO_TOL,
                                 srcCoefs = srcCoefs,
                                 srcTerm  = None,
                                 verbose  = self.verbose       )
@@ -392,9 +396,8 @@ class EcoMfdConst( EcoMfdCBase ):
                                 bcTime   = 0.0,
                                 timeInc  = 1.0,
                                 nSteps   = nTimes - 1,
-                                intgType = 'vode',
-                                tol      = 1.0e-6,
-                                nMaxItrs = 1000,
+                                intgType = 'LSODA',
+                                tol      = GEO_TOL,
                                 verbose  = self.verbose       )
 
         sFlag  = odeObj.solve()

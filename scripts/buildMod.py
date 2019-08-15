@@ -24,8 +24,8 @@ quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile.pkl'
 minTrnDate  = pd.to_datetime( '2015-01-01 00:00:00' )
-maxTrnDate  = pd.to_datetime( '2015-01-31 23:59:00' )
-maxOosDate  = pd.to_datetime( '2015-02-15 23:59:00' )
+maxTrnDate  = pd.to_datetime( '2015-12-31 23:59:00' )
+maxOosDate  = pd.to_datetime( '2016-03-31 23:59:00' )
 
 velNames    = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
@@ -51,7 +51,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxOptItrs   = 2000,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
-                    regCoef      = 1.0e-4,
+                    regCoef      = 1.0e-3,
                     minMerit     = 0.65,
                     maxBias      = 0.10,
                     varFiltFlag  = False,
