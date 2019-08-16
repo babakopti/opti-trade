@@ -208,7 +208,7 @@ class EcoMfdCBase:
                 trmFunc      = trmFuncDict[ varVel ]
                 df[ varVel ] = trmFunc( df[ varVel ] )
 
-            fct          = 1.0e-4
+            fct          = 1.0e-5
             velMax       = np.max(  df[ varVel ] )
             velMin       = np.min(  df[ varVel ] )
             df[ varVel ] = ( df[ varVel ] - velMin ) / ( velMax - velMin )

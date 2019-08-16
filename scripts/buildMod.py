@@ -23,11 +23,13 @@ dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile.pkl'
-minTrnDate  = pd.to_datetime( '2015-01-01 00:00:00' )
-maxTrnDate  = pd.to_datetime( '2015-12-31 23:59:00' )
-maxOosDate  = pd.to_datetime( '2016-03-31 23:59:00' )
+minTrnDate  = pd.to_datetime( '2011-01-01 00:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-12-31 23:59:00' )
+maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
 
-velNames    = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+velNames    = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM', 
+                'OEX', 'HGX', 'DXY', 'VIX', 'HUI', 'XAU', 'RUI', 'RUA',
+                'XLE', 'XLF', 'XLV', 'XLU', 'FXI', 'USO', 'UNG'  ]
 
 modFileName = 'model.dill'
 
@@ -65,4 +67,4 @@ print( 'Success :', validFlag )
 
 mfdMod.save( modFileName )
 
-mfdMod.ecoMfd.pltResults( rType = 'trn', pType = 'vel' )
+mfdMod.ecoMfd.pltResults( rType = 'all', pType = 'vel' )
