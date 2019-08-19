@@ -16,6 +16,12 @@ import pandas as pd
 import scipy as sp
 
 # ***********************************************************************
+# Some definitions
+# ***********************************************************************
+
+DIAG_FLAG = False
+
+# ***********************************************************************
 # Class MfdMod: Model object that builds a manifold based model
 # ***********************************************************************
 
@@ -129,7 +135,7 @@ class MfdMod:
                               regCoef      = self.regCoef,
                               regL1Wt      = 0.0,
                               nPca         = None,
-                              diagFlag     = True,
+                              diagFlag     = DIAG_FLAG,
                               endBcFlag    = True,
                               verbose      = self.verbose        )        
 
@@ -246,7 +252,7 @@ class MfdMod:
                                  regCoef      = regCoef,
                                  regL1Wt      = 0.0,
                                  nPca         = None,
-                                 diagFlag     = True,
+                                 diagFlag     = DIAG_FLAG,
                                  endBcFlag    = True,
                                  verbose      = self.verbose        )
 

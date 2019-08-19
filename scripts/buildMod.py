@@ -27,9 +27,24 @@ minTrnDate  = pd.to_datetime( '2011-01-01 00:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-12-31 23:59:00' )
 maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
 
-velNames    = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM', 
-                'OEX', 'HGX', 'DXY', 'VIX', 'HUI', 'XAU', 'RUI', 'RUA',
-                'XLE', 'XLF', 'XLV', 'XLU', 'FXI', 'USO', 'UNG'  ]
+indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
+                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
+                'TYX',  'HUI', 'XAU'                       ] 
+
+futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+
+stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
+                'CSCO', 'KO',  'XOM',  'GS',  'HD',  'INTC',
+                'IBM', 'JNJ',  'JPM',  'MCD', 'MRK', 'MSFT', 
+                'NKE', 'PFE',  'PG',   'TRV', 'UTX', 'UNH', 
+                'VZ',  'WMT',  'WBA', 'DIS'                ]
+forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
+                'GBPUSD', 'EURUSD', 'AUDUSD'               ]
+
+velNames    = indices + futures + ETFs + stocks
 
 modFileName = 'model.dill'
 
@@ -50,7 +65,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 2000,
+                    maxOptItrs   = 5000,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
                     regCoef      = 1.0e-3,

@@ -164,6 +164,11 @@ class EcoMfdCBase:
         df             = df.reset_index( drop = True )
         df[ 'time' ]   = df.index
 
+        if False:
+            times        = df[ dateName ] - df[ dateName ][0]
+            times        = times.apply( lambda x : x.total_seconds() / 60.0 )
+            df[ 'time' ] = times
+
         if self.pcaFlag:
             df       = self.setPcaVars( df )
 

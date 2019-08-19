@@ -10,6 +10,12 @@ import numpy as np
 import pandas as pd
 
 # ***********************************************************************
+# Some definitions
+# ***********************************************************************
+
+MIN_PI_ROWS = 1000000
+
+# ***********************************************************************
 # getQuandlDf(): Get a df from quandl data
 # ***********************************************************************
 
@@ -90,6 +96,10 @@ def getPiDf( piDir, velNames ):
         else:
             assert False, 'Unknown file %s' % filePath
 
+        if tmpDf.shape[0] < MIN_PI_ROWS:
+            print( 'Dropping', fileBase, 'nRows =', tmpDf.shape[0] ) 
+            continue
+
         tmpDf[ fileBase ] = tmpDf.Open
         tmpDf = tmpDf[ [ 'Date', 'Time', fileBase ] ]
 
@@ -97,13 +107,17 @@ def getPiDf( piDir, velNames ):
             pDf   = tmpDf
             pFlag = True
         else:
-            pDf = pDf.merge( tmpDf, how = 'inner', on = [ 'Date', 'Time' ] )
+            pDf = pDf.merge( tmpDf, how = 'outer', on = [ 'Date', 'Time' ] )
+            pDf = pDf.sort_values( [ 'Date', 'Time' ], ascending = [ True, True ] )
+            pDf = pDf.reset_index( drop = True )
 
     if pFlag:
-        pDf = pDf.dropna()
-        pDf = pDf.reset_index( drop = True )
-        
         pDf[ 'Date' ] = pDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%m/%d/%Y' ) )
+        pDf = pDf.dropna()
+        pDf = pDf.sort_values( [ 'Date' ], ascending = [ True ] )
+        pDf = pDf.reset_index( drop = True )
+        pDf = pDf.interpolate( method = 'linear' )
+
 
     print( 'Done with getting intraday data! ; Time =',
            round( time.time() - t0, 2 ) )
