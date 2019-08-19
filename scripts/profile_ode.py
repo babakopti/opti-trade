@@ -27,7 +27,7 @@ mfdMod = dill.load( open( 'model_2015-01-01_2015-12-31.dill', 'rb' ) )
 ecoMfd = mfdMod.ecoMfd
 Gamma  = ecoMfd.getGammaArray( ecoMfd.GammaVec )
 bcTime = list( ecoMfd.trnDf.time )[-1]
-nSols  = 1
+nSols  = 10
 
 # ***********************************************************************
 # Parameters
