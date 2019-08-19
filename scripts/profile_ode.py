@@ -81,6 +81,3 @@ for i in range( nSols ):
 print( 'OdeAjdConst took %0.2f seconds!' % 
        round( time.time() - t0, 2 ) )
 
-#plt.plot( np.linspace( 0, bcTime, sol1.shape[1] ), sol1[1], 'r',
-#          np.linspace( bcTime, 0, sol2.shape[1] ), sol2[1], 'b' )
-#plt.show()
