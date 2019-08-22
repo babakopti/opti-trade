@@ -131,6 +131,8 @@ class EcoMfdCBase:
         self.actOosSol   = np.zeros( shape = ( nDims, nOosTimes ), dtype = 'd' )
         self.tmpVec      = np.zeros( shape = ( nTimes ), 	   dtype = 'd' )     
 
+        self.trnEndDate  = list( self.trnDf[ dateName ] )[-1]
+
     def setDf( self ):
 
         t0             = time.time()
@@ -240,35 +242,6 @@ class EcoMfdCBase:
         self.nDims = self.nPca
 
         return df
-
-    def setVarOffsets( self ):
-
-        return
-
-        nDims          = self.nDims
-        nTimes         = self.nTimes
-        dateName       = self.dateName
-        varNames       = self.varNames
-        trnDf          = self.trnDf
-
-        dfFile         = self.dfFile
-        fileExt        = dfFile.split( '.' )[-1]
-        if fileExt == 'csv':
-            df = pd.read_csv( dfFile ) 
-        elif fileExt == 'pkl':
-            df = pd.read_pickle( dfFile ) 
-        else:
-            assert False, 'Unknown input file extension %s' % fileExt
-
-        df             = df[ [dateName] + varNames ]
-        df[ dateName ] = pd.to_datetime( df[ dateName ] )
-        df             = df.interpolate( method = 'linear' )
-        df             = trnDf.merge( df, how = 'left', on = dateName )
-        df             = df[ varNames ]
-
-        for m in range( nDims ):
-            varName            = varNames[m]
-            self.varOffsets[m] = list( df[varName] )[nTimes-1]
         
     def setGammaVec( self ):
 
@@ -553,8 +526,8 @@ class EcoMfdCBase:
 
         nDims   = self.nDims
         nTimes  = self.nTimes
-        trnDf   = self.trnDf
-        times   = np.array( trnDf.time )
+        nSteps  = self.nSteps
+        times   = np.linspace( 0, nSteps, nTimes )
         bcTime  = times[-1]
         actSol  = self.actSol
         odeObj  = self.getSol( self.GammaVec )
@@ -708,35 +681,6 @@ class EcoMfdCBase:
                          'Adjoint ODE', 
                          'Total' ]
         return df
-
-    def pltVars( self, varType = 'vel' ):
-        
-        nDims     = self.nDims
-        varNames  = self.varNames
-        velNames  = self.velNames
-
-        df = self.trnDf
-        x  = df.time #df[ self.dateName ]
-
-        for m in range( nDims ):
-            varName = varNames[m]
-            velName = velNames[m]
-
-            if varType == 'vel':
-                y  = np.array( df[ velName ] )
-            else:
-                y  = np.array( df[ varName ] )
-
-            plt.plot( x, y )
-
-            plt.xlabel( 'Date' )
-
-            if varType == 'vel':
-                plt.ylabel( velName )
-            else:
-                plt.ylabel( varName )
-
-            plt.show()
 
     def pltConv( self ):
 

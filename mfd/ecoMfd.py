@@ -100,6 +100,9 @@ class EcoMfdConst( EcoMfdCBase ):
         self.setBcs()
         self.setActs()
 
+        self.trnDf = None
+        self.oosDf = None
+
     def setBcs( self ):
 
         nDims    = self.nDims
@@ -202,11 +205,9 @@ class EcoMfdConst( EcoMfdCBase ):
         t0       = time.time()
         nDims    = self.nDims
         nSteps   = self.nSteps
-        trnDf    = self.trnDf
-        times    = np.array( trnDf.time )
 
         if self.endBcFlag:
-            bcTime = times[nSteps]   
+            bcTime = nSteps   
         else:
             bcTime = 0.0
 
@@ -349,7 +350,6 @@ class EcoMfdConst( EcoMfdCBase ):
         nDims       = self.nDims
         nSteps      = self.nSteps
         dateName    = self.dateName
-        trnDf       = self.trnDf
         velNames    = self.velNames
         varNames    = self.varNames
         Gamma       = self.getGammaArray( self.GammaVec )
@@ -375,7 +375,7 @@ class EcoMfdConst( EcoMfdCBase ):
             bcVec = self.endSol
 
         if begDate is None:
-            begDate = list( trnDf[dateName] )[nSteps]
+            begDate = self.trnEndDate
 
         begDt    = pd.to_datetime( begDate )
         endDt    = pd.to_datetime( endDate )
@@ -440,14 +440,12 @@ class EcoMfdConst( EcoMfdCBase ):
         nOosTimes = self.nOosTimes
         nSteps    = self.nSteps
         nDims     = self.nDims
-        trnDf     = self.trnDf
-        oosDf     = self.oosDf
         varNames  = self.varNames
         velNames  = self.velNames
         actSol    = self.actSol
         actOosSol = self.actOosSol
-        x         = np.array( trnDf[ 'time' ] )
-        xOos      = np.array( oosDf[ 'time' ] )
+        x         = np.linspace( 0, nSteps, nTimes )
+        xOos      = np.linspace( nSteps, nSteps + nOosTimes-1, nOosTimes )
         odeObj    = self.getSol( self.GammaVec )
         oosOdeObj = self.getOosSol()
         sol       = odeObj.getSol()
