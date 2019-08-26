@@ -19,7 +19,7 @@ import scipy as sp
 # Some definitions
 # ***********************************************************************
 
-DIAG_FLAG = False
+DIAG_FLAG = True
 
 # ***********************************************************************
 # Class MfdMod: Model object that builds a manifold based model
