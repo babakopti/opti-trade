@@ -141,7 +141,8 @@ class MfdMod:
 
         sFlag = self.ecoMfd.setGammaVec()
 
-        assert sFlag, 'Did not converge! Manifold was not built!'
+        if not sFlag:
+            print( 'Warning: did not converge!' )
 
         return sFlag
 
