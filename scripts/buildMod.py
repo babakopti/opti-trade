@@ -22,10 +22,10 @@ from mod.mfdMod import MfdMod
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
-dfFile      = 'data/dfFile_short_term.pkl'
-minTrnDate  = pd.to_datetime( '2018-09-01 00:00:00' )
-maxTrnDate  = pd.to_datetime( '2018-09-21 23:59:00' )
-maxOosDate  = pd.to_datetime( '2018-09-30 23:59:00' )
+dfFile      = 'data/light_dfFile.pkl'
+minTrnDate  = pd.to_datetime( '2014-01-01 00:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-12-31 23:59:00' )
+maxOosDate  = pd.to_datetime( '2019-08-02 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -44,7 +44,7 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = indices + futures + ETFs + stocks
+velNames    = indices + futures + ETFs #+ stocks
 
 modFileName = 'model.dill'
 
