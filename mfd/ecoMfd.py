@@ -30,8 +30,8 @@ from ode.odeGeo import OdeAdjConst
 # Some defintions
 # ***********************************************************************
 
-GEO_TOL = 1.0e-3
-ADJ_TOL = 1.0e-3
+GEO_TOL = 1.0e-2
+ADJ_TOL = 1.0e-2
 
 # ***********************************************************************
 # Class EcoMfdConst: Constant curv. manifold 
