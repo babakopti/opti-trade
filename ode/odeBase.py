@@ -98,20 +98,22 @@ class OdeBaseConst:
         timeEval = np.linspace( bcTime, endTime, nTimes )
 
         if self.intgType in [ 'Radau', 'BDF', 'LSODA' ]:
-            res = sp.integrate.solve_ivp( fun    = self.fun, 
-                                          jac    = self.jac,
-                                          y0     = self.bcVec, 
-                                          t_span = timeSpan,
-                                          t_eval = timeEval,
-                                          method = self.intgType, 
-                                          rtol   = self.tol            )
+            res = sp.integrate.solve_ivp( fun      = self.fun, 
+                                          jac      = self.jac,
+                                          y0       = self.bcVec, 
+                                          t_span   = timeSpan,
+                                          t_eval   = timeEval,
+                                          max_step = 1.0 * timeInc,
+                                          method   = self.intgType, 
+                                          rtol     = self.tol            )
         else:
-            res = sp.integrate.solve_ivp( fun    = self.fun, 
-                                          y0     = self.bcVec, 
-                                          t_span = timeSpan,
-                                          t_eval = timeEval,
-                                          method = self.intgType, 
-                                          rtol   = self.tol            )            
+            res = sp.integrate.solve_ivp( fun      = self.fun, 
+                                          y0       = self.bcVec, 
+                                          t_span   = timeSpan,
+                                          t_eval   = timeEval,
+                                          max_step = 1.0 * timeInc,
+                                          method   = self.intgType, 
+                                          rtol     = self.tol            )            
         sFlag    = res.success
         
         assert res.y.shape[0] == nDims,  'Internal error!'

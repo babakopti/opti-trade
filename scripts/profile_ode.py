@@ -23,11 +23,11 @@ from ode.odeGeo import OdeAdjConst
 # Some definitions
 # ***********************************************************************
 
-mfdMod = dill.load( open( 'model_2015-01-01_2015-12-31.dill', 'rb' ) )
+mfdMod = dill.load( open( 'model.dill', 'rb' ) )
 ecoMfd = mfdMod.ecoMfd
 Gamma  = ecoMfd.getGammaArray( ecoMfd.GammaVec )
-bcTime = list( ecoMfd.trnDf.time )[-1]
-nSols  = 10
+bcTime = float( ecoMfd.nSteps )
+nSols  = 1
 
 # ***********************************************************************
 # Parameters
