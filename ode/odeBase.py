@@ -103,7 +103,7 @@ class OdeBaseConst:
                                           y0       = self.bcVec, 
                                           t_span   = timeSpan,
                                           t_eval   = timeEval,
-                                          max_step = 1.0 * timeInc,
+                                          max_step = 10.0 * timeInc,
                                           method   = self.intgType, 
                                           rtol     = self.tol            )
         else:
@@ -111,7 +111,7 @@ class OdeBaseConst:
                                           y0       = self.bcVec, 
                                           t_span   = timeSpan,
                                           t_eval   = timeEval,
-                                          max_step = 1.0 * timeInc,
+                                          max_step = 10.0 * timeInc,
                                           method   = self.intgType, 
                                           rtol     = self.tol            )            
         sFlag    = res.success
