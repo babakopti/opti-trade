@@ -22,9 +22,9 @@ from mod.mfdMod import MfdMod
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
-dfFile      = 'data/light_dfFile.pkl'
-minTrnDate  = pd.to_datetime( '2019-05-01 00:00:00' )
-maxTrnDate  = pd.to_datetime( '2019-05-23 23:59:00' )
+dfFile      = 'data/dfFile.pkl'
+minTrnDate  = pd.to_datetime( '2019-04-29 00:00:00' )
+maxTrnDate  = pd.to_datetime( '2019-05-24 23:59:00' )
 maxOosDate  = pd.to_datetime( '2019-05-31 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
@@ -44,9 +44,9 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = futures #indices + futures + ETFs + stocks
+velNames    = indices + futures + ETFs #+ stocks
 
-modFileName = 'model.dill'
+modFileName = 'models/model_May_2019.dill'
 
 # ***********************************************************************
 # Get data and save to pickle file
@@ -65,7 +65,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 50,
+                    maxOptItrs   = 200,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
                     regCoef      = 1.0e-5,
