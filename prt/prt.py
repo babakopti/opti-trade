@@ -118,7 +118,7 @@ class MfdPrt:
         ecoMfd   = self.ecoMfd
         Gamma    = ecoMfd.getGammaArray( ecoMfd.GammaVec )
         bcVec    = ecoMfd.endSol
-        nDays    = ( ecoMfd.endDate - ecoMfd.curDate ).days
+        nDays    = ( self.endDate - self.curDate ).days
         nMinutes = int( nDays * 8 * 60 )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
@@ -158,7 +158,7 @@ class MfdPrt:
     def setPrdStd( self ):
 
         ecoMfd = self.ecoMfd
-        stdVec = self.getConstStdVec()
+        stdVec = ecoMfd.getConstStdVec()
 
         for m in range( ecoMfd.nDims ):
             asset     = ecoMfd.velNames[m]
