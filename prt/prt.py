@@ -15,6 +15,7 @@ import time
 import numpy as np
 import pandas as pd
 import scipy as sp
+import matplotlib.pyplot as plt
 
 from collections import defaultdict
 from scipy.special import erf
@@ -24,11 +25,8 @@ from scipy.optimize import minimize
 # Some parameters
 # ***********************************************************************
 
-NULL  = 0
-LONG  = 1
-SHORT = 2
-
 GEO_TOL = 1.0e-2
+OPT_TOL = 1.0e-9
 
 # ***********************************************************************
 # Class MfdPrt: Model object for a manifold based portfolio
@@ -46,8 +44,8 @@ class MfdPrt:
                     tradeFee     = 0.0,
                     minGainRate  = 0.0,
                     strategy     = 'mad_con_mfd',
-                    minProbLong  = 0.75,
-                    minProbShort = 0.75,
+                    minProbLong  = 0.51,
+                    minProbShort = 0.51,
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
@@ -81,7 +79,7 @@ class MfdPrt:
         self.tradeFee    = tradeFee
         self.minGainRate = minGainRate
 
-        assert strategy == 'mad_con_mfd', 'Only mad_con_mfd is currently supported!'
+        assert strategy in [ 'mad_con_mfd', 'gain_mfd' ], 'Strategy %s is not known!' % strategy
 
         self.strategy  = strategy
 
@@ -96,6 +94,7 @@ class MfdPrt:
         self.retDf        = None
         self.prdSol       = None
         self.stdVec       = None
+        self.optFuncVals  = None
 
         self.setRetDf()
         self.setPrdSol()
@@ -178,60 +177,43 @@ class MfdPrt:
         self.stdVec = stdVec
 
         return stdVec
-        
+
     def getPortfolio( self ):
 
         t0           = time.time()
+        strategy     = self.strategy
         ecoMfd       = self.ecoMfd
         assets       = self.assets
         quoteHash    = self.quoteHash
         minProbLong  = self.minProbLong 
         minProbShort = self.minProbShort
         totAssetVal  = self.totAssetVal 
-        tradeFee     = self.tradeFee
         nAssets      = len( assets )
         trendHash    = self.getPrdTrends()
-        guess        = np.ones( nAssets )
-        cons         = []
 
-        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
-        cons.append( { 'type' : 'eq', 'fun' : sumFunc } )
+        self.optFuncVals = []
+        
+        optFunc   = self.getOptFunc()
+        optCons   = self.getOptCons()
+        guess     = self.getInitGuess()
 
-        for i in range( nAssets ):
-            asset = assets[i]
-            trend = trendHash[ asset ][0]
-            prob  = trendHash[ asset ][1]
-
-            if trend > 0 and prob >= minProbLong:
-                guess[i]  = 1.0
-                trendFunc = lambda wts : wts[i]
-            elif trend < 0 and prob >= minProbShort:
-                guess[i]  = -1.0
-                trendFunc = lambda wts : -wts[i]
-            else:
-                continue
-
-            gainFunc  = lambda wts : self.wtsGainCheck(  wts, i ) 
-            ratioFunc = lambda wts : self.wtsRatioCheck( wts, i ) 
-
-            cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
-            #cons.append( { 'type' : 'ineq', 'fun' : ratioFunc } )
-            #cons.append( { 'type' : 'ineq', 'fun' : gainFunc  } )
-
-        results   = minimize( fun         = self.getMad, 
+        results   = minimize( fun         = optFunc, 
                               x0          = guess, 
                               method      = 'SLSQP',
-                              constraints = cons        )
+                              tol         = OPT_TOL,
+                              constraints = optCons        )
 
         if self.verbose > 0:
             print( results[ 'message' ] )
             print( 'Optimization success:', results[ 'success' ] )
             print( 'Number of function evals:', results[ 'nfev' ] )
-                   
+
         weights   = results.x
 
         assert len( weights ) == nAssets,\
             'Inconsistent size of weights!'
+
+        self.checkCons( optCons, weights )                   
 
         prtHash = {}
         totVal  = 0.0
@@ -243,26 +225,93 @@ class MfdPrt:
 
             qty      = int( weights[i] * totAssetVal / curPrice )
 
-            #if qty == 0:
-            #    continue
-
             totVal  += abs( qty ) * curPrice
  
             prtHash[ asset ] = weights[i]
 
-            #print( asset, self.wtsRatioCheck( weights, i ) )
-
         if self.verbose > 0:
             print( 'Building portfolio took', 
                    round( time.time() - t0, 2 ), 
-                   'sceonds!' )
+                   'seconds!' )
 
-        print( 'Total value of new portfolio:', totVal )
-        print( 'Sum of wts:', sum( abs( weights ) ) )
-        print( prtHash )
+            print( 'Total value of new portfolio:', totVal )
+
+            print( 'Sum of wts:', sum( abs( weights ) ) )
+
+            print( prtHash )
 
         return prtHash
-       
+
+    def getOptFunc( self ):
+
+        strategy = self.strategy
+
+        if strategy == 'mad_con_mfd':
+            optFunc = self.getMadFunc
+        elif strategy == 'gain_mfd':
+            optFunc = self.getFuncGain
+        else:
+            assert False, 'Strategy %s is not known!' % strategy
+
+        return optFunc
+
+    def getOptCons( self ):
+
+        strategy     = self.strategy
+        minProbLong  = self.minProbLong 
+        minProbShort = self.minProbShort
+        assets       = self.assets
+        nAssets      = len( assets )
+        trendHash    = self.getPrdTrends()
+        cons         = []
+        sumFunc      = lambda wts : ( sum( abs( wts ) ) - 1.0 )
+
+        cons.append( { 'type' : 'eq', 'fun' : sumFunc } )
+
+        for i in range( nAssets ):
+            asset = assets[i]
+            trend = trendHash[ asset ][0]
+            prob  = trendHash[ asset ][1]
+
+            if trend > 0 and prob >= minProbLong:
+                trendFunc = lambda wts : wts[i]
+            elif trend < 0 and prob >= minProbShort:
+                trendFunc = lambda wts : -wts[i]
+            else:
+                continue
+
+            if strategy == 'mad_con_mfd':
+                cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
+
+            if False and strategy == 'mad_con_mfd':
+                gainFunc  = lambda wts : self.wtsGainCheck(  wts, i ) 
+                cons.append( { 'type' : 'ineq', 'fun' : gainFunc  } )
+
+        return cons
+
+    def getInitGuess( self ):
+
+        minProbLong  = self.minProbLong 
+        minProbShort = self.minProbShort
+        assets       = self.assets
+        nAssets      = len( assets )
+        trendHash    = self.getPrdTrends()
+        guess        = np.ones( nAssets )
+
+        for i in range( nAssets ):
+            asset = assets[i]
+            trend = trendHash[ asset ][0]
+            prob  = trendHash[ asset ][1]
+
+            if trend > 0 and prob >= minProbLong:
+                guess[i]  = 1.0
+            elif trend < 0 and prob >= minProbShort:
+                guess[i]  = -1.0
+            else:
+                continue
+ 
+        return guess
+        
     def getPrdTrends( self ):
 
         quoteHash = self.quoteHash
@@ -350,22 +399,69 @@ class MfdPrt:
 
         assert m < ecoMfd.nDims, 'Asset %s not found in the model!' % asset
 
-        prdPrice = 0.0
-        for i in range( nMinutes ):
-            prdPrice += prdSol[m][i]
-
-        prdPrice /= nMinutes
-
-        qty  = wts[assetId] * totAssetVal / curPrice
-        gain = qty * ( prdPrice - curPrice ) - tradeFee
-        rate = gain / ( qty * curPrice )
-         
-        if rate >= minGainRate:
-            fct = 1.0
-        else:
-            fct = -1.0
+        prdPrice = np.mean( prdSol[m] )
+        qty      = wts[assetId] * totAssetVal / curPrice
+        gain     = qty * ( prdPrice - curPrice ) - tradeFee
+        rate     = gain / ( qty * curPrice )
             
-        return fct
+        return rate - minGainRate
 
-    def getMad( self, wts ):
-        return ( self.retDf - self.retDf.mean() ).dot( wts ).abs().mean()
+    def getMadFunc( self, wts ):
+
+        mad = ( self.retDf - self.retDf.mean() ).dot( wts ).abs().mean()
+
+        self.optFuncVals.append( mad )
+
+        return mad 
+
+    def getGainFunc( self, wts ):
+
+        ecoMfd      = self.ecoMfd        
+        quoteHash   = self.quoteHash
+        totAssetVal = self.totAssetVal 
+        tradeFee    = self.tradeFee
+        assets      = self.assets
+        prdSol      = self.prdSol
+        nAssets     = len( assets )
+        gain        = 0.0
+
+        for assetId in range( nAssets ):
+
+            asset    = assets[assetId]
+            curPrice = quoteHash[ asset ]
+
+            assert curPrice > 0, 'Price should be positive!'
+            
+            for m in range( ecoMfd.nDims ):
+                if ecoMfd.velNames[m] == asset:
+                    break
+
+            assert m < ecoMfd.nDims, 'Asset %s not found in the model!' % asset
+
+            prdPrice = np.mean( prdSol[m] ) 
+            qty      = int( wts[assetId] * totAssetVal / curPrice )
+            gain    += qty * ( prdPrice - curPrice ) - tradeFee
+
+        val = -gain
+
+        self.optFuncVals.append( val )
+
+        return val
+
+    def checkCons( self, cons, wts ):
+
+        for con in cons:
+            conFunc = con[ 'fun' ]
+            
+            if con[ 'type' ] == 'eq':
+                assert abs( conFunc( wts ) ) < OPT_TOL, \
+                    'Equality constraint not satisfied!'
+            elif con[ 'type' ] == 'ineq':
+                assert conFunc( wts ) >= -OPT_TOL, \
+                    'Inequality constraint not satisfied!'
+            else:
+                assert False, 'Unknown constraint type!'
+
+    def pltItrers( self ):
+        plt.plot( self.optFuncVals )
+

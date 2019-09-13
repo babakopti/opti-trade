@@ -58,30 +58,29 @@ if False:
 else:
     totAssetVal = 500000.0
     tradeFee    = 6.95
-    quoteHash = { 'NDX': 7887.581, 
-                  'SPX': 3000.93, 
-                  'RUT': 1575.7122, 
-                  'OEX': 1327.87, 
-                  'MID': 1964.11, 
-                  'SOX': 1606.19, 
-                  'RUI': 1658.7848, 
-                  'RUA': 1761.0648, 
-                  'HGX': 334.97, 
-                  'TYX': 22.08, 
-                  'HUI': 211.24, 
-                  'XAU': 92.35, 
-                  'QQQ': 192.43, 
-                  'SPY': 300.25, 
-                  'DIA': 271.69, 
-                  'MDY': 358.48, 
-                  'IWM': 157.0, 
-                  'OIH': 13.15, 
-                  'SMH': 121.78, 
-                  'XLE': 60.98, 
-                  'XLF': 28.12, 
-                  'XLU': 63.2, 
-                  'EWJ': 55.84   }
-    
+    mfdMod      = dill.load( open( modFile, 'rb' ) )
+    ecoMfd      = mfdMod.ecoMfd
+    quoteHash   = {}
+
+    for asset in assets:
+        
+        if asset in [ 'INDU', 'COMPX', 'TRAN' ]:
+            continue
+
+        for m in range( ecoMfd.nDims ):
+            if ecoMfd.velNames[m] == asset:
+                break
+
+        assert m < ecoMfd.nDims, \
+            'Asset %s not found in the model!' % asset
+
+        tmp       = ecoMfd.deNormHash[ asset ]
+        slope     = tmp[0]
+        intercept = tmp[1]
+        price     = slope * ecoMfd.actSol[m][-1] + intercept
+        
+        quoteHash[ asset ] = price
+
 print( quoteHash )
 
 # ***********************************************************************
@@ -96,13 +95,15 @@ mfdPrt = MfdPrt(    modFile      = modFile,
                     totAssetVal  = totAssetVal, 
                     tradeFee     = tradeFee,
                     minGainRate  = 0.0,
-                    minProbLong  = 0.75,
-                    minProbShort = 0.75,
+                    strategy     = 'mad_con_mfd',
+                    minProbLong  = 0.51,
+                    minProbShort = 0.51,
                     verbose      = 1          )
 
-#print( mfdPrt.getPrdTrends() )
+print( mfdPrt.getPrdTrends() )
 
 #mfdMod = dill.load( open( modFile, 'rb' ) )
 #mfdMod.ecoMfd.pltResults()
 
 mfdPrt.getPortfolio()
+mfdPrt.pltIters()
