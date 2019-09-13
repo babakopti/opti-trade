@@ -6,6 +6,7 @@ import sys
 import os
 import time
 import datetime
+import dill
 import numpy as np
 import pandas as pd
 
@@ -15,6 +16,7 @@ sys.path.append( os.path.abspath( '../' ) )
 sys.path.append( os.path.abspath( '../../etrade-api-wrapper' ) )
 
 from prt.prt import MfdPrt
+from mod.mfdMod import MfdMod
 
 from etrade import Etrade
 
@@ -54,7 +56,7 @@ if False:
         quoteHash[ asset ] = etrade.getQuote( asset )
 
 else:
-    totAssetVal = 50000.0
+    totAssetVal = 500000.0
     tradeFee    = 6.95
     quoteHash = { 'NDX': 7887.581, 
                   'SPX': 3000.93, 
@@ -98,7 +100,9 @@ mfdPrt = MfdPrt(    modFile      = modFile,
                     minProbShort = 0.75,
                     verbose      = 1          )
 
-prtHash = mfdPrt.getPortfolio()
+#print( mfdPrt.getPrdTrends() )
 
-print( prtHash )
+#mfdMod = dill.load( open( modFile, 'rb' ) )
+#mfdMod.ecoMfd.pltResults()
 
+mfdPrt.getPortfolio()

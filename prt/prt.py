@@ -11,12 +11,14 @@ from mod.mfdMod import MfdMod
 from ode.odeGeo import OdeGeoConst 
 
 import dill
+import time
 import numpy as np
 import pandas as pd
 import scipy as sp
 
 from collections import defaultdict
 from scipy.special import erf
+from scipy.optimize import minimize
 
 # ***********************************************************************
 # Some parameters
@@ -70,6 +72,9 @@ class MfdPrt:
 
             self.assets.append( asset )
 
+        for asset in quoteHash:
+            assert quoteHash[ asset ] > 0, 'Price should be positive!'
+
         self.quoteHash = quoteHash
 
         self.totAssetVal = totAssetVal
@@ -105,6 +110,10 @@ class MfdPrt:
 
         for m in range( ecoMfd.nDims ):
             asset     = ecoMfd.velNames[m]
+            
+            if asset not in self.assets:
+                continue
+
             tmp       = ecoMfd.deNormHash[ asset ]
             slope     = tmp[0]
             intercept = tmp[1]
@@ -172,6 +181,7 @@ class MfdPrt:
         
     def getPortfolio( self ):
 
+        t0           = time.time()
         ecoMfd       = self.ecoMfd
         assets       = self.assets
         quoteHash    = self.quoteHash
@@ -182,8 +192,10 @@ class MfdPrt:
         nAssets      = len( assets )
         trendHash    = self.getPrdTrends()
         guess        = np.ones( nAssets )
+        cons         = []
 
-        cons         = [ { 'type' : 'eq', 'fun' : self.wtsSumCheck } ] 
+        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
+        cons.append( { 'type' : 'eq', 'fun' : sumFunc } )
 
         for i in range( nAssets ):
             asset = assets[i]
@@ -191,35 +203,63 @@ class MfdPrt:
             prob  = trendHash[ asset ][1]
 
             if trend > 0 and prob >= minProbLong:
+                guess[i]  = 1.0
                 trendFunc = lambda wts : wts[i]
-                gainFunc  = lambda wts : self.wtsGainCheck( wts, asset = asset ) 
             elif trend < 0 and prob >= minProbShort:
+                guess[i]  = -1.0
                 trendFunc = lambda wts : -wts[i]
-                gainFunc  = lambda wts : self.wtsGainCheck( wts, asset = asset ) 
             else:
                 continue
 
+            gainFunc  = lambda wts : self.wtsGainCheck(  wts, i ) 
+            ratioFunc = lambda wts : self.wtsRatioCheck( wts, i ) 
+
             cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
-            cons.append( { 'type' : 'ineq', 'fun' : gainFunc  } )
+            #cons.append( { 'type' : 'ineq', 'fun' : ratioFunc } )
+            #cons.append( { 'type' : 'ineq', 'fun' : gainFunc  } )
 
         results   = minimize( fun         = self.getMad, 
                               x0          = guess, 
-                              method      = 'COBYLA',
-                              constraints = cons      )
-    
+                              method      = 'SLSQP',
+                              constraints = cons        )
+
+        if self.verbose > 0:
+            print( results[ 'message' ] )
+            print( 'Optimization success:', results[ 'success' ] )
+            print( 'Number of function evals:', results[ 'nfev' ] )
+                   
         weights   = results.x
 
-        assert len( weights ) == nAssest,\
+        assert len( weights ) == nAssets,\
             'Inconsistent size of weights!'
 
         prtHash = {}
+        totVal  = 0.0
         for i in range( nAssets ):
             asset    = assets[i]
             curPrice = quoteHash[ asset ]
             
             assert curPrice > 0, 'Price should be positive!'
 
-            prtHash[ assets ] = int( weights[i] * totAssetVal / curPrice )
+            qty      = int( weights[i] * totAssetVal / curPrice )
+
+            #if qty == 0:
+            #    continue
+
+            totVal  += abs( qty ) * curPrice
+ 
+            prtHash[ asset ] = weights[i]
+
+            #print( asset, self.wtsRatioCheck( weights, i ) )
+
+        if self.verbose > 0:
+            print( 'Building portfolio took', 
+                   round( time.time() - t0, 2 ), 
+                   'sceonds!' )
+
+        print( 'Total value of new portfolio:', totVal )
+        print( 'Sum of wts:', sum( abs( weights ) ) )
+        print( prtHash )
 
         return prtHash
        
@@ -238,6 +278,10 @@ class MfdPrt:
         
         for m in range( nDims ):
             asset    = ecoMfd.velNames[m]
+
+            if asset not in self.assets:
+                continue
+
             curPrice = quoteHash[ asset ]
             trend    = 0.0
             prob     = 0.0
@@ -269,14 +313,29 @@ class MfdPrt:
             
         return ( trendHash )
 
-    def wtsGainCheck( self, wts, asset ):
+    def wtsRatioCheck( self, wts, assetId ):
+
+        asset     = self.assets[assetId]
+        curPrice  = self.quoteHash[ asset ]
+
+        assert curPrice > 0, 'Price should be positive!'
+        
+        val  = abs( wts[assetId] ) * self.totAssetVal / curPrice 
+        val  = ( int( val ) - val ) * curPrice / self.totAssetVal
+
+        return val
+
+    def wtsGainCheck( self, wts, assetId ):
 
         ecoMfd      = self.ecoMfd        
         quoteHash   = self.quoteHash
         totAssetVal = self.totAssetVal 
         tradeFee    = self.tradeFee
         minGainRate = self.minGainRate
+        assets      = self.assets
+        asset       = assets[ assetId ]
         prdSol      = self.prdSol
+        nAssets     = len( assets )
         nMinutes    = prdSol.shape[1]
 
         assert nMinutes > 0, 'Number of minutes should be positive!'
@@ -297,9 +356,9 @@ class MfdPrt:
 
         prdPrice /= nMinutes
 
-        qty  = wts[m] * totAssetVal / curPrice
+        qty  = wts[assetId] * totAssetVal / curPrice
         gain = qty * ( prdPrice - curPrice ) - tradeFee
-        rate = gain / curPrice
+        rate = gain / ( qty * curPrice )
          
         if rate >= minGainRate:
             fct = 1.0
@@ -307,9 +366,6 @@ class MfdPrt:
             fct = -1.0
             
         return fct
-
-    def wtsSumCheck( self, wts ):
-        return sum( abs( wts ) ) - 1
 
     def getMad( self, wts ):
         return ( self.retDf - self.retDf.mean() ).dot( wts ).abs().mean()
