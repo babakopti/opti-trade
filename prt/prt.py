@@ -25,8 +25,9 @@ from scipy.optimize import minimize
 # Some parameters
 # ***********************************************************************
 
-GEO_TOL = 1.0e-2
-OPT_TOL = 1.0e-9
+ODE_TOL   = 1.0e-2
+OPT_TOL   = 1.0e-9
+MAX_ITERS = 5000
 
 # ***********************************************************************
 # Class MfdPrt: Model object for a manifold based portfolio
@@ -42,10 +43,9 @@ class MfdPrt:
                     quoteHash,
                     totAssetVal, 
                     tradeFee     = 0.0,
-                    minGainRate  = 0.0,
-                    strategy     = 'mad_con_mfd',
-                    minProbLong  = 0.51,
-                    minProbShort = 0.51,
+                    strategy     = 'mad',
+                    minProbLong  = 0.5,
+                    minProbShort = 0.5,
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
@@ -77,9 +77,9 @@ class MfdPrt:
 
         self.totAssetVal = totAssetVal
         self.tradeFee    = tradeFee
-        self.minGainRate = minGainRate
 
-        assert strategy in [ 'mad_con_mfd', 'gain_mfd' ], 'Strategy %s is not known!' % strategy
+        assert strategy in [ 'mad', 'gain', 'gain_mad', 'prob' ], \
+            'Strategy %s is not known!' % strategy
 
         self.strategy  = strategy
 
@@ -95,10 +95,12 @@ class MfdPrt:
         self.prdSol       = None
         self.stdVec       = None
         self.optFuncVals  = None
+        self.trendHash    = None
 
         self.setRetDf()
         self.setPrdSol()
         self.setPrdStd()
+        self.setPrdTrends()
 
     def setRetDf( self ):
 
@@ -135,7 +137,7 @@ class MfdPrt:
                                 timeInc  = 1.0,
                                 nSteps   = nMinutes - 1,
                                 intgType = 'LSODA',
-                                tol      = GEO_TOL,
+                                tol      = ODE_TOL,
                                 verbose  = self.verbose       )
 
         sFlag    = odeObj.solve()
@@ -178,6 +180,56 @@ class MfdPrt:
 
         return stdVec
 
+    def setPrdTrends( self ):
+
+        quoteHash = self.quoteHash
+        ecoMfd    = self.ecoMfd
+        nDims     = ecoMfd.nDims
+        prdSol    = self.prdSol
+        stdVec    = self.stdVec
+        nMinutes  = prdSol.shape[1]
+
+        assert nMinutes > 0, 'Number of minutes should be positive!'
+
+        self.trendHash = {}
+        
+        for m in range( nDims ):
+            asset    = ecoMfd.velNames[m]
+
+            if asset not in self.assets:
+                continue
+
+            curPrice = quoteHash[ asset ]
+            trend    = 0.0
+            prob     = 0.0
+
+            for i in range( nMinutes ):
+
+                prdPrice = prdSol[m][i]
+                priceStd = stdVec[m]
+
+                if prdPrice > curPrice:
+                    fct = 1.0
+                else:
+                    fct = -1.0
+
+                trend += fct
+
+                tmp1   = curPrice - prdPrice
+                tmp2   = np.sqrt( 2.0 ) * priceStd 
+
+                if tmp2 > 0:
+                    tmp2   = 1.0 / tmp2
+
+                prob  += 0.5 * ( 1.0  - fct * erf( tmp1 * tmp2 ) )
+            
+            trend /= nMinutes
+            prob  /= nMinutes
+            
+            self.trendHash[ asset ] = ( trend, prob )
+            
+        return self.trendHash
+
     def getPortfolio( self ):
 
         t0           = time.time()
@@ -189,7 +241,7 @@ class MfdPrt:
         minProbShort = self.minProbShort
         totAssetVal  = self.totAssetVal 
         nAssets      = len( assets )
-        trendHash    = self.getPrdTrends()
+        trendHash    = self.trendHash
 
         self.optFuncVals = []
         
@@ -201,7 +253,8 @@ class MfdPrt:
                               x0          = guess, 
                               method      = 'SLSQP',
                               tol         = OPT_TOL,
-                              constraints = optCons        )
+                              constraints = optCons,
+                              options     = { 'maxiter' : MAX_ITERS } )
 
         if self.verbose > 0:
             print( results[ 'message' ] )
@@ -246,10 +299,14 @@ class MfdPrt:
 
         strategy = self.strategy
 
-        if strategy == 'mad_con_mfd':
+        if strategy == 'mad':
             optFunc = self.getMadFunc
-        elif strategy == 'gain_mfd':
-            optFunc = self.getFuncGain
+        elif strategy == 'gain':
+            optFunc = self.getGainFunc
+        elif strategy == 'gain_mad':
+            optFunc = self.getGainMadFunc
+        elif strategy == 'prob':
+            optFunc = self.getProbFunc
         else:
             assert False, 'Strategy %s is not known!' % strategy
 
@@ -262,7 +319,7 @@ class MfdPrt:
         minProbShort = self.minProbShort
         assets       = self.assets
         nAssets      = len( assets )
-        trendHash    = self.getPrdTrends()
+        trendHash    = self.trendHash
         cons         = []
         sumFunc      = lambda wts : ( sum( abs( wts ) ) - 1.0 )
 
@@ -280,12 +337,7 @@ class MfdPrt:
             else:
                 continue
 
-            if strategy == 'mad_con_mfd':
-                cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
-
-            if False and strategy == 'mad_con_mfd':
-                gainFunc  = lambda wts : self.wtsGainCheck(  wts, i ) 
-                cons.append( { 'type' : 'ineq', 'fun' : gainFunc  } )
+            cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
 
         return cons
 
@@ -295,7 +347,7 @@ class MfdPrt:
         minProbShort = self.minProbShort
         assets       = self.assets
         nAssets      = len( assets )
-        trendHash    = self.getPrdTrends()
+        trendHash    = self.trendHash
         guess        = np.ones( nAssets )
 
         for i in range( nAssets ):
@@ -312,105 +364,14 @@ class MfdPrt:
  
         return guess
         
-    def getPrdTrends( self ):
-
-        quoteHash = self.quoteHash
-        ecoMfd    = self.ecoMfd
-        nDims     = ecoMfd.nDims
-        prdSol    = self.prdSol
-        stdVec    = self.stdVec
-        nMinutes  = prdSol.shape[1]
-
-        assert nMinutes > 0, 'Number of minutes should be positive!'
-
-        trendHash = {}
-        
-        for m in range( nDims ):
-            asset    = ecoMfd.velNames[m]
-
-            if asset not in self.assets:
-                continue
-
-            curPrice = quoteHash[ asset ]
-            trend    = 0.0
-            prob     = 0.0
-
-            for i in range( nMinutes ):
-
-                prdPrice = prdSol[m][i]
-                priceStd = stdVec[m]
-
-                if prdPrice > curPrice:
-                    fct = 1.0
-                else:
-                    fct = -1.0
-
-                trend += fct
-
-                tmp1   = curPrice - prdPrice
-                tmp2   = np.sqrt( 2.0 ) * priceStd 
-
-                if tmp2 > 0:
-                    tmp2   = 1.0 / tmp2
-
-                prob  += 0.5 * ( 1.0  - fct * erf( tmp1 * tmp2 ) )
-            
-            trend /= nMinutes
-            prob  /= nMinutes
-            
-            trendHash[ asset ] = ( trend, prob )
-            
-        return ( trendHash )
-
-    def wtsRatioCheck( self, wts, assetId ):
-
-        asset     = self.assets[assetId]
-        curPrice  = self.quoteHash[ asset ]
-
-        assert curPrice > 0, 'Price should be positive!'
-        
-        val  = abs( wts[assetId] ) * self.totAssetVal / curPrice 
-        val  = ( int( val ) - val ) * curPrice / self.totAssetVal
-
-        return val
-
-    def wtsGainCheck( self, wts, assetId ):
-
-        ecoMfd      = self.ecoMfd        
-        quoteHash   = self.quoteHash
-        totAssetVal = self.totAssetVal 
-        tradeFee    = self.tradeFee
-        minGainRate = self.minGainRate
-        assets      = self.assets
-        asset       = assets[ assetId ]
-        prdSol      = self.prdSol
-        nAssets     = len( assets )
-        nMinutes    = prdSol.shape[1]
-
-        assert nMinutes > 0, 'Number of minutes should be positive!'
-
-        curPrice = quoteHash[ asset ]
-
-        assert curPrice > 0, 'Price should be positive!'
-            
-        for m in range( ecoMfd.nDims ):
-            if ecoMfd.velNames[m] == asset:
-                break
-
-        assert m < ecoMfd.nDims, 'Asset %s not found in the model!' % asset
-
-        prdPrice = np.mean( prdSol[m] )
-        qty      = wts[assetId] * totAssetVal / curPrice
-        gain     = qty * ( prdPrice - curPrice ) - tradeFee
-        rate     = gain / ( qty * curPrice )
-            
-        return rate - minGainRate
-
     def getMadFunc( self, wts ):
 
         mad = ( self.retDf - self.retDf.mean() ).dot( wts ).abs().mean()
 
-        self.optFuncVals.append( mad )
+        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
+
+        if abs( sumFunc( wts ) ) < OPT_TOL:
+            self.optFuncVals.append( mad )
 
         return mad 
 
@@ -438,13 +399,55 @@ class MfdPrt:
 
             assert m < ecoMfd.nDims, 'Asset %s not found in the model!' % asset
 
-            prdPrice = np.mean( prdSol[m] ) 
-            qty      = int( wts[assetId] * totAssetVal / curPrice )
-            gain    += qty * ( prdPrice - curPrice ) - tradeFee
+            prdPrice = np.mean( prdSol[m] )
 
-        val = -gain
+            curPrice = np.log( curPrice )
+            prdPrice = np.log( prdPrice )
+            gain    += wts[assetId] * ( prdPrice - curPrice ) /  curPrice
 
-        self.optFuncVals.append( val )
+        val = 1.0 / gain
+
+        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
+
+        if abs( sumFunc( wts ) ) < OPT_TOL:
+            self.optFuncVals.append( val )
+
+        return val
+
+    def getGainMadFunc( self, wts ):
+
+        gainInv = self.getGainFunc( wts )
+        mad     = self.getMadFunc(  wts )
+        val     = gainInv * mad
+
+        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
+
+        if abs( sumFunc( wts ) ) < OPT_TOL:
+            self.optFuncVals.append( val )
+
+        return val
+
+    def getProbFunc( self, wts ):
+
+        assets     = self.assets
+        nAssets    = len( assets )
+        trendHash  = self.trendHash
+        val        = 0.0
+
+        for i in range( nAssets ):
+            asset = assets[i]
+            prob  = trendHash[ asset ][1]
+            val  += abs( wts[i] ) * prob
+
+        tmpSum = np.sum( abs( wts ) )
+        val   /= tmpSum
+        val    = 1.0 - val
+
+        assert val >= 0.0, 'Invalid value %f of probability!' % val
+        assert val <= 1.0, 'Invalid value %f of probability!' % val
+
+        if abs( tmpSum - 1.0 ) < OPT_TOL:
+            self.optFuncVals.append( val )
 
         return val
 
@@ -462,6 +465,7 @@ class MfdPrt:
             else:
                 assert False, 'Unknown constraint type!'
 
-    def pltItrers( self ):
-        plt.plot( self.optFuncVals )
+    def pltIters( self ):
+        plt.plot( self.optFuncVals, '-o' )
+        plt.show()
 

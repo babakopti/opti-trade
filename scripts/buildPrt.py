@@ -31,7 +31,7 @@ indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
-assets      = indices + ETFs 
+assets      = ETFs 
 
 modFile     = 'models/model_May_2019.dill'
 
@@ -64,7 +64,7 @@ else:
 
     for asset in assets:
         
-        if asset in [ 'INDU', 'COMPX', 'TRAN' ]:
+        if asset in [ 'INDU', 'COMPX', 'TRAN', 'XLU' ]:
             continue
 
         for m in range( ecoMfd.nDims ):
@@ -94,13 +94,10 @@ mfdPrt = MfdPrt(    modFile      = modFile,
                     quoteHash    = quoteHash,
                     totAssetVal  = totAssetVal, 
                     tradeFee     = tradeFee,
-                    minGainRate  = 0.0,
-                    strategy     = 'mad_con_mfd',
-                    minProbLong  = 0.51,
-                    minProbShort = 0.51,
+                    strategy     = 'mad',
+                    minProbLong  = 0.5,
+                    minProbShort = 0.5,
                     verbose      = 1          )
-
-print( mfdPrt.getPrdTrends() )
 
 #mfdMod = dill.load( open( modFile, 'rb' ) )
 #mfdMod.ecoMfd.pltResults()
