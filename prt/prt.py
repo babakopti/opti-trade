@@ -291,8 +291,6 @@ class MfdPrt:
 
             print( 'Sum of wts:', sum( abs( weights ) ) )
 
-            print( prtHash )
-
         return prtHash
 
     def getOptFunc( self ):
