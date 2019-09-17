@@ -141,8 +141,7 @@ class MfdMod:
 
         sFlag = self.ecoMfd.setGammaVec()
 
-        if not sFlag:
-            print( 'Warning: did not converge!' )
+        assert sFlag, 'Error: did not converge!'
 
         return sFlag
 
