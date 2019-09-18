@@ -33,7 +33,14 @@ ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 
 assets      = ETFs 
 
-modFile     = 'models/model_May_2019.dill'
+modFile     = 'models/model.dill'
+
+# ***********************************************************************
+# Read model file
+# ***********************************************************************
+
+mfdMod      = dill.load( open( modFile, 'rb' ) )
+ecoMfd      = mfdMod.ecoMfd
 
 # ***********************************************************************
 # Get quotes and other info 
@@ -58,13 +65,11 @@ if False:
 else:
     totAssetVal = 500000.0
     tradeFee    = 6.95
-    mfdMod      = dill.load( open( modFile, 'rb' ) )
-    ecoMfd      = mfdMod.ecoMfd
     quoteHash   = {}
 
     for asset in assets:
         
-        if asset in [ 'INDU', 'COMPX', 'TRAN', 'XLU' ]:
+        if asset in [ 'INDU', 'COMPX', 'TRAN' ]:
             continue
 
         for m in range( ecoMfd.nDims ):
@@ -88,13 +93,13 @@ print( quoteHash )
 # ***********************************************************************
 
 mfdPrt = MfdPrt(    modFile      = modFile,
-                    curDate      = '2019-05-25',
-                    endDate      = '2019-06-01', 
+                    curDate      = ecoMfd.maxTrnDate.strftime( '%Y-%m-%d' ),
+                    endDate      = ecoMfd.maxOosDate.strftime( '%Y-%m-%d' ),
                     assets       = list( quoteHash.keys() ),
                     quoteHash    = quoteHash,
                     totAssetVal  = totAssetVal, 
                     tradeFee     = tradeFee,
-                    strategy     = 'mad',
+                    strategy     = 'prob',
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
                     verbose      = 1          )
@@ -102,5 +107,5 @@ mfdPrt = MfdPrt(    modFile      = modFile,
 #mfdMod = dill.load( open( modFile, 'rb' ) )
 #mfdMod.ecoMfd.pltResults()
 
-mfdPrt.getPortfolio()
+print(mfdPrt.getPortfolio())
 mfdPrt.pltIters()

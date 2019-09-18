@@ -22,10 +22,10 @@ from prt.prt import MfdPrt
 
 dfFilePath  = 'data/dfFile.pkl'
 
-nTrnDays    = 21
+nTrnDays    = 84
 nPrdDays    = 7
-bkBegDate   = pd.to_datetime( '2019-06-01 09:00:00' )
-bkEndDate   = pd.to_datetime( '2019-07-31 17:00:00' )
+bkBegDate   = pd.to_datetime( '2018-06-01 09:00:00' )
+bkEndDate   = pd.to_datetime( '2018-08-31 17:00:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -73,9 +73,9 @@ while snapDate <= bkEndDate:
                      maxOosDate   = _maxOosDt,
                      velNames     = velNames,
                      maxOptItrs   = 500,
-                     optGTol      = 5.0e-2,
-                     optFTol      = 5.0e-2,
-                     regCoef      = 1.0e-4,
+                     optGTol      = 1.0e-2,
+                     optFTol      = 1.0e-2,
+                     regCoef      = 1.0e-3,
                      minMerit     = 0.65,
                      maxBias      = 0.10,
                      varFiltFlag  = False,
