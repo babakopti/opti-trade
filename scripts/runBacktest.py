@@ -11,6 +11,8 @@ import pickle
 import numpy as np
 import pandas as pd
 
+from multiprocessing import Process, Pool
+
 sys.path.append( os.path.abspath( '../' ) )
 
 from mod.mfdMod import MfdMod
@@ -20,12 +22,12 @@ from prt.prt import MfdPrt
 # Set some parameters and read data
 # ***********************************************************************
 
-dfFilePath  = 'data/dfFile.pkl'
+dfFilePath  = 'data/dfFile_2017plus.pkl'
 
 nTrnDays    = 84
 nPrdDays    = 7
-bkBegDate   = pd.to_datetime( '2018-06-01 09:00:00' )
-bkEndDate   = pd.to_datetime( '2018-08-31 17:00:00' )
+bkBegDate   = pd.to_datetime( '2018-01-01 09:00:00' )
+bkEndDate   = pd.to_datetime( '2019-08-31 17:00:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -42,35 +44,27 @@ assets      = ETFs
 
 totAssetVal = 1000000.0
 tradeFee    = 6.95
-wtFilePath  = 'weights.pkl'
 
 # ***********************************************************************
-# Run the backtest
+# Utility functions
 # ***********************************************************************
-    
-snapDate      = bkBegDate
-wtHash        = {}
 
-while snapDate <= bkEndDate:
+def buildModPrt( snapDate ):
 
-    while True:
-        if snapDate.isoweekday() not in [ 6, 7 ]:
-            break
-        else:
-            snapDate += datetime.timedelta( days = 1 )
+    minTrnDt    = snapDate - datetime.timedelta( days = nTrnDays )
+    maxTrnDt    = snapDate
+    maxOosDt    = snapDate + datetime.timedelta( days = nPrdDays )
+    modFilePath = 'models/model_' + str( snapDate ) + '.dill'
+    wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
     print( 'Buiding model for snapdate', snapDate )
 
-    t0           = time.time()
-    _minTrnDt    = snapDate - datetime.timedelta( days = nTrnDays )
-    _maxTrnDt    = snapDate
-    _maxOosDt    = snapDate + datetime.timedelta( days = nPrdDays )
-    _modFilePath = 'models/model_' + str( snapDate ) + '.dill'
+    t0     = time.time()
 
     mfdMod = MfdMod( dfFile       = dfFilePath,
-                     minTrnDate   = _minTrnDt,
-                     maxTrnDate   = _maxTrnDt,
-                     maxOosDate   = _maxOosDt,
+                     minTrnDate   = minTrnDt,
+                     maxTrnDate   = maxTrnDt,
+                     maxOosDate   = maxOosDt,
                      velNames     = velNames,
                      maxOptItrs   = 500,
                      optGTol      = 1.0e-2,
@@ -85,7 +79,7 @@ while snapDate <= bkEndDate:
 
     validFlag = mfdMod.build()
 
-    mfdMod.save( _modFilePath )
+    mfdMod.save( modFilePath )
 
     if validFlag:
         print( 'Buiding model took %d seconds!' % ( time.time() - t0 ) )
@@ -94,9 +88,10 @@ while snapDate <= bkEndDate:
 
     print( 'Buiding portfolio for snapdate', snapDate )
 
-    t0         = time.time()
-    ecoMfd     = mfdMod.ecoMfd
-    _quoteHash = {}
+    t0        = time.time()
+    ecoMfd    = mfdMod.ecoMfd
+    quoteHash = {}
+    wtHash    = {}
 
     for asset in assets:
         
@@ -112,13 +107,13 @@ while snapDate <= bkEndDate:
         intercept = tmp[1]
         price     = slope * ecoMfd.actSol[m][-1] + intercept
         
-        _quoteHash[ asset ] = price
+        quoteHash[ asset ] = price
 
-    mfdPrt = MfdPrt( modFile      = _modFilePath,
-                     curDate      = _maxTrnDt,
-                     endDate      = _maxOosDt, 
+    mfdPrt = MfdPrt( modFile      = modFilePath,
+                     curDate      = maxTrnDt,
+                     endDate      = maxOosDt, 
                      assets       = assets,
-                     quoteHash    = _quoteHash,
+                     quoteHash    = quoteHash,
                      totAssetVal  = totAssetVal, 
                      tradeFee     = tradeFee,
                      strategy     = 'mad',
@@ -134,6 +129,29 @@ while snapDate <= bkEndDate:
     
     print( 'Buiding portfolio took %d seconds!' % ( time.time() - t0 ) )
 
-    snapDate = _maxOosDt
+    return 
+
+# ***********************************************************************
+# Run the backtest
+# ***********************************************************************
+    
+snapDate = bkBegDate
+pool     = Pool()
+
+while snapDate <= bkEndDate:
+
+    while True:
+        if snapDate.isoweekday() not in [ 6, 7 ]:
+            break
+        else:
+            snapDate += datetime.timedelta( days = 1 )
+
+    pool.apply_async( buildModPrt, args = ( snapDate, ) )
+
+    snapDate = snapDate + datetime.timedelta( days = nPrdDays )
+
+pool.close()
+pool.join()
+    
 
 

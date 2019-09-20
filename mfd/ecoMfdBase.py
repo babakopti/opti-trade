@@ -215,7 +215,7 @@ class EcoMfdCBase:
                 trmFunc      = trmFuncDict[ varVel ]
                 df[ varVel ] = trmFunc( df[ varVel ] )
 
-            fct          = 1.0e-4
+            fct          = 4.0e-5
             velMax       = np.max(  df[ varVel ] )
             velMin       = np.min(  df[ varVel ] )
             df[ varVel ] = ( df[ varVel ] - velMin ) / ( velMax - velMin )
@@ -492,6 +492,43 @@ class EcoMfdCBase:
         tmpVal   = max( 1.0 - tmpVal, 0.0 )
 
         return tmpVal
+
+    def getOosTrendCnt( self, varNames = None ): 
+
+        if varNames is None:
+            varNames = self.varNames
+
+        nDims     = self.nDims
+        nOosTimes = self.nOosTimes
+        actOosSol = self.actOosSol
+
+        oosOdeObj  = self.getOosSol()
+
+        if oosOdeObj is None:
+            return -np.inf
+
+        oosSol     = oosOdeObj.getSol()
+
+        cnt = 0
+        for varId in range( nDims ):
+
+            varName = self.varNames[varId]
+
+            if varName not in varNames:
+                continue
+
+            actTrend = np.mean( actOosSol[varId] ) - actOosSol[varId][0]
+            prdTrend = np.mean( oosSol[varId] ) - oosSol[varId][0]
+            fct      = actTrend * prdTrend
+            
+            if fct > 0:
+                cnt += 1
+            
+        assert cnt <= nDims, 'Count cannot be more than nDims!' 
+
+        ratio = float( cnt ) / nDims
+
+        return ratio
 
     def getRelBias( self, varId ):
 

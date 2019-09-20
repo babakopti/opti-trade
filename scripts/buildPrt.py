@@ -99,13 +99,13 @@ mfdPrt = MfdPrt(    modFile      = modFile,
                     quoteHash    = quoteHash,
                     totAssetVal  = totAssetVal, 
                     tradeFee     = tradeFee,
-                    strategy     = 'prob',
+                    strategy     = 'mad',
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
                     verbose      = 1          )
 
 #mfdMod = dill.load( open( modFile, 'rb' ) )
 #mfdMod.ecoMfd.pltResults()
-
+print(mfdPrt.trendHash)
 print(mfdPrt.getPortfolio())
 mfdPrt.pltIters()

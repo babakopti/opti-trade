@@ -160,9 +160,10 @@ class MfdMod:
             bias = ecoMfd.getRelBias( m )
             biasVec.append( bias )
 
-        print( 'Manifold merit    :', ecoMfd.getMerit(),    '\n' )
-        print( 'Manifold oos merit:', ecoMfd.getOosMerit(), '\n' )
-        print( 'Manifold max bias :', max( biasVec ),       '\n' )            
+        print( 'Manifold merit    :', ecoMfd.getMerit(),       '\n' )
+        print( 'Manifold oos merit:', ecoMfd.getOosMerit(),    '\n' )
+        print( 'Manifold oos trend match:', ecoMfd.getOosTrendCnt(), '\n' )
+        print( 'Manifold max bias :', max( biasVec ),          '\n' )            
 
         print( ecoMfd.getTimeDf(), '\n' )
 
