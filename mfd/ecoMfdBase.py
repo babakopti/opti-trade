@@ -526,7 +526,7 @@ class EcoMfdCBase:
             
         assert cnt <= nDims, 'Count cannot be more than nDims!' 
 
-        ratio = float( cnt ) / nDims
+        ratio = float( cnt ) / len( varNames )
 
         return ratio
 
