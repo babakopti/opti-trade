@@ -24,10 +24,10 @@ from prt.prt import MfdPrt
 
 dfFilePath  = 'data/dfFile_2017plus.pkl'
 
-nTrnDays    = 84
+nTrnDays    = 360
 nPrdDays    = 7
 bkBegDate   = pd.to_datetime( '2018-01-01 09:00:00' )
-bkEndDate   = pd.to_datetime( '2019-08-31 17:00:00' )
+bkEndDate   = pd.to_datetime( '2018-12-31 17:00:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -67,8 +67,8 @@ def buildModPrt( snapDate ):
                      maxOosDate   = maxOosDt,
                      velNames     = velNames,
                      maxOptItrs   = 500,
-                     optGTol      = 1.0e-2,
-                     optFTol      = 1.0e-2,
+                     optGTol      = 3.0e-2,
+                     optFTol      = 3.0e-2,
                      regCoef      = 1.0e-3,
                      minMerit     = 0.65,
                      maxBias      = 0.10,

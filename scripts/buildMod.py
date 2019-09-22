@@ -23,9 +23,9 @@ dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 dfFile      = 'data/dfFile_2017plus.pkl'
-minTrnDate  = pd.to_datetime( '2017-01-01 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2019-04-10 09:00:00' )
-maxOosDate  = pd.to_datetime( '2019-04-17 23:59:00' )
+minTrnDate  = pd.to_datetime( '2017-01-31 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-01-31 09:00:00' )
+maxOosDate  = pd.to_datetime( '2018-02-07 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -66,8 +66,8 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
                     maxOptItrs   = 1000,
-                    optGTol      = 2.0e-2,
-                    optFTol      = 2.0e-2,
+                    optGTol      = 3.0e-2,
+                    optFTol      = 3.0e-2,
                     regCoef      = 1.0e-3,
                     minMerit     = 0.65,
                     maxBias      = 0.10,
