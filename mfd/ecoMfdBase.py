@@ -380,14 +380,12 @@ class EcoMfdCBase:
 
         yCum   = np.zeros( shape = ( nTimes ), dtype = 'd' )
 
-        for tsId in range( nTimes ):
-
-            if trnFlag:
-                tmpVec = -y[tsId:nTimes]
-            else:
-                tmpVec = y[0:tsId+1]
-
-            yCum[tsId] = trapz( tmpVec, dx = 1.0 )
+        if trnFlag:
+            for tsId in range( nTimes-2, 0, -1 ):
+                yCum[tsId] = yCum[tsId+1] - y[tsId]
+        else:
+            for tsId in range( 1, nTimes ):
+                yCum[tsId] = yCum[tsId-1] + y[tsId]
 
         yCum += self.varOffsets[varId]
                          
