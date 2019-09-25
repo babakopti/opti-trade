@@ -44,7 +44,7 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = indices + ETFs + futures 
+velNames    = indices + ETFs 
 
 modFileName = 'models/model.dill'
 
@@ -66,9 +66,9 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
                     maxOptItrs   = 1000,
-                    optGTol      = 3.0e-2,
-                    optFTol      = 3.0e-2,
-                    regCoef      = 1.0e-3,
+                    optGTol      = 1.0e-4,
+                    optFTol      = 1.0e-4,
+                    regCoef      = 1.0e-5,
                     minMerit     = 0.65,
                     maxBias      = 0.10,
                     varFiltFlag  = False,
