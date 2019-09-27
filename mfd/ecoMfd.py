@@ -145,7 +145,42 @@ class EcoMfdConst( EcoMfdCBase ):
             for tsId in range( nOosTimes ):
                 self.actOosSol[varId][tsId] = oosVec[tsId]
 
-    def getGrad( self, GammaVec ):
+    def getObjFuncAdj( self, GammaVec ):
+
+        assert self.gradType == 'adjoint', 'Internal error!'
+
+        self.statHash[ 'funCnt' ] += 1
+
+        nDims   = self.nDims
+        nTimes  = self.nTimes
+        regCoef = self.regCoef
+        regL1Wt = self.regL1Wt
+        actSol  = self.actSol
+        coefs   = self.varCoefs
+        tmpVec  = self.tmpVec.copy()
+
+        odeObj  = self.getSol( GammaVec )
+        
+        if odeObj is None:
+            return np.inf
+
+        sol     = odeObj.getSol()
+
+        tmpVec.fill( 0.0 )
+        for varId in range( nDims ):
+            tmpVec += coefs[varId] * ( sol[varId][:] - actSol[varId][:] )**2 
+
+        val = 0.5 * trapz( tmpVec, dx = 1.0 )
+
+        tmp1  = np.linalg.norm( GammaVec, 1 )
+        tmp2  = np.linalg.norm( GammaVec )
+        val  += regCoef * ( regL1Wt * tmp1 + ( 1.0 - regL1Wt ) * tmp2**2 )
+
+        return val
+
+    def getGradAdj( self, GammaVec ):
+
+        assert self.gradType == 'adjoint', 'Internal error!'
 
         self.statHash[ 'gradCnt' ] += 1
 
@@ -190,6 +225,115 @@ class EcoMfdConst( EcoMfdCBase ):
                                     ( 1.0 - regL1Wt ) * 2.0 * GammaVec[gammaId] )    
 
                     gammaId += 1
+
+        if self.verbose > 1:
+            print( '\nSetting gradient:', 
+                   round( time.time() - t0, 2 ), 
+                   'seconds.\n'         )
+
+        return grad
+
+    def getObjFuncDir( self, GammaVec ):
+
+        assert self.gradType == 'direct', 'Internal error!'
+
+        self.statHash[ 'funCnt' ] += 1
+
+        nDims   = self.nDims
+        nTimes  = self.nTimes
+        regCoef = self.regCoef
+        regL1Wt = self.regL1Wt
+        actSol  = self.actSol
+        timeInc = self.timeInc
+        rate    = 0.01
+
+        Gamma   = self.getGammaArray( GammaVec )
+        yCurr   = np.empty( shape = ( nDims ), dtype = 'd' )
+
+        for a in range( nDims ):
+            yCurr[a] = actSol[a][0]
+
+        val = 0.0
+        for tsId in range( 1, nTimes ):
+
+            yPrev = yCurr.copy()
+
+            for m in range( nDims ):
+                for a in range( nDims ):
+                    yCurr[m] -= timeInc * yPrev[a] * np.dot( yPrev, Gamma[m][a][:] )
+
+            fct = 0.5 * ( 1.0 + rate )**tsId
+
+            for m in range( nDims ):
+                val += fct * ( yCurr[m] - actSol[m][tsId] )**2
+            
+        tmp1  = np.linalg.norm( GammaVec, 1 )
+        tmp2  = np.linalg.norm( GammaVec )
+        val  += regCoef * ( regL1Wt * tmp1 + ( 1.0 - regL1Wt ) * tmp2**2 )
+
+        return val
+
+    def getGradDir( self, GammaVec ):
+
+        assert self.gradType == 'direct', 'Internal error!'
+
+        self.statHash[ 'gradCnt' ] += 1
+
+        nDims     = self.nDims
+        nTimes    = self.nTimes
+        regCoef   = self.regCoef
+        regL1Wt   = self.regL1Wt
+        timeInc   = self.timeInc
+        nGammaVec = self.nGammaVec
+        rate      = 0.01
+        Gamma     = self.getGammaArray( GammaVec )
+        yCurr     = np.empty( shape = ( nDims ), dtype = 'd' )
+        yGradCurr = np.zeros( shape = ( nGammaVec, nDims ), dtype = 'd' )
+        grad      = np.zeros( shape = ( nGammaVec ), dtype = 'd' )     
+
+        for a in range( nDims ):
+            yCurr[a] = actSol[a][0]
+
+        xi        = lambda a,b: 1.0 if a == b else 2.0
+
+        t0        = time.time()
+
+        for tsId in range( 1, nTimes ):
+
+            yPrev = yCurr.copy()
+            yGradPrev = yGradCurr.copy()
+
+            for m in range( nDims ):
+                for a in range( nDims ):
+                    yCurr[m] -= timeInc * yPrev[a] * np.dot( yPrev, Gamma[m][a][:] )
+                for gammaId in range( nGammaVec ):
+                    yGradCurr[gammaId][m] -= timeInc * ( 2 * np.dot( yPrev, Gamma[m][a][:] )
+                    
+
+            fct     = ( 1.0 + rate )**tsId
+            gammaId = 0
+            for r in range( nDims ):
+                for p in range( nDims ):
+                    for q in range( p, nDims ):
+
+                        if self.diagFlag and r != p and r != q and p != q:
+                            continue
+
+                        grad[gammaId] += fct * xx * ( yVals[m] - actSol[m][tsId] )
+
+                        gammaId += 1
+                        
+
+        gammaId = 0
+        for r in range( nDims ):
+            for p in range( nDims ):
+                for q in range( p, nDims ):
+
+                    if self.diagFlag and r != p and r != q and p != q:
+                        continue
+
+                    grad[gammaId] += regCoef * ( regL1Wt * np.sign( GammaVec[gammaId] ) +\
+                                    ( 1.0 - regL1Wt ) * 2.0 * GammaVec[gammaId] )    
 
         if self.verbose > 1:
             print( '\nSetting gradient:', 

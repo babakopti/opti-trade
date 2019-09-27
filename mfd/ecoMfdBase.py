@@ -39,6 +39,7 @@ class EcoMfdCBase:
                     maxOosDate,
                     trmFuncDict  = {},
                     optType      = 'L-BFGS-B',
+                    gradType     = 'adjoint',
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
@@ -69,8 +70,8 @@ class EcoMfdCBase:
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
         self.trmFuncDict = trmFuncDict 
-        self.optType     = optType,
-        self.optType     = self.optType[0]
+        self.optType     = optType
+        self.gradType    = gradType
         self.maxOptItrs  = maxOptItrs
         self.optGTol     = optGTol
         self.optFTol     = optFTol
@@ -93,6 +94,11 @@ class EcoMfdCBase:
         self.statHash[ 'odeTime' ]    = 0.0
         self.statHash[ 'adjOdeTime' ] = 0.0
         self.statHash[ 'totTime' ]    = 0.0
+
+        if gradType == 'direct':
+            if endBcFlag:
+                print 'Turning off endBcFlag as gradType is direct!'
+                self.endBcFlag = False
 
         self.pcaFlag = False
      
@@ -342,34 +348,21 @@ class EcoMfdCBase:
         
     def getObjFunc( self, GammaVec ):
 
-        self.statHash[ 'funCnt' ] += 1
+        if self.gradType == 'adjoint':
+            return self.getObjFuncAdj( GammaVec )
+        elif self.gradType == 'direct':
+            return self.getObjFuncDir( GammaVec )
+        else:
+            assert False, 'Unkown gradType %s!' % self.gradType
 
-        nDims   = self.nDims
-        nTimes  = self.nTimes
-        regCoef = self.regCoef
-        regL1Wt = self.regL1Wt
-        actSol  = self.actSol
-        coefs   = self.varCoefs
-        tmpVec  = self.tmpVec.copy()
+    def getGrad( self, GammaVec ):
 
-        odeObj  = self.getSol( GammaVec )
-        
-        if odeObj is None:
-            return np.inf
-
-        sol     = odeObj.getSol()
-
-        tmpVec.fill( 0.0 )
-        for varId in range( nDims ):
-            tmpVec += coefs[varId] * ( sol[varId][:] - actSol[varId][:] )**2 
-
-        val = 0.5 * trapz( tmpVec, dx = 1.0 )
-
-        tmp1  = np.linalg.norm( GammaVec, 1 )
-        tmp2  = np.linalg.norm( GammaVec )
-        val  += regCoef * ( regL1Wt * tmp1 + ( 1.0 - regL1Wt ) * tmp2**2 )
-
-        return val
+        if self.gradType == 'adjoint':
+            return self.getGradAdj( GammaVec )
+        elif self.gradType == 'direct':
+            return self.getGradDir( GammaVec )
+        else:
+            assert False, 'Unkown gradType %s!' % self.gradType
 
     def intgVel( self, y, varId, trnFlag = True ):
 
@@ -740,5 +733,14 @@ class EcoMfdCBase:
     def getAdjSol( self, GammaVec ):
         pass
 
-    def getGrad( self, GammaVec ):
+    def getObjFuncAdj( self, GammaVec ):
+        pass
+
+    def getObjFuncDir( self, GammaVec ):
+        pass
+
+    def getGradAdj( self, GammaVec ):
+        pass
+
+    def getGradDir( self, GammaVec ):
         pass
