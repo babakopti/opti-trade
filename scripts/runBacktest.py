@@ -38,7 +38,7 @@ futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
-velNames    = indices + ETFs 
+velNames    = indices + ETFs + futures
 
 assets      = ETFs
 
@@ -77,14 +77,16 @@ def buildModPrt( snapDate ):
                      smoothCount  = None,
                      verbose      = 1          )
 
-    validFlag = mfdMod.build()
+    sFlag = mfdMod.build()
 
     mfdMod.save( modFilePath )
 
-    if validFlag:
+    if sFlag:
         print( 'Buiding model took %d seconds!' % ( time.time() - t0 ) )
     else:
         print( 'Warning: Model did not converge!' )
+        print( 'Warning: Not building a portfolio based on this model!!' )
+        return False
 
     print( 'Buiding portfolio for snapdate', snapDate )
 
@@ -129,7 +131,7 @@ def buildModPrt( snapDate ):
     
     print( 'Buiding portfolio took %d seconds!' % ( time.time() - t0 ) )
 
-    return 
+    return True
 
 # ***********************************************************************
 # Run the backtest

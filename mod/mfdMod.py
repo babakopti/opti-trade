@@ -93,7 +93,10 @@ class MfdMod:
 
         print( 'Building a manifold...' )
 
-        self.setMfd()
+        sFlag = self.setMfd()
+
+        if not sFlag:
+            return sFlag
 
         if self.verbose > 0:
             self.echoMod()
@@ -101,21 +104,29 @@ class MfdMod:
         if self.varFiltFlag:
             dropFlag = self.filtVars()
             if dropFlag:
-                self.setMfd()
+                sFlag = self.setMfd()
+
+                if not sFlag:
+                    return sFlag
+
                 if self.verbose > 0:
                     self.echoMod()
 
         if self.optRegFlag:
             self.regCoef = self.optReg()
-            self.setMfd()
+            sFlag = self.setMfd()
+
+            if not sFlag:
+                return sFlag
+
             if self.verbose > 0:
                 self.echoMod()
 
-        tmpFlag = True
+        sFlag = True
         if self.validFlag:
-            tmpFlag = self.validate()
+            sFlag = self.validate()
 
-        return tmpFlag
+        return sFlag
 
     def setMfd( self ):
 
@@ -141,7 +152,8 @@ class MfdMod:
 
         sFlag = self.ecoMfd.setGammaVec()
 
-        assert sFlag, 'Error: did not converge!'
+        if not sFlag:
+            'Warning: did not converge!'
 
         return sFlag
 
