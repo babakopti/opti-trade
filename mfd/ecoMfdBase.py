@@ -491,10 +491,22 @@ class EcoMfdCBase:
 
         return tmpVal
 
-    def getOosTrendCnt( self, varNames = None ): 
+    def getOosTrendCnt( self ): 
 
-        if varNames is None:
-            varNames = self.varNames
+        perfs = self.getOosTrendPerfs()
+        cnt   = 0
+
+        for varId in range( nDims ):
+            if perfs[varId]:
+                cnt += 1
+
+        assert cnt <= nDims, 'Count cannot be more than nDims!' 
+
+        ratio = float( cnt ) / nDims
+               
+        return ratio
+
+    def getOosTrendPerfs( self ): 
 
         nDims     = self.nDims
         nOosTimes = self.nOosTimes
@@ -507,26 +519,19 @@ class EcoMfdCBase:
 
         oosSol     = oosOdeObj.getSol()
 
-        cnt = 0
+        perfs = []
         for varId in range( nDims ):
-
-            varName = self.varNames[varId]
-
-            if varName not in varNames:
-                continue
 
             actTrend = np.mean( actOosSol[varId] ) - actOosSol[varId][0]
             prdTrend = np.mean( oosSol[varId] ) - oosSol[varId][0]
             fct      = actTrend * prdTrend
             
             if fct > 0:
-                cnt += 1
+                perfs.append( True )
+            else:
+                perfs.append( False )
             
-        assert cnt <= nDims, 'Count cannot be more than nDims!' 
-
-        ratio = float( cnt ) / len( varNames )
-
-        return ratio
+        return perfs
 
     def getRelBias( self, varId ):
 

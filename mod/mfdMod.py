@@ -99,6 +99,36 @@ class MfdMod:
 
         if self.verbose > 0:
             self.echoMod()
+        
+        if not sFlag:
+            return False
+
+        if self.varFiltFlag:
+            dropFlag = self.filtVars()
+            if dropFlag:
+                sFlag = self.setMfd()
+
+                if self.verbose > 0:
+                    self.echoMod()
+
+                if not sFlag:
+                    return False
+
+        if self.optRegFlag:
+            self.regCoef = self.optReg()
+            sFlag = self.setMfd()
+
+            if self.verbose > 0:
+                self.echoMod()
+
+            if not sFlag:
+                return False
+
+        if self.validFlag:
+            sFlag = self.validate()
+
+            if not sFlag:
+                return False
 
         ecoMfd = self.ecoMfd
         merit  = ecoMfd.getMerit()
@@ -121,36 +151,11 @@ class MfdMod:
         if bias > self.maxBias:
             print( 'Bias does not meet criteria' )
             sFlag = False
-        
+
         if not sFlag:
-            return sFlag
+            return False
 
-        if self.varFiltFlag:
-            dropFlag = self.filtVars()
-            if dropFlag:
-                sFlag = self.setMfd()
-
-                if not sFlag:
-                    return sFlag
-
-                if self.verbose > 0:
-                    self.echoMod()
-
-        if self.optRegFlag:
-            self.regCoef = self.optReg()
-            sFlag = self.setMfd()
-
-            if not sFlag:
-                return sFlag
-
-            if self.verbose > 0:
-                self.echoMod()
-
-        sFlag = True
-        if self.validFlag:
-            sFlag = self.validate()
-
-        return sFlag
+        return True
 
     def setMfd( self ):
 

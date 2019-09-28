@@ -188,6 +188,7 @@ class MfdPrt:
         prdSol    = self.prdSol
         stdVec    = self.stdVec
         nMinutes  = prdSol.shape[1]
+        perfs     = self.getOosTrendPerfs()
 
         assert nMinutes > 0, 'Number of minutes should be positive!'
 
@@ -202,6 +203,10 @@ class MfdPrt:
             curPrice = quoteHash[ asset ]
             trend    = 0.0
             prob     = 0.0
+
+            if not perfs[m]:
+                self.trendHash[ asset ] = ( trend, prob )
+                continue
 
             for i in range( nMinutes ):
 
@@ -358,7 +363,7 @@ class MfdPrt:
             elif trend < 0 and prob >= minProbShort:
                 guess[i]  = -1.0
             else:
-                continue
+                guess[i] = 0.0
  
         return guess
         
