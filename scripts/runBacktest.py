@@ -51,9 +51,9 @@ tradeFee    = 6.95
 
 def buildModPrt( snapDate ):
 
-    minTrnDt    = snapDate - datetime.timedelta( days = nTrnDays )
-    maxTrnDt    = snapDate
-    maxOosDt    = snapDate + datetime.timedelta( days = nPrdDays )
+    maxOosDt    = snapDate
+    maxTrnDt    = maxOosDt - datetime.timedelta( days = nPrdDays )
+    minTrnDt    = maxTrnDt - datetime.timedelta( days = nTrnDays )
     modFilePath = 'models/model_' + str( snapDate ) + '.dill'
     wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
@@ -71,6 +71,7 @@ def buildModPrt( snapDate ):
                      optFTol      = 3.0e-2,
                      regCoef      = 1.0e-3,
                      minMerit     = 0.65,
+                     minTrend     = 0.70,
                      maxBias      = 0.10,
                      varFiltFlag  = False,
                      validFlag    = False,
@@ -84,7 +85,7 @@ def buildModPrt( snapDate ):
     if sFlag:
         print( 'Buiding model took %d seconds!' % ( time.time() - t0 ) )
     else:
-        print( 'Warning: Model did not converge!' )
+        print( 'Warning: Model build was unsuccessful!' )
         print( 'Warning: Not building a portfolio based on this model!!' )
         return False
 
@@ -111,9 +112,11 @@ def buildModPrt( snapDate ):
         
         quoteHash[ asset ] = price
 
+    endDt  = snapDate + datetime.timedelta( days = nPrdDays )
+    
     mfdPrt = MfdPrt( modFile      = modFilePath,
-                     curDate      = maxTrnDt,
-                     endDate      = maxOosDt, 
+                     curDate      = snapDate,
+                     endDate      = endDt, 
                      assets       = assets,
                      quoteHash    = quoteHash,
                      totAssetVal  = totAssetVal, 

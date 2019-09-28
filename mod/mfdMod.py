@@ -38,6 +38,7 @@ class MfdMod:
                     optFTol      = 1.0e-8,
                     regCoef      = None,
                     minMerit     = 0.5,
+                    minTrend     = 0.7,
                     maxBias      = 0.2,
                     varFiltFlag  = True,
                     validFlag    = True,
@@ -53,6 +54,7 @@ class MfdMod:
         self.optGTol     = optGTol
         self.optFTol     = optFTol
         self.minMerit    = minMerit
+        self.minTrend    = minTrend
         self.maxBias     = maxBias
         self.varFiltFlag = varFiltFlag
         self.validFlag   = validFlag
@@ -93,8 +95,27 @@ class MfdMod:
 
         print( 'Building a manifold...' )
 
-        sFlag = self.setMfd()
+        sFlag  = self.setMfd()
 
+        ecoMfd = self.ecoMfd
+        merit  = ecoMfd.getMerit()
+        merit  = min( merit, ecoMfd.getOosMerit() )
+        trend  = ecoMfd.getOosTrendCnt()
+        nDims  = ecoMfd.nDims
+        bias   = 0
+
+        for varId in range( nDims ):
+            bias = max( bias, ecoMfd.getRelBias( varId ) )
+        
+        if merit < self.minMerit:
+            sFlag = False
+
+        if trend < self.minTrend:
+            sFlag = False
+            
+        if bias > self.maxBias:
+            sFlag = False
+        
         if not sFlag:
             return sFlag
 
