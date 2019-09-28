@@ -188,7 +188,7 @@ class MfdPrt:
         prdSol    = self.prdSol
         stdVec    = self.stdVec
         nMinutes  = prdSol.shape[1]
-        perfs     = self.getOosTrendPerfs()
+        perfs     = ecoMfd.getOosTrendPerfs()
 
         assert nMinutes > 0, 'Number of minutes should be positive!'
 

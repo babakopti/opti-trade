@@ -72,7 +72,7 @@ def buildModPrt( snapDate ):
                      optFTol      = 3.0e-2,
                      regCoef      = 1.0e-3,
                      minMerit     = 0.0,
-                     minTrend     = 0.70,
+                     minTrend     = 0.50,
                      maxBias      = 1.0,
                      varFiltFlag  = False,
                      validFlag    = False,
