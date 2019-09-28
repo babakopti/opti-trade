@@ -37,9 +37,9 @@ class MfdMod:
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
                     regCoef      = None,
-                    minMerit     = 0.5,
-                    minTrend     = 0.7,
-                    maxBias      = 0.2,
+                    minMerit     = 0.0,
+                    minTrend     = 0.0,
+                    maxBias      = 1.0,
                     varFiltFlag  = True,
                     validFlag    = True,
                     smoothCount  = None,
@@ -97,6 +97,9 @@ class MfdMod:
 
         sFlag  = self.setMfd()
 
+        if self.verbose > 0:
+            self.echoMod()
+
         ecoMfd = self.ecoMfd
         merit  = ecoMfd.getMerit()
         merit  = min( merit, ecoMfd.getOosMerit() )
@@ -108,19 +111,19 @@ class MfdMod:
             bias = max( bias, ecoMfd.getRelBias( varId ) )
         
         if merit < self.minMerit:
+            print( 'Merit does not meet criteria!' )
             sFlag = False
 
         if trend < self.minTrend:
+            print( 'Trend does not need criteria!' )
             sFlag = False
             
         if bias > self.maxBias:
+            print( 'Bias does not meet criteria' )
             sFlag = False
         
         if not sFlag:
             return sFlag
-
-        if self.verbose > 0:
-            self.echoMod()
 
         if self.varFiltFlag:
             dropFlag = self.filtVars()
@@ -174,7 +177,7 @@ class MfdMod:
         sFlag = self.ecoMfd.setGammaVec()
 
         if not sFlag:
-            'Warning: did not converge!'
+            print( 'Warning: did not converge!' )
 
         return sFlag
 

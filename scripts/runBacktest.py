@@ -25,6 +25,7 @@ from prt.prt import MfdPrt
 dfFilePath  = 'data/dfFile_2017plus.pkl'
 
 nTrnDays    = 360
+nOosDays    = 7
 nPrdDays    = 7
 bkBegDate   = pd.to_datetime( '2018-01-01 09:00:00' )
 bkEndDate   = pd.to_datetime( '2018-12-31 17:00:00' )
@@ -52,7 +53,7 @@ tradeFee    = 6.95
 def buildModPrt( snapDate ):
 
     maxOosDt    = snapDate
-    maxTrnDt    = maxOosDt - datetime.timedelta( days = nPrdDays )
+    maxTrnDt    = maxOosDt - datetime.timedelta( days = nOosDays )
     minTrnDt    = maxTrnDt - datetime.timedelta( days = nTrnDays )
     modFilePath = 'models/model_' + str( snapDate ) + '.dill'
     wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
@@ -70,9 +71,9 @@ def buildModPrt( snapDate ):
                      optGTol      = 3.0e-2,
                      optFTol      = 3.0e-2,
                      regCoef      = 1.0e-3,
-                     minMerit     = 0.65,
+                     minMerit     = 0.0,
                      minTrend     = 0.70,
-                     maxBias      = 0.10,
+                     maxBias      = 1.0,
                      varFiltFlag  = False,
                      validFlag    = False,
                      smoothCount  = None,
@@ -80,14 +81,14 @@ def buildModPrt( snapDate ):
 
     sFlag = mfdMod.build()
 
-    mfdMod.save( modFilePath )
-
     if sFlag:
         print( 'Buiding model took %d seconds!' % ( time.time() - t0 ) )
     else:
         print( 'Warning: Model build was unsuccessful!' )
         print( 'Warning: Not building a portfolio based on this model!!' )
         return False
+
+    mfdMod.save( modFilePath )
 
     print( 'Buiding portfolio for snapdate', snapDate )
 
