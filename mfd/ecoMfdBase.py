@@ -493,6 +493,7 @@ class EcoMfdCBase:
 
     def getOosTrendCnt( self ): 
 
+        nDims = self.nDims
         perfs = self.getOosTrendPerfs()
         cnt   = 0
 
