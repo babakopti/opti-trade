@@ -204,10 +204,6 @@ class MfdPrt:
             trend    = 0.0
             prob     = 0.0
 
-            if not perfs[m]:
-                self.trendHash[ asset ] = ( trend, prob )
-                continue
-
             for i in range( nMinutes ):
 
                 prdPrice = prdSol[m][i]
@@ -230,9 +226,12 @@ class MfdPrt:
             
             trend /= nMinutes
             prob  /= nMinutes
-            
-            self.trendHash[ asset ] = ( trend, prob )
-            
+        
+            if perfs[m]:
+                self.trendHash[ asset ] = ( trend, prob )
+            else:
+                self.trendHash[ asset ] = ( trend, prob )
+                
         return self.trendHash
 
     def getPortfolio( self ):
@@ -363,7 +362,7 @@ class MfdPrt:
             elif trend < 0 and prob >= minProbShort:
                 guess[i]  = -1.0
             else:
-                guess[i] = 0.0
+                guess[i] = 1.0
  
         return guess
         
