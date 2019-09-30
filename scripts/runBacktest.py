@@ -26,7 +26,7 @@ modFlag     = False
 dfFilePath  = 'data/dfFile_2017plus.pkl'
 
 nTrnDays    = 360
-nOosDays    = 7
+nOosDays    = 3
 nPrdDays    = 7
 bkBegDate   = pd.to_datetime( '2018-01-03 09:00:00' )
 bkEndDate   = pd.to_datetime( '2018-12-31 17:00:00' )
@@ -60,7 +60,7 @@ def buildModPrt( snapDate ):
     wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
     if modFlag:
-        print( 'Buiding model for snapdate', snapDate )
+        print( 'Building model for snapdate', snapDate )
 
         t0     = time.time()
 
@@ -74,7 +74,7 @@ def buildModPrt( snapDate ):
                          optFTol      = 3.0e-2,
                          regCoef      = 1.0e-3,
                          minMerit     = 0.0,
-                         minTrend     = 0.0,
+                         minTrend     = 0.7,
                          maxBias      = 1.0,
                          varFiltFlag  = False,
                          validFlag    = False,
@@ -84,7 +84,7 @@ def buildModPrt( snapDate ):
         sFlag = mfdMod.build()
 
         if sFlag:
-            print( 'Buiding model took %d seconds!' % ( time.time() - t0 ) )
+            print( 'Building model took %d seconds!' % ( time.time() - t0 ) )
         else:
             print( 'Warning: Model build was unsuccessful!' )
             print( 'Warning: Not building a portfolio based on this model!!' )
@@ -94,7 +94,7 @@ def buildModPrt( snapDate ):
     else:
         mfdMod = dill.load( open( modFilePath, 'rb' ) )
 
-    print( 'Buiding portfolio for snapdate', snapDate )
+    print( 'Building portfolio for snapdate', snapDate )
 
     t0        = time.time()
     ecoMfd    = mfdMod.ecoMfd
@@ -126,7 +126,7 @@ def buildModPrt( snapDate ):
                      quoteHash    = quoteHash,
                      totAssetVal  = totAssetVal, 
                      tradeFee     = tradeFee,
-                     strategy     = 'mad',
+                     strategy     = 'gain',
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
                      verbose      = 1          )
@@ -137,7 +137,7 @@ def buildModPrt( snapDate ):
 
     pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    
     
-    print( 'Buiding portfolio took %d seconds!' % ( time.time() - t0 ) )
+    print( 'Building portfolio took %d seconds!' % ( time.time() - t0 ) )
 
     return True
 
