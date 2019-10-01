@@ -22,11 +22,11 @@ from prt.prt import MfdPrt
 # Set some parameters and read data
 # ***********************************************************************
 
-modFlag     = False
+modFlag     = True
 dfFilePath  = 'data/dfFile_2017plus.pkl'
 
 nTrnDays    = 360
-nOosDays    = 3
+nOosDays    = 7
 nPrdDays    = 7
 bkBegDate   = pd.to_datetime( '2018-01-03 09:00:00' )
 bkEndDate   = pd.to_datetime( '2018-12-31 17:00:00' )
@@ -74,7 +74,7 @@ def buildModPrt( snapDate ):
                          optFTol      = 3.0e-2,
                          regCoef      = 1.0e-3,
                          minMerit     = 0.0,
-                         minTrend     = 0.7,
+                         minTrend     = 0.0,
                          maxBias      = 1.0,
                          varFiltFlag  = False,
                          validFlag    = False,
@@ -126,7 +126,7 @@ def buildModPrt( snapDate ):
                      quoteHash    = quoteHash,
                      totAssetVal  = totAssetVal, 
                      tradeFee     = tradeFee,
-                     strategy     = 'gain',
+                     strategy     = 'mad',
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
                      verbose      = 1          )

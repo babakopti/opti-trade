@@ -27,7 +27,7 @@ from scipy.optimize import minimize
 
 ODE_TOL   = 1.0e-2
 OPT_TOL   = 1.0e-9
-MAX_ITERS = 5000
+MAX_ITERS = 10000
 
 # ***********************************************************************
 # Class MfdPrt: Model object for a manifold based portfolio
@@ -230,7 +230,7 @@ class MfdPrt:
             if perfs[m]:
                 self.trendHash[ asset ] = ( trend, prob )
             else:
-                self.trendHash[ asset ] = ( trend, prob )
+                self.trendHash[ asset ] = ( -trend, prob )
                 
         return self.trendHash
 
@@ -362,7 +362,7 @@ class MfdPrt:
             elif trend < 0 and prob >= minProbShort:
                 guess[i]  = -1.0
             else:
-                guess[i] = 1.0
+                guess[i] = 0.0
  
         return guess
         
