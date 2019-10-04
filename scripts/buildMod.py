@@ -19,13 +19,19 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
+diffFlag    = False
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
-dfFile      = 'data/dfFile_2017plus.pkl'
-minTrnDate  = pd.to_datetime( '2017-01-31 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2018-01-31 09:00:00' )
-maxOosDate  = pd.to_datetime( '2018-02-07 23:59:00' )
+
+if diffFlag:
+    dfFile  = 'data/dfFile_2017plus_diff.pkl'
+else:
+    dfFile  = 'data/dfFile_2017plus.pkl'
+
+minTrnDate  = pd.to_datetime( '2017-03-31 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-03-31 09:00:00' )
+maxOosDate  = pd.to_datetime( '2018-04-07 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -44,9 +50,17 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = indices + ETFs 
+velNames    = ETFs + indices
 
-modFileName = 'models/model.dill'
+if diffFlag:
+    nDims = len( velNames )
+    for m in range( nDims ):
+        velNames[m] = velNames[m] + '_Diff'
+
+if diffFlag:
+    modFileName = 'models/model_diff.dill'
+else:
+    modFileName = 'models/model.dill'
 
 # ***********************************************************************
 # Get data and save to pickle file
@@ -68,12 +82,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxOptItrs   = 1000,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
-                    regCoef      = 1.0e-5,
-                    minMerit     = 0.65,
-                    maxBias      = 0.10,
-                    varFiltFlag  = False,
-                    validFlag    = False,
-                    smoothCount  = None,
+                    regCoef      = 1.0e-2,
                     verbose      = 1          )
 
 validFlag = mfdMod.build()
