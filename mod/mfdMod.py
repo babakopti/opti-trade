@@ -40,8 +40,8 @@ class MfdMod:
                     minMerit     = 0.0,
                     minTrend     = 0.0,
                     maxBias      = 1.0,
-                    varFiltFlag  = True,
-                    validFlag    = True,
+                    varFiltFlag  = False,
+                    validFlag    = False,
                     smoothCount  = None,
                     verbose      = 1          ):
 
