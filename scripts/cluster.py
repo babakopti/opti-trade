@@ -84,7 +84,7 @@ def metric( X ):
             if fct > 0:
                 fct = 1.0 / fct
 
-            mat[i,j] = abs( np.dot( vecA, vecB ) ) * fct
+            mat[i,j] = 1.0 - fct * abs( np.dot( vecA, vecB ) )
             mat[j,i] = mat[i,j]
 
     np.save( matFile, mat )
