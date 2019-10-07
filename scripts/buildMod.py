@@ -19,7 +19,7 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-diffFlag    = False
+diffFlag    = True
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
@@ -50,7 +50,7 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = ETFs + indices
+velNames    = ETFs 
 
 if diffFlag:
     nDims = len( velNames )
@@ -61,6 +61,11 @@ if diffFlag:
     modFileName = 'models/model_diff.dill'
 else:
     modFileName = 'models/model.dill'
+
+if diffFlag:
+    factor = 1.0e-6
+else:
+    factor = 4.0e-05
 
 # ***********************************************************************
 # Get data and save to pickle file
@@ -82,6 +87,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxOptItrs   = 1000,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
+                    factor       = factor,
                     regCoef      = 1.0e-2,
                     verbose      = 1          )
 
@@ -91,4 +97,4 @@ print( 'Success :', validFlag )
 
 mfdMod.save( modFileName )
 
-mfdMod.ecoMfd.pltResults( rType = 'all', pType = 'vel' )
+mfdMod.ecoMfd.pltResults( rType = 'oos', pType = 'var' )

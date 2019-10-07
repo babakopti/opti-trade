@@ -36,6 +36,7 @@ class MfdMod:
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
+                    factor       = 4.0e-5,
                     regCoef      = None,
                     minMerit     = 0.0,
                     minTrend     = 0.0,
@@ -68,6 +69,8 @@ class MfdMod:
             self.regCoef    = regCoef
             self.optRegFlag = False
         
+        self.factor   = factor
+
         self.velNames = velNames
 
         self.varNames = []
@@ -172,6 +175,7 @@ class MfdMod:
                               optGTol      = self.optGTol,
                               optFTol      = self.optFTol,
                               stepSize     = 1.0,
+                              factor       = self.factor,
                               regCoef      = self.regCoef,
                               regL1Wt      = 0.0,
                               nPca         = None,
@@ -291,6 +295,7 @@ class MfdMod:
                                  optGTol      = self.optGTol,
                                  optFTol      = self.optFTol,
                                  stepSize     = 1.0,
+                                 factor       = self.factor,
                                  regCoef      = regCoef,
                                  regL1Wt      = 0.0,
                                  nPca         = None,

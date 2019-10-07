@@ -43,6 +43,7 @@ class EcoMfdCBase:
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
                     stepSize     = 1.0,
+                    factor       = 4.0e-5,
                     regCoef      = 0.0,
                     regL1Wt      = 0.0,
                     nPca         = None,
@@ -75,6 +76,7 @@ class EcoMfdCBase:
         self.optGTol     = optGTol
         self.optFTol     = optFTol
         self.stepSize    = stepSize
+        self.factor      = factor
         self.regCoef     = regCoef
         self.regL1Wt     = regL1Wt
         self.endBcFlag   = endBcFlag
@@ -215,7 +217,7 @@ class EcoMfdCBase:
                 trmFunc      = trmFuncDict[ varVel ]
                 df[ varVel ] = trmFunc( df[ varVel ] )
 
-            fct          = 4.0e-5
+            fct          = self.factor
             velMax       = np.max(  df[ varVel ] )
             velMin       = np.min(  df[ varVel ] )
             df[ varVel ] = ( df[ varVel ] - velMin ) / ( velMax - velMin )
