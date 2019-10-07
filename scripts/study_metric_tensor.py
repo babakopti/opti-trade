@@ -117,3 +117,17 @@ outDf = pd.DataFrame( { 'Var1'   : varList1,
 print( outDf.head() )
 
 outDf.to_csv( 'lin_scores.csv' )
+
+sumDf = pd.DataFrame(df.groupby( ['Var1'] )[ 'sScore' ].mean())
+sumDf = sumDf.sort_values( [ 'sScore' ], ascending = [ False ] )
+
+sumDf[ 'Var1' ] = sumDf.index
+
+tmpHash = {}
+
+for i in range( sumDf.shape[0] ):
+    if sumDf.Var1[i] in ETFs:
+        tmpHash[sumDf.Var1[i]] = sumDf.sScore[i]
+
+print( tmpHash )
+
