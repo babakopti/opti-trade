@@ -207,7 +207,8 @@ class MfdMod:
 
         print( 'Manifold merit    :', ecoMfd.getMerit(),       '\n' )
         print( 'Manifold oos merit:', ecoMfd.getOosMerit(),    '\n' )
-        print( 'Manifold oos trend match:', ecoMfd.getOosTrendCnt(), '\n' )
+        print( 'Manifold oos velocity trend match:', ecoMfd.getOosTrendCnt( 'vel' ), '\n' )
+        print( 'Manifold oos variable trend match:', ecoMfd.getOosTrendCnt( 'var' ), '\n' )
         print( 'Manifold max bias :', max( biasVec ),          '\n' )            
 
         print( ecoMfd.getTimeDf(), '\n' )

@@ -46,6 +46,7 @@ class MfdPrt:
                     strategy     = 'mad',
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
+                    vType        = 'vel',
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
@@ -58,10 +59,17 @@ class MfdPrt:
 
         assert self.endDate > self.curDate,\
             'endDate should be larger than curDate!'
+        
+        if vType == 'vel':
+            self.vList = self.ecoMfd.velNames
+        elif vType == 'var':
+            self.vList = self.ecoMfd.varNames
+        else:
+            assert False, 'Unknown vType %s' % vType
 
         self.assets    = []
         for asset in assets:
-            if asset not in self.ecoMfd.velNames:
+            if asset not in self.vList:
                 print( 'Dropping', asset, '; not found in the model', modFile )
                 continue
             if asset not in quoteHash:
@@ -110,7 +118,7 @@ class MfdPrt:
         nTimes     = ecoMfd.nTimes
 
         for m in range( ecoMfd.nDims ):
-            asset     = ecoMfd.velNames[m]
+            asset     = self.vList[m]
             
             if asset not in self.assets:
                 continue
@@ -150,7 +158,7 @@ class MfdPrt:
         prdSol   = odeObj.getSol()
 
         for m in range( ecoMfd.nDims ):
-            asset     = ecoMfd.velNames[m]
+            asset     = self.vList[m]
             tmp       = ecoMfd.deNormHash[ asset ]
             slope     = tmp[0]
             intercept = tmp[1]
@@ -171,7 +179,7 @@ class MfdPrt:
         stdVec = ecoMfd.getConstStdVec()
 
         for m in range( ecoMfd.nDims ):
-            asset     = ecoMfd.velNames[m]
+            asset     = self.vList[m]
             tmp       = ecoMfd.deNormHash[ asset ]
             slope     = tmp[0]
             stdVec[m] = slope * stdVec[m]
@@ -195,7 +203,7 @@ class MfdPrt:
         self.trendHash = {}
         
         for m in range( nDims ):
-            asset    = ecoMfd.velNames[m]
+            asset    = self.vList[m]
 
             if asset not in self.assets:
                 continue
@@ -396,7 +404,7 @@ class MfdPrt:
             assert curPrice > 0, 'Price should be positive!'
             
             for m in range( ecoMfd.nDims ):
-                if ecoMfd.velNames[m] == asset:
+                if self.vList[m] == asset:
                     break
 
             assert m < ecoMfd.nDims, 'Asset %s not found in the model!' % asset

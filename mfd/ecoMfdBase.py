@@ -493,10 +493,10 @@ class EcoMfdCBase:
 
         return tmpVal
 
-    def getOosTrendCnt( self ): 
+    def getOosTrendCnt( self, vType = 'var' ): 
 
         nDims = self.nDims
-        perfs = self.getOosTrendPerfs()
+        perfs = self.getOosTrendPerfs( vType )
         cnt   = 0
 
         for varId in range( nDims ):
@@ -509,7 +509,7 @@ class EcoMfdCBase:
                
         return ratio
 
-    def getOosTrendPerfs( self ): 
+    def getOosTrendPerfs( self, vType = 'var' ): 
 
         nDims     = self.nDims
         nOosTimes = self.nOosTimes
@@ -523,10 +523,17 @@ class EcoMfdCBase:
         oosSol     = oosOdeObj.getSol()
 
         perfs = []
-        for varId in range( nDims ):
 
-            actTrend = np.mean( actOosSol[varId] ) - actOosSol[varId][0]
-            prdTrend = np.mean( oosSol[varId] ) - oosSol[varId][0]
+        for varId in range( nDims ):
+            if vType == 'var':
+                yAct = self.intgVel( actOosSol[varId], varId, False )
+                y    = self.intgVel( oosSol[varId],    varId, False )
+            else:
+                yAct = actOosSol[varId]
+                y    = oosSol[varId]
+
+            actTrend = np.mean( yAct ) - actOosSol[varId][0]
+            prdTrend = np.mean( y ) - oosSol[varId][0]
             fct      = actTrend * prdTrend
             
             if fct > 0:
