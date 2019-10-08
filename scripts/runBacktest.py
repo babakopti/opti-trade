@@ -22,8 +22,13 @@ from prt.prt import MfdPrt
 # Set some parameters and read data
 # ***********************************************************************
 
+diffFlag    = True
 modFlag     = True
-dfFilePath  = 'data/dfFile_2017plus.pkl'
+
+if diffFlag:
+    dfFile  = 'data/dfFile_2017plus_diff.pkl'
+else:
+    dfFile  = 'data/dfFile_2017plus.pkl'
 
 nTrnDays    = 360
 nOosDays    = 7
@@ -42,8 +47,19 @@ ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 
 velNames    = indices + ETFs + futures
 
-assets      = ETFs
+if diffFlag:
+    nDims = len( velNames )
+    for m in range( nDims ):
+        velNames[m] = velNames[m] + '_Diff'
 
+if diffFlag:
+    factor = 1.0e-6
+    vType  = 'var'
+else:
+    factor = 4.0e-05
+    vType  = 'vel'
+
+assets      = ETFs
 totAssetVal = 1000000.0
 tradeFee    = 6.95
 
@@ -64,7 +80,7 @@ def buildModPrt( snapDate ):
 
         t0     = time.time()
 
-        mfdMod = MfdMod( dfFile       = dfFilePath,
+        mfdMod = MfdMod( dfFile       = dfFile,
                          minTrnDate   = minTrnDt,
                          maxTrnDate   = maxTrnDt,
                          maxOosDate   = maxOosDt,
@@ -73,6 +89,7 @@ def buildModPrt( snapDate ):
                          optGTol      = 3.0e-2,
                          optFTol      = 3.0e-2,
                          regCoef      = 1.0e-3,
+                         factor       = factor,
                          minMerit     = 0.0,
                          minTrend     = 0.0,
                          maxBias      = 1.0,
@@ -104,8 +121,12 @@ def buildModPrt( snapDate ):
     for asset in assets:
         
         for m in range( ecoMfd.nDims ):
-            if ecoMfd.velNames[m] == asset:
-                break
+            if diffFlag:
+                if ecoMfd.varNames[m] == asset:
+                    break
+            else:
+                if ecoMfd.velNames[m] == asset:
+                    break
 
         assert m < ecoMfd.nDims, \
             'Asset %s not found in the model!' % asset
@@ -129,6 +150,7 @@ def buildModPrt( snapDate ):
                      strategy     = 'mad',
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
+                     vType        = vType,
                      verbose      = 1          )
 
     dateKey = snapDate.strftime( '%Y-%m-%d' )
@@ -140,6 +162,21 @@ def buildModPrt( snapDate ):
     print( 'Building portfolio took %d seconds!' % ( time.time() - t0 ) )
 
     return True
+
+# ***********************************************************************
+# A worker function
+# ***********************************************************************
+
+def worker(snapDate):
+
+    sFlag = False
+    try:
+        sFlag = buildModPrt( snapDate )
+    except Exception as e:
+        print( e )
+
+    if not sFlag:
+        print( 'ALERT: Processing of %s was unsuccessful!' )
 
 # ***********************************************************************
 # Run the backtest
@@ -156,7 +193,7 @@ while snapDate <= bkEndDate:
         else:
             snapDate += datetime.timedelta( days = 1 )
 
-    pool.apply_async( buildModPrt, args = ( snapDate, ) )
+    pool.apply_async( worker, args = ( snapDate, ) )
 
     snapDate = snapDate + datetime.timedelta( days = nPrdDays )
 
