@@ -195,6 +195,11 @@ class EcoMfdCBase:
         self.nTimes      = self.trnDf.shape[0]
         self.nOosTimes   = self.oosDf.shape[0]
 
+        try:
+            self.setVarOffsets()
+        except Exception as e:
+            print( e )
+
         if self.verbose > 0:
             print( '\nSetting data frame:', 
                    round( time.time() - t0, 2 ), 
@@ -244,6 +249,34 @@ class EcoMfdCBase:
         self.nDims = self.nPca
 
         return df
+
+    def setVarOffsets( self ):
+
+        nDims          = self.nDims
+        nTimes         = self.nTimes
+        dateName       = self.dateName
+        varNames       = self.varNames
+        trnDf          = self.trnDf
+        dfFile         = self.dfFile
+
+        fileExt        = dfFile.split( '.' )[-1]
+
+        if fileExt == 'csv':
+            df = pd.read_csv( dfFile ) 
+        elif fileExt == 'pkl':
+            df = pd.read_pickle( dfFile ) 
+        else:
+            assert False, 'Unknown input file extension %s' % fileExt
+
+        df             = df[ [dateName] + varNames ]
+        df[ dateName ] = pd.to_datetime( df[ dateName ] )
+        df             = df.interpolate( method = 'linear' )
+        df             = trnDf.merge( df, how = 'left', on = dateName )
+        df             = df[ varNames ]
+
+        for m in range( nDims ):
+            varName            = varNames[m]
+            self.varOffsets[m] = list( df[varName] )[nTimes-1]
         
     def setGammaVec( self ):
 
@@ -392,6 +425,26 @@ class EcoMfdCBase:
         yCum += self.varOffsets[varId]
                          
         return yCum
+
+    def intgVelStd( self, velStd, nTimes, trnFlag = True ):
+
+        if trnFlag:
+            assert nTimes == self.nTimes, 'Incorrect size!'
+
+        varStdVec = np.zeros( shape = ( nTimes ), dtype = 'd' )
+
+        varStdVec.fill( velStd**2 )
+
+        if trnFlag:
+            for tsId in range( nTimes-2, 0, -1 ):
+                varStdVec[tsId] = varStdVec[tsId+1] + velStd**2
+        else:
+            for tsId in range( 1, nTimes ):
+                varStdVec[tsId] = varStdVec[tsId-1] + velStd**2
+
+        varStdVec = np.sqrt( varStdVec )
+
+        return varStdVec
 
     def getMerit( self, varNames = None ): 
 

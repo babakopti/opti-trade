@@ -23,11 +23,7 @@ diffFlag    = True
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
-
-if diffFlag:
-    dfFile  = 'data/dfFile_2017plus_diff.pkl'
-else:
-    dfFile  = 'data/dfFile_2017plus.pkl'
+dfFile      = 'data/dfFile_2017plus_all.pkl'
 
 minTrnDate  = pd.to_datetime( '2017-03-31 09:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-03-31 09:00:00' )

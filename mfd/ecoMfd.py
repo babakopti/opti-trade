@@ -349,6 +349,8 @@ class EcoMfdConst( EcoMfdCBase ):
                  begDate  = None, 
                  initVels = None    ):
 
+        assert False, 'This routine is broken because of stdVec stuff!'
+
         nDims       = self.nDims
         nSteps      = self.nSteps
         dateName    = self.dateName
@@ -461,31 +463,31 @@ class EcoMfdConst( EcoMfdCBase ):
             yAct     = actSol[m]
             yOos     = oosSol[m]
             yActOos  = actOosSol[m]
-            yLow     = y    - 1.0 * stdVec[m] 
-            yHigh    = y    + 1.0 * stdVec[m] 
-            yLowOos  = yOos - 1.0 * stdVec[m] 
-            yHighOos = yOos + 1.0 * stdVec[m] 
 
             ( slope, intercept ) = self.deNormHash[ velName ]
             invFunc  = lambda x : slope * x + intercept
             y        = invFunc( y )
             yAct     = invFunc( yAct )
-            yLow     = invFunc( yLow )
-            yHigh    = invFunc( yHigh )
             yOos     = invFunc( yOos )
             yActOos  = invFunc( yActOos )
-            yLowOos  = invFunc( yLowOos )
-            yHighOos = invFunc( yHighOos )
+            
+            velStd   = slope * stdVec[m]
+            yLow     = y    - 1.0 * velStd
+            yHigh    = y    + 1.0 * velStd
+            yLowOos  = yOos - 1.0 * velStd
+            yHighOos = yOos + 1.0 * velStd
 
             if pType == 'var':
-                y        = self.intgVel( y,        m, True  )
-                yAct     = self.intgVel( yAct,     m, True  )
-                yLow     = self.intgVel( yLow,     m, True  )
-                yHigh    = self.intgVel( yHigh,    m, True  )
-                yOos     = self.intgVel( yOos,     m, False )
-                yActOos  = self.intgVel( yActOos,  m, False )
-                yLowOos  = self.intgVel( yLowOos,  m, False )
-                yHighOos = self.intgVel( yHighOos, m, False )
+                y         = self.intgVel( y,        m, True  )
+                yAct      = self.intgVel( yAct,     m, True  )
+                yOos      = self.intgVel( yOos,     m, False )
+                yActOos   = self.intgVel( yActOos,  m, False )
+                varStd    = self.intgVelStd( velStd, nTimes, True )
+                varStdOos = self.intgVelStd( velStd, nOosTimes, False )
+                yLow      = y    - 1.0 * varStd
+                yHigh     = y    + 1.0 * varStd
+                yLowOos   = yOos - 1.0 * varStdOos
+                yHighOos  = yOos + 1.0 * varStdOos
 
             if rType == 'trn':
                 plt.plot( x,    y,       'r',
