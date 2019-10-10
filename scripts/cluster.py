@@ -4,6 +4,7 @@
 
 import sys
 import os
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -15,11 +16,12 @@ from utils import getPiDf
 # Set some parameters and read data
 # ***********************************************************************
 
-nClusters   = 3
+nClusters   = 4
 matFlag     = True
 
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 matFile     = 'mat.npy'
+clustFile   = 'clusters.pkl'
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -111,7 +113,10 @@ model.fit( X )
 labels = model.labels_
 cltDf  = pd.DataFrame( { 'varName' : varNames, 'label' : labels } )
 
+clusters = []
 for label in np.unique( labels ):
     varNames = list( cltDf[ cltDf.label == label ].varName )
     print( 'Cluster', label, ':', varNames )
+    clusters.append( varNames )
 
+pickle.dump( clusters, open( clustFile, 'wb' ) )

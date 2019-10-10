@@ -197,8 +197,8 @@ class EcoMfdCBase:
 
         try:
             self.setVarOffsets()
-        except Exception as e:
-            print( e )
+        except:
+            pass
 
         if self.verbose > 0:
             print( '\nSetting data frame:', 

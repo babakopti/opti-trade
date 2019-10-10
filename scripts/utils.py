@@ -13,7 +13,7 @@ import pandas as pd
 # Some definitions
 # ***********************************************************************
 
-MIN_PI_ROWS = 1000000
+MIN_PI_ROWS = 100000
 
 # ***********************************************************************
 # getQuandlDf(): Get a df from quandl data
