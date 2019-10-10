@@ -71,7 +71,7 @@ else:
 if diffFlag:
     factor = 1.0e-6
 else:
-    factor = 4.0e-5
+    factor = 5.0e-3
 
 # ***********************************************************************
 # Get data and save to pickle file

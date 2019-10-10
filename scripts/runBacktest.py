@@ -42,8 +42,15 @@ indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+recentETFs  = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'BBH', 
+                'GDX', 'OIH', 'PPH', 'RTH', 'RSX', 'SMH', 
+                'XLE', 'XLF', 'XLV', 'XLU', 'FXI', 'TLT', 
+                'EEM', 'EWJ', 'IYR', 'FXE', 'SDS', 'SLV', 
+                'GLD', 'USO', 'UNG', 'TNA', 'TZA', 'FAS', 
+                'FAZ'                                      ]
 
 velNames    = indices + ETFs + futures
 
@@ -56,7 +63,7 @@ if diffFlag:
     factor = 1.0e-6
     vType  = 'var'
 else:
-    factor = 4.0e-05
+    factor = 1.0e-02
     vType  = 'vel'
 
 assets      = ETFs
@@ -88,7 +95,7 @@ def buildModPrt( snapDate ):
                          maxOptItrs   = 500,
                          optGTol      = 3.0e-2,
                          optFTol      = 3.0e-2,
-                         regCoef      = 1.0e-3,
+                         regCoef      = 1.0e-4,
                          factor       = factor,
                          minMerit     = 0.0,
                          minTrend     = 0.0,
