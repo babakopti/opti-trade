@@ -16,6 +16,7 @@ from utils import getPiDf
 # Set some parameters and read data
 # ***********************************************************************
 
+trendFlag   = True
 minDate     = pd.to_datetime( '2012-01-01' )
 leap        = 5000
 
@@ -42,15 +43,35 @@ forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
 varNames    = ETFs + indices
 
 # ***********************************************************************
-# Loop through vars and plot metric over time
+# Some trend plots
+# ***********************************************************************
+
+if False:
+    for varName in varNames:
+        df   = getPiDf( piDir, [ varName ] )
+        vec  = np.array( df[ varName ] )
+        nVec = len( vec )
+        t    = np.linspace( 0, nVec - 1 , nVec )
+        X    = t.reshape( ( nVec, 1 ) )
+
+        linReg = LinearRegression( fit_intercept = True )
+        linReg.fit( X, vec )
+        trend  = linReg.predict( X ) 
+
+        plt.plot( t, vec, 'b', t, trend, 'r' )
+        plt.xlabel( 'Minutes' )
+        plt.ylabel( varName )
+        plt.show()
+
+# ***********************************************************************
+# Plot correlations vs. time
 # ***********************************************************************
 
 begId    = 0
 nVars    = len( varNames )
 varList1 = []
 varList2 = []
-sScores  = []
-mScores  = []
+scores   = []
 
 for i in range( nVars ):
     for j in range( i + 1, nVars ):
@@ -58,16 +79,10 @@ for i in range( nVars ):
         tmpList = [ varNames[i], varNames[j] ]
         df      = getPiDf( piDir, tmpList )
         df      = df.dropna()
- 
         nTimes  = df.shape[0]
-        nLeaps  = 0
-        dates   = []
-        sVals   = []
-        mVals   = []
+        xVals   = []
         yVals   = []
         for tsId in range( begId, nTimes, leap ):
-
-            nLeaps += 1
 
             vecA = np.array( df[ tmpList[0] ] )[:tsId+1]
             vecB = np.array( df[ tmpList[1] ] )[:tsId+1]
@@ -76,58 +91,61 @@ for i in range( nVars ):
             if pd.to_datetime( date ) < minDate:
                 continue
 
+            nVec   = len( vecA )
+            t      = np.linspace( 0, nVec - 1 , nVec )
+            X      = t.reshape( ( nVec, 1 ) )
+
+            linReg = LinearRegression( fit_intercept = True )
+            linReg.fit( X, vecA )
+            trendA = linReg.predict( X ) 
+
+            linReg = LinearRegression( fit_intercept = True )
+            linReg.fit( X, vecB )
+            trendB = linReg.predict( X ) 
+
+            vecA = vecA - trendA
+            vecB = vecB - trendB
             fct  = np.linalg.norm( vecA ) * np.linalg.norm( vecB )
 
             if fct > 0:
                 fct = 1.0 / fct
 
-            dates.append( date )
-            sVals.append( np.sum( vecA ) + np.sum( vecB ) )
-            mVals.append( np.sum( vecA ) * np.sum( vecB ) )
+            xVals.append( tsId )
             yVals.append( fct * abs( np.dot( vecA, vecB ) ) )
 
-        X = np.array( sVals )
-        X = X.reshape( ( len( sVals ), 1 ) )
-        y = np.array( yVals )
+        xVals  = np.array( xVals )
+        yVals  = np.array( yVals )
+        X      = xVals.reshape( ( len( xVals ), 1 ) )
         linReg = LinearRegression( fit_intercept = True )
-        linReg.fit( X, y )
 
-        sScore = linReg.score( X, y )
+        linReg.fit( X, yVals )
 
-        X = np.array( mVals )
-        X = X.reshape( ( len( mVals ), 1 ) )
-        y = np.array( yVals )
-        linReg = LinearRegression( fit_intercept = True )
-        linReg.fit( X, y )
-
-        mScore = linReg.score( X, y )
+        score  = linReg.score( X, yVals )
+        prds   = linReg.predict( X ) 
 
         varList1.append( varNames[i] )
         varList2.append( varNames[j] )
-        sScores.append( sScore )
-        mScores.append( mScore )
-
-        print( sScore, mScore )
-
-outDf = pd.DataFrame( { 'Var1'   : varList1,
-                        'Var2'   : varList2,
-                        'sScore' : sScores,
-                        'mScore' : mScores } )
+        scores.append( score )
         
-print( outDf.head() )
+        print( varNames[i], varNames[j], score )
+
+        if False:
+            plt.plot( xVals, yVals, 'b', xVals, prds, 'r' )
+            plt.xlabel( 'Minutes' )
+            plt.ylabel( tmpList[0] + '_' + tmpList[1] )
+            plt.title( 'R2 = ' + str( round( score, 2 ) ) )
+            plt.show()
+
+outDf = pd.DataFrame( { 'Var1'  : varList1,
+                        'Var2'  : varList2,
+                        'score' : scores   } )
 
 outDf.to_csv( 'lin_scores.csv' )
 
-sumDf = pd.DataFrame(df.groupby( ['Var1'] )[ 'sScore' ].mean())
-sumDf = sumDf.sort_values( [ 'sScore' ], ascending = [ False ] )
+sumDf = pd.DataFrame( outDf.groupby( ['Var1'] )[ 'score' ].mean())
+sumDf = sumDf.sort_values( [ 'score' ], ascending = [ False ] )
 
 sumDf[ 'Var1' ] = sumDf.index
 
-tmpHash = {}
-
-for i in range( sumDf.shape[0] ):
-    if sumDf.Var1[i] in ETFs:
-        tmpHash[sumDf.Var1[i]] = sumDf.sScore[i]
-
-print( tmpHash )
+print( sumDf )
 
