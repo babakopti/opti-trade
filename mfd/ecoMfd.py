@@ -62,6 +62,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     varCoefs     = None,
                     srcCoefs     = None,
                     srcTerm      = None,
+                    mode         = 'intraday',
                     verbose      = 1     ):
 
         EcoMfdCBase.__init__(  self,
@@ -86,6 +87,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                varCoefs     = varCoefs,
                                srcCoefs     = srcCoefs,
                                srcTerm      = srcTerm,
+                               mode         = mode,
                                verbose      = verbose     )
 
         self.diagFlag    = diagFlag

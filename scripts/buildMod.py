@@ -19,15 +19,20 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
+mode        = 'day'
 diffFlag    = False
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
-dfFile      = 'data/dfFile_2017plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2017-01-01 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2018-03-31 09:00:00' )
-maxOosDate  = pd.to_datetime( '2018-04-07 23:59:00' )
+if mode == 'day':
+    dfFile  = 'data/dfFile.pkl'
+else:
+    dfFile  = 'data/dfFile_2017plus.pkl'
+
+minTrnDate  = pd.to_datetime( '2008-01-01 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-12-31 09:00:00' )
+maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -53,7 +58,7 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = ETFs + indices
+velNames    = recentETFs + indices
 
 if diffFlag:
     nDims = len( velNames )
@@ -71,8 +76,11 @@ else:
 if diffFlag:
     factor = 1.0e-6
 else:
-    factor = 5.0e-3
-
+    if mode == 'day':
+        factor = 5.0e-4
+    else:
+        factor = 5.0e-3
+    
 # ***********************************************************************
 # Get data and save to pickle file
 # ***********************************************************************
@@ -96,6 +104,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     optFTol      = 2.0e-2,
                     factor       = factor,
                     regCoef      = 1.0e-5,
+                    mode         = 'day',
                     verbose      = 1          )
 
 validFlag = mfdMod.build()

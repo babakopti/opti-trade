@@ -47,6 +47,7 @@ class MfdPrt:
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
                     vType        = 'vel',
+                    mode         = 'intraday',
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
@@ -98,6 +99,7 @@ class MfdPrt:
 
         self.minProbLong  = minProbLong
         self.minProbShort = minProbShort
+        self.mode         = mode
         self.verbose      = verbose
         self.retDf        = None
         self.prdSol       = None
@@ -133,17 +135,21 @@ class MfdPrt:
 
     def setPrdSol( self ):
         
-        ecoMfd   = self.ecoMfd
-        Gamma    = ecoMfd.getGammaArray( ecoMfd.GammaVec )
-        bcVec    = ecoMfd.endSol
-        nDays    = ( self.endDate - self.curDate ).days
-        nMinutes = int( nDays * 8 * 60 )
+        ecoMfd    = self.ecoMfd
+        Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
+        bcVec     = ecoMfd.endSol
+        nDays     = ( self.endDate - self.curDate ).days
+
+        if self.mode == 'day':
+            nPrdTimes = nDays
+        else:
+            nPrdTimes = int( nDays * 8 * 60 )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = bcVec,
                                 bcTime   = 0.0,
                                 timeInc  = 1.0,
-                                nSteps   = nMinutes - 1,
+                                nSteps   = nPrdTimes - 1,
                                 intgType = 'LSODA',
                                 tol      = ODE_TOL,
                                 verbose  = self.verbose       )
@@ -163,7 +169,7 @@ class MfdPrt:
             slope     = tmp[0]
             intercept = tmp[1]
             
-            for i in range( nMinutes ):
+            for i in range( nPrdTimes ):
                 prdSol[m][i] = slope * prdSol[m][i] + intercept
 
         assert prdSol.shape[0] == ecoMfd.nDims, 'Inconsistent prdSol size!'
@@ -195,10 +201,10 @@ class MfdPrt:
         nDims     = ecoMfd.nDims
         prdSol    = self.prdSol
         stdVec    = self.stdVec
-        nMinutes  = prdSol.shape[1]
+        nPrdTimes = prdSol.shape[1]
         perfs     = ecoMfd.getOosTrendPerfs()
 
-        assert nMinutes > 0, 'Number of minutes should be positive!'
+        assert nPrdTimes > 0, 'nPrdTimes should be positive!'
 
         self.trendHash = {}
         
@@ -212,7 +218,7 @@ class MfdPrt:
             trend    = 0.0
             prob     = 0.0
 
-            for i in range( nMinutes ):
+            for i in range( nPrdTimes ):
 
                 prdPrice = prdSol[m][i]
                 priceStd = stdVec[m]
@@ -232,8 +238,8 @@ class MfdPrt:
 
                 prob  += 0.5 * ( 1.0  - fct * erf( tmp1 * tmp2 ) )
             
-            trend /= nMinutes
-            prob  /= nMinutes
+            trend /= nPrdTimes
+            prob  /= nPrdTimes
         
             if perfs[m]:
                 self.trendHash[ asset ] = ( trend, prob )

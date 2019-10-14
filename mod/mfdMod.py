@@ -44,6 +44,7 @@ class MfdMod:
                     varFiltFlag  = False,
                     validFlag    = False,
                     smoothCount  = None,
+                    mode         = 'intraday',
                     verbose      = 1          ):
 
 
@@ -59,6 +60,7 @@ class MfdMod:
         self.maxBias     = maxBias
         self.varFiltFlag = varFiltFlag
         self.validFlag   = validFlag
+        self.mode        = mode
         self.verbose     = verbose
         self.ecoMfd      = None
         
@@ -181,6 +183,7 @@ class MfdMod:
                               nPca         = None,
                               diagFlag     = DIAG_FLAG,
                               endBcFlag    = True,
+                              mode         = self.mode,
                               verbose      = self.verbose        )        
 
         sFlag = self.ecoMfd.setGammaVec()
@@ -302,6 +305,7 @@ class MfdMod:
                                  nPca         = None,
                                  diagFlag     = DIAG_FLAG,
                                  endBcFlag    = True,
+                                 mode         = self.mode,
                                  verbose      = self.verbose        )
 
             ecoMfds.append( ecoMfd )

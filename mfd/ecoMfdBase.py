@@ -51,6 +51,7 @@ class EcoMfdCBase:
                     varCoefs     = None,
                     srcCoefs     = None,
                     srcTerm      = None,
+                    mode         = 'intraday',
                     verbose      = 1     ):
 
         assert len( varNames ) == len( velNames ),\
@@ -80,6 +81,7 @@ class EcoMfdCBase:
         self.regCoef     = regCoef
         self.regL1Wt     = regL1Wt
         self.endBcFlag   = endBcFlag
+        self.mode        = mode
         self.verbose     = verbose
         self.trnDf       = None
         self.oosDf       = None
@@ -155,6 +157,17 @@ class EcoMfdCBase:
         minDt          = pd.to_datetime( self.minTrnDate )
         maxDt          = pd.to_datetime( self.maxTrnDate )
         maxOosDt       = pd.to_datetime( self.maxOosDate )
+
+        if self.mode == 'day':
+            tmpFunc        = lambda x : pd.to_datetime( x ).date()
+            df[ 'tmp' ]    = df[ dateName ].apply( tmpFunc )
+            df             = df.groupby( [ 'tmp' ] )[ velNames ].mean()
+            df[ dateName ] = df.index
+            df             = df.reset_index( drop = True )
+        elif self.mode == 'intraday':
+            pass
+        else:
+            print( 'Mode %s is not supported!' % self.mode )
         
         df             = df[ [ dateName ] + velNames ]
         df[ dateName ] = pd.to_datetime( df[ dateName ] )
