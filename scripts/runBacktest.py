@@ -45,14 +45,13 @@ futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 recentETFs  = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'BBH', 
-                'GDX', 'OIH', 'PPH', 'RTH', 'RSX', 'SMH', 
-                'XLE', 'XLF', 'XLV', 'XLU', 'FXI', 'TLT', 
-                'EEM', 'EWJ', 'IYR', 'FXE', 'SDS', 'SLV', 
-                'GLD', 'USO', 'UNG', 'TNA', 'TZA', 'FAS', 
-                'FAZ'                                      ]
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
+                'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
+                'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
+                'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
+                'TZA', 'FAS'                               ]
 
-velNames    = indices + ETFs + futures
+velNames    = indices + ETFs 
 
 if diffFlag:
     nDims = len( velNames )

@@ -43,18 +43,18 @@ futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 recentETFs  = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'BBH', 
-                'GDX', 'OIH', 'PPH', 'RTH', 'RSX', 'SMH', 
-                'XLE', 'XLF', 'XLV', 'XLU', 'FXI', 'TLT', 
-                'EEM', 'EWJ', 'IYR', 'FXE', 'SDS', 'SLV', 
-                'GLD', 'USO', 'UNG', 'TNA', 'TZA', 'FAS', 
-                'FAZ'                                      ]
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
+                'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
+                'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
+                'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
+                'TZA', 'FAS'                               ]
 
 stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
                 'CSCO', 'KO',  'XOM',  'GS',  'HD',  'INTC',
                 'IBM', 'JNJ',  'JPM',  'MCD', 'MRK', 'MSFT', 
                 'NKE', 'PFE',  'PG',   'TRV', 'UTX', 'UNH', 
                 'VZ',  'WMT',  'WBA', 'DIS'                ]
+
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
