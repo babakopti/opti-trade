@@ -33,8 +33,8 @@ else:
 nTrnDays    = 360
 nOosDays    = 7
 nPrdDays    = 7
-bkBegDate   = pd.to_datetime( '2018-01-03 09:00:00' )
-bkEndDate   = pd.to_datetime( '2018-12-31 17:00:00' )
+bkBegDate   = pd.to_datetime( '2018-01-02 09:00:00' )
+bkEndDate   = pd.to_datetime( '2019-06-30 17:00:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
