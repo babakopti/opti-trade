@@ -30,7 +30,7 @@ if mode == 'day':
 else:
     dfFile  = 'data/dfFile_2017plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2008-01-01 09:00:00' )
+minTrnDate  = pd.to_datetime( '2002-01-01 09:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-12-31 09:00:00' )
 maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
 
@@ -58,7 +58,7 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = recentETFs + indices
+velNames    = ETFs + indices + futures
 
 if diffFlag:
     nDims = len( velNames )

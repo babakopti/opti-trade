@@ -13,7 +13,7 @@ import pandas as pd
 # Some definitions
 # ***********************************************************************
 
-MIN_PI_ROWS = 100000
+MIN_PI_ROWS = 1000000
 
 # ***********************************************************************
 # getQuandlDf(): Get a df from quandl data
@@ -113,11 +113,9 @@ def getPiDf( piDir, velNames ):
 
     if pFlag:
         pDf[ 'Date' ] = pDf.Date.apply( lambda x:datetime.datetime.strptime( x, '%m/%d/%Y' ) )
-        pDf = pDf.dropna()
         pDf = pDf.sort_values( [ 'Date' ], ascending = [ True ] )
         pDf = pDf.reset_index( drop = True )
         pDf = pDf.interpolate( method = 'linear' )
-
 
     print( 'Done with getting intraday data! ; Time =',
            round( time.time() - t0, 2 ) )
