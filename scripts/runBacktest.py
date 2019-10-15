@@ -22,7 +22,7 @@ from prt.prt import MfdPrt
 # Set some parameters and read data
 # ***********************************************************************
 
-diffFlag    = True
+diffFlag    = False
 modFlag     = True
 
 if diffFlag:
@@ -33,7 +33,7 @@ else:
 nTrnDays    = 360
 nOosDays    = 7
 nPrdDays    = 7
-bkBegDate   = pd.to_datetime( '2018-01-02 09:00:00' )
+bkBegDate   = pd.to_datetime( '2018-01-03 09:00:00' )
 bkEndDate   = pd.to_datetime( '2019-06-30 17:00:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
@@ -41,9 +41,6 @@ indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',
                 'TYX',  'HUI', 'XAU'                       ] 
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
-
-recentETFs  = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
                 'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
@@ -62,7 +59,7 @@ if diffFlag:
     factor = 1.0e-6
     vType  = 'var'
 else:
-    factor = 1.0e-02
+    factor = 1.0e-05
     vType  = 'vel'
 
 assets      = ETFs
@@ -96,12 +93,6 @@ def buildModPrt( snapDate ):
                          optFTol      = 3.0e-2,
                          regCoef      = 1.0e-4,
                          factor       = factor,
-                         minMerit     = 0.0,
-                         minTrend     = 0.0,
-                         maxBias      = 1.0,
-                         varFiltFlag  = False,
-                         validFlag    = False,
-                         smoothCount  = None,
                          verbose      = 1          )
         
         sFlag = mfdMod.build()
@@ -182,7 +173,7 @@ def worker(snapDate):
         print( e )
 
     if not sFlag:
-        print( 'ALERT: Processing of %s was unsuccessful!' )
+        print( 'ALERT: Processing of %s was unsuccessful!' % snapDate )
 
 # ***********************************************************************
 # Run the backtest
