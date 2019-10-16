@@ -19,7 +19,7 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-mode        = 'day'
+mode        = 'intraday'
 diffFlag    = False
 dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
@@ -30,7 +30,7 @@ if mode == 'day':
 else:
     dfFile  = 'data/dfFile_2017plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2002-01-01 09:00:00' )
+minTrnDate  = pd.to_datetime( '2018-10-01 09:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-12-31 09:00:00' )
 maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
 
@@ -77,9 +77,9 @@ if diffFlag:
     factor = 1.0e-6
 else:
     if mode == 'day':
-        factor = 5.0e-4
+        factor = 1.0e-2
     else:
-        factor = 5.0e-3
+        factor = 1.0e-4
     
 # ***********************************************************************
 # Get data and save to pickle file
@@ -104,7 +104,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     optFTol      = 2.0e-2,
                     factor       = factor,
                     regCoef      = 1.0e-5,
-                    mode         = 'day',
+                    mode         = mode,
                     verbose      = 1          )
 
 validFlag = mfdMod.build()
