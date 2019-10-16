@@ -68,6 +68,8 @@ class MfdPrt:
         else:
             assert False, 'Unknown vType %s' % vType
 
+        self.vType = vType
+
         self.assets    = []
         for asset in assets:
             if asset not in self.vList:
@@ -202,7 +204,7 @@ class MfdPrt:
         prdSol    = self.prdSol
         stdVec    = self.stdVec
         nPrdTimes = prdSol.shape[1]
-        perfs     = ecoMfd.getOosTrendPerfs()
+        perfs     = ecoMfd.getOosTrendPerfs( self.vType )
 
         assert nPrdTimes > 0, 'nPrdTimes should be positive!'
 

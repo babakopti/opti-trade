@@ -559,7 +559,7 @@ class EcoMfdCBase:
 
         return tmpVal
 
-    def getOosTrendCnt( self, vType = 'var' ): 
+    def getOosTrendCnt( self, vType = 'vel' ): 
 
         nDims = self.nDims
         perfs = self.getOosTrendPerfs( vType )
@@ -575,7 +575,7 @@ class EcoMfdCBase:
                
         return ratio
 
-    def getOosTrendPerfs( self, vType = 'var' ): 
+    def getOosTrendPerfs( self, vType = 'vel' ): 
 
         nDims     = self.nDims
         nOosTimes = self.nOosTimes
