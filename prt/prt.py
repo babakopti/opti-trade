@@ -37,29 +37,18 @@ class MfdPrt:
 
     def __init__(   self,
                     modFile,
-                    curDate,
-                    endDate,
                     assets,
-                    quoteHash,
+                    nPrdTimes,
                     totAssetVal, 
                     tradeFee     = 0.0,
                     strategy     = 'mad',
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
                     vType        = 'vel',
-                    mode         = 'intraday',
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
         self.ecoMfd    = self.mfdMod.ecoMfd
-        self.curDate   = pd.to_datetime( curDate )
-        self.endDate   = pd.to_datetime( endDate )
-
-        assert self.curDate > pd.to_datetime( self.ecoMfd.minTrnDate ),\
-            'minTrnDate should be before curDate!'
-
-        assert self.endDate > self.curDate,\
-            'endDate should be larger than curDate!'
         
         if vType == 'vel':
             self.vList = self.ecoMfd.velNames
@@ -75,17 +64,10 @@ class MfdPrt:
             if asset not in self.vList:
                 print( 'Dropping', asset, '; not found in the model', modFile )
                 continue
-            if asset not in quoteHash:
-                print( 'Dropping', asset, '; not found in quoteHash!' )
-                continue
 
             self.assets.append( asset )
 
-        for asset in quoteHash:
-            assert quoteHash[ asset ] > 0, 'Price should be positive!'
-
-        self.quoteHash = quoteHash
-
+        self.nPrdTimes   = nPrdTimes
         self.totAssetVal = totAssetVal
         self.tradeFee    = tradeFee
 
@@ -101,17 +83,18 @@ class MfdPrt:
 
         self.minProbLong  = minProbLong
         self.minProbShort = minProbShort
-        self.mode         = mode
         self.verbose      = verbose
         self.retDf        = None
         self.prdSol       = None
         self.stdVec       = None
         self.optFuncVals  = None
+        self.quoteHash    = None
         self.trendHash    = None
 
         self.setRetDf()
         self.setPrdSol()
         self.setPrdStd()
+        self.setQuoteHash()
         self.setPrdTrends()
 
     def setRetDf( self ):
@@ -119,7 +102,9 @@ class MfdPrt:
         self.retDf = pd.DataFrame()
         ecoMfd     = self.ecoMfd
         actSol     = ecoMfd.actSol
+        actOosSol  = ecoMfd.actOosSol
         nTimes     = ecoMfd.nTimes
+        nOosTimes  = ecoMfd.nOosTimes
 
         for m in range( ecoMfd.nDims ):
             asset     = self.vList[m]
@@ -136,16 +121,16 @@ class MfdPrt:
             self.retDf[ asset ] = np.log( df[ asset ] ).pct_change().dropna()
 
     def setPrdSol( self ):
-        
-        ecoMfd    = self.ecoMfd
-        Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
-        bcVec     = ecoMfd.endSol
-        nDays     = ( self.endDate - self.curDate ).days
 
-        if self.mode == 'day':
-            nPrdTimes = nDays
-        else:
-            nPrdTimes = int( nDays * 8 * 60 )
+        nPrdTimes = self.nPrdTimes        
+        ecoMfd    = self.ecoMfd
+        nDims     = ecoMfd.nDims
+        actOosSol = ecoMfd.actOosSol
+        Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
+        bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
+
+        for m in range( ecoMfd.nDims ):
+            bcVec[m]  = actOosSol[m][-1] 
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = bcVec,
@@ -196,6 +181,25 @@ class MfdPrt:
 
         return stdVec
 
+    def setQuoteHash( self ):
+
+        ecoMfd    = self.ecoMfd
+        nDims     = ecoMfd.nDims
+        actOosSol = ecoMfd.actOosSol
+        quoteHash = {}
+
+        for m in range( nDims ):
+            asset     = self.vList[m]
+            tmp       = ecoMfd.deNormHash[ asset ]
+            slope     = tmp[0]
+            intercept = tmp[1]
+
+            quoteHash[ asset ] = slope * actOosSol[m][-1] + intercept 
+
+        self.quoteHash = quoteHash
+
+        return quoteHash
+
     def setPrdTrends( self ):
 
         quoteHash = self.quoteHash
@@ -209,7 +213,7 @@ class MfdPrt:
         assert nPrdTimes > 0, 'nPrdTimes should be positive!'
 
         self.trendHash = {}
-        
+
         for m in range( nDims ):
             asset    = self.vList[m]
 
@@ -295,7 +299,8 @@ class MfdPrt:
             asset    = assets[i]
             curPrice = quoteHash[ asset ]
             
-            assert curPrice > 0, 'Price should be positive!'
+            assert curPrice > 0, 'Price for %s should be positive instead found %s!' \
+                % ( asset, curPrice )
 
             qty      = int( weights[i] * totAssetVal / curPrice )
 
@@ -499,7 +504,7 @@ class MfdPrt:
             trend = trendHash[ asset ][0]
             val   = trend * wt
 
-            assert val >= 0, \
+            assert val >= -OPT_TOL, \
                 'The weight %0.4f for asset %s does not match predicted trend!' \
                 % ( wt, asset )
 

@@ -62,7 +62,7 @@ if diffFlag:
     factor = 1.0e-6
     vType  = 'var'
 else:
-    factor = 1.0e-05
+    factor = 4.0e-05
     vType  = 'vel'
 
 assets      = ETFs
@@ -113,38 +113,17 @@ def buildModPrt( snapDate ):
 
     print( 'Building portfolio for snapdate', snapDate )
 
-    t0        = time.time()
-    ecoMfd    = mfdMod.ecoMfd
-    quoteHash = {}
-    wtHash    = {}
-
-    for asset in assets:
-        
-        for m in range( ecoMfd.nDims ):
-            if diffFlag:
-                if ecoMfd.varNames[m] == asset:
-                    break
-            else:
-                if ecoMfd.velNames[m] == asset:
-                    break
-
-        assert m < ecoMfd.nDims, \
-            'Asset %s not found in the model!' % asset
-
-        tmp       = ecoMfd.deNormHash[ asset ]
-        slope     = tmp[0]
-        intercept = tmp[1]
-        price     = slope * ecoMfd.actSol[m][-1] + intercept
-        
-        quoteHash[ asset ] = price
-
+    t0     = time.time()
+    wtHash = {}
+    curDt  = snapDate
     endDt  = snapDate + datetime.timedelta( days = nPrdDays )
-    
+    nDays  = ( endDt - curDt ).days
+
+    nPrdTimes   = int( nDays * 8 * 60 )
+
     mfdPrt = MfdPrt( modFile      = modFilePath,
-                     curDate      = snapDate,
-                     endDate      = endDt, 
                      assets       = assets,
-                     quoteHash    = quoteHash,
+                     nPrdTimes    = nPrdTimes,
                      totAssetVal  = totAssetVal, 
                      tradeFee     = tradeFee,
                      strategy     = 'mad',

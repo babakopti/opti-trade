@@ -43,60 +43,23 @@ mfdMod      = dill.load( open( modFile, 'rb' ) )
 ecoMfd      = mfdMod.ecoMfd
 
 # ***********************************************************************
-# Get quotes and other info 
+# Get some info 
 # ***********************************************************************
 
-if False:
-    etrade = Etrade( 'configs/config.ini', sandBox = False )
-
-    totAssetVal = etrade.getTotalValue()
-    tradeFee    = 6.95
-    quoteHash   = {}
-
-    for asset in assets:
-        price = etrade.getQuote( asset ) 
-
-        if price is None:
-            print( 'Skipping', asset, '...' )
-            continue
-
-        quoteHash[ asset ] = etrade.getQuote( asset )
-
-else:
-    totAssetVal = 1000000.0
-    tradeFee    = 6.95
-    quoteHash   = {}
-
-    for asset in assets:
-        
-        if asset in [ 'INDU', 'COMPX', 'TRAN' ]:
-            continue
-
-        for m in range( ecoMfd.nDims ):
-            if ecoMfd.velNames[m] == asset:
-                break
-
-        assert m < ecoMfd.nDims, \
-            'Asset %s not found in the model!' % asset
-
-        tmp       = ecoMfd.deNormHash[ asset ]
-        slope     = tmp[0]
-        intercept = tmp[1]
-        price     = slope * ecoMfd.actOosSol[m][-1] + intercept
-        
-        quoteHash[ asset ] = price
-
-print( quoteHash )
+totAssetVal = 1000000
+tradeFee    = 6.99
+curDate     = ecoMfd.maxTrnDate
+endDate     = ecoMfd.maxOosDate
+nDays       = ( endDate - curDate ).days
+nPrdTimes   = int( nDays * 8 * 60 )
 
 # ***********************************************************************
 # Build a portfolio
 # ***********************************************************************
 
 mfdPrt = MfdPrt(    modFile      = modFile,
-                    curDate      = ecoMfd.maxTrnDate.strftime( '%Y-%m-%d' ),
-                    endDate      = ecoMfd.maxOosDate.strftime( '%Y-%m-%d' ),
-                    assets       = list( quoteHash.keys() ),
-                    quoteHash    = quoteHash,
+                    assets       = assets,
+                    nPrdTimes    = nPrdTimes,
                     totAssetVal  = totAssetVal, 
                     tradeFee     = tradeFee,
                     strategy     = 'mad',
