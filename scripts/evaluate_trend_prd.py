@@ -69,9 +69,9 @@ for item in modFiles:
         tmpVec = np.array( tmpDf[ asset ] )
         trend  = trendHash[ asset ][0]
 
-        assert quoteHash[ asset ] == tmpVec[0], \
-            'Inconsistent quote price for %s model %s' \
-            % ( asset, item )
+        assert abs( quoteHash[ asset ] - tmpVec[0] ) < 0.01, \
+            'Inconsistent quote price for %s model %s; %0.2f vs %0.2f' \
+            % ( asset, item, quoteHash[ asset ], tmpVec[0] )
 
         fct    = trend * ( np.mean( tmpVec ) - tmpVec[0] )
         
