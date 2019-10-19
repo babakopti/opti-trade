@@ -33,7 +33,7 @@ ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 
 assets      = ETFs 
 
-modFile     = 'models/model.dill'
+modFile     = 'model_2018-01-03 09:00:00.dill'
 
 # ***********************************************************************
 # Read model file
@@ -63,7 +63,7 @@ if False:
         quoteHash[ asset ] = etrade.getQuote( asset )
 
 else:
-    totAssetVal = 500000.0
+    totAssetVal = 1000000.0
     tradeFee    = 6.95
     quoteHash   = {}
 
@@ -82,7 +82,7 @@ else:
         tmp       = ecoMfd.deNormHash[ asset ]
         slope     = tmp[0]
         intercept = tmp[1]
-        price     = slope * ecoMfd.actSol[m][-1] + intercept
+        price     = slope * ecoMfd.actOosSol[m][-1] + intercept
         
         quoteHash[ asset ] = price
 
@@ -108,4 +108,5 @@ mfdPrt = MfdPrt(    modFile      = modFile,
 #mfdMod.ecoMfd.pltResults()
 print(mfdPrt.trendHash)
 print(mfdPrt.getPortfolio())
-mfdPrt.pltIters()
+print(mfdPrt.assets)
+#mfdPrt.pltIters()

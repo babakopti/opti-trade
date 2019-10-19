@@ -26,7 +26,7 @@ from scipy.optimize import minimize
 # ***********************************************************************
 
 ODE_TOL   = 1.0e-2
-OPT_TOL   = 1.0e-9
+OPT_TOL   = 1.0e-6
 MAX_ITERS = 10000
 
 # ***********************************************************************
@@ -246,6 +246,7 @@ class MfdPrt:
             if perfs[m]:
                 self.trendHash[ asset ] = ( trend, prob )
             else:
+                print( 'Changed trend direction for variable %s' % asset)
                 self.trendHash[ asset ] = ( -trend, prob )
                 
         return self.trendHash
@@ -287,7 +288,7 @@ class MfdPrt:
             'Inconsistent size of weights!'
 
         self.checkCons( optCons, weights )                   
-
+            
         prtHash = {}
         totVal  = 0.0
         for i in range( nAssets ):
@@ -471,6 +472,10 @@ class MfdPrt:
 
     def checkCons( self, cons, wts ):
 
+        assets     = self.assets
+        nAssets    = len( assets )
+        trendHash  = self.trendHash
+
         for con in cons:
             conFunc = con[ 'fun' ]
             
@@ -482,6 +487,23 @@ class MfdPrt:
                     'Inequality constraint not satisfied!'
             else:
                 assert False, 'Unknown constraint type!'
+
+        val = np.abs( np.sum( np.abs( wts ) ) - 1.0 )
+
+        assert val < OPT_TOL, \
+            'The weights dp not sum up to 1.0!' 
+
+        for i in range( nAssets ):
+            asset = assets[i]
+            wt    = wts[i]
+            trend = trendHash[ asset ][0]
+            val   = trend * wt
+
+            assert val >= 0, \
+                'The weight %0.4f for asset %s does not match predicted trend!' \
+                % ( wt, asset )
+
+        print( 'All constraints are satisfied!' )
 
     def pltIters( self ):
         plt.plot( self.optFuncVals, '-o' )

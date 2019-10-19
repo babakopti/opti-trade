@@ -140,8 +140,6 @@ def getDf( quandlDir, piDir, velNames ):
     elif qDf.shape[0] > 0:
         df = qDf
 
-    df.reset_index( drop = True )
-
     dates          = np.array( df[ 'Date' ] )
     times          = np.array( df[ 'Time' ] )
     nRows          = df.shape[0]
@@ -162,6 +160,9 @@ def getDf( quandlDir, piDir, velNames ):
             np.timedelta64( minute, 'm' )
 
     df[ 'Date' ] = dates
+
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+    df = df.reset_index( drop = True )
 
     return df
 

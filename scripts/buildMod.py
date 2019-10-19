@@ -21,16 +21,16 @@ from mod.mfdMod import MfdMod
 
 mode        = 'intraday'
 diffFlag    = False
-dataFlag    = False
+dataFlag    = True
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 
 if mode == 'day':
-    dfFile  = 'data/dfFile.pkl'
+    dfFile  = 'data/dfFile_daily.pkl'
 else:
-    dfFile  = 'data/dfFile_2017plus.pkl'
+    dfFile  = 'data/dfFile.pkl'
 
-minTrnDate  = pd.to_datetime( '2018-10-01 09:00:00' )
+minTrnDate  = pd.to_datetime( '2017-01-01 09:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-12-31 09:00:00' )
 maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
 
@@ -40,10 +40,10 @@ indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-recentETFs  = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
+allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
                 'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
                 'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
                 'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
@@ -87,9 +87,8 @@ else:
 
 if dataFlag:
     df = getDf( quandlDir, piDir, velNames )
-    df = df[ df[ 'Date' ] >= minTrnDate ]
     df.to_pickle( dfFile )
-
+sys.exit()
 # ***********************************************************************
 # Build model
 # ***********************************************************************

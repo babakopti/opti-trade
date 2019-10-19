@@ -42,7 +42,10 @@ indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+
+allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
                 'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
                 'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
                 'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
