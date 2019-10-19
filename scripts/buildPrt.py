@@ -108,5 +108,4 @@ mfdPrt = MfdPrt(    modFile      = modFile,
 #mfdMod.ecoMfd.pltResults()
 print(mfdPrt.trendHash)
 print(mfdPrt.getPortfolio())
-print(mfdPrt.assets)
-#mfdPrt.pltIters()
+mfdPrt.pltIters()
