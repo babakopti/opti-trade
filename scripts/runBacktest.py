@@ -119,7 +119,7 @@ def buildModPrt( snapDate ):
     endDt  = snapDate + datetime.timedelta( days = nPrdDays )
     nDays  = ( endDt - curDt ).days
 
-    nPrdTimes   = int( nDays * 8 * 60 )
+    nPrdTimes   = int( nDays * 19 * 60 )
 
     mfdPrt = MfdPrt( modFile      = modFilePath,
                      assets       = assets,
