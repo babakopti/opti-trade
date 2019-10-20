@@ -25,7 +25,7 @@ assets      = ETFs
 totAssetVal = 1000000.0
 tradeFee    = 6.95
 nPrdDays    = 7
-nPrdTimes   = nPrdDays * 8 * 60
+nPrdTimes   = nPrdDays * 19 * 60
 
 # ***********************************************************************
 # Import libraries

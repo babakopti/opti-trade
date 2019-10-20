@@ -94,7 +94,7 @@ def buildModPrt( snapDate ):
                          maxOptItrs   = 500,
                          optGTol      = 3.0e-2,
                          optFTol      = 3.0e-2,
-                         regCoef      = 1.0e-4,
+                         regCoef      = 1.0e-3,
                          factor       = factor,
                          verbose      = 1          )
         
