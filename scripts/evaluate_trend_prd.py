@@ -24,7 +24,7 @@ ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 assets      = ETFs
 totAssetVal = 1000000.0
 tradeFee    = 6.95
-nPrdDays    = 7
+nPrdDays    = 1
 nPrdTimes   = nPrdDays * 19 * 60
 
 # ***********************************************************************
