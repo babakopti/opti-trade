@@ -4,6 +4,7 @@
 
 import os, sys, dill
 import datetime
+import random
 import numpy as np
 import pandas as pd
 
@@ -16,9 +17,18 @@ from prt.prt import MfdPrt
 # Import libraries
 # ***********************************************************************
 
+nSamples    = 30
 modDir      = '/Volumes/Public/workarea/opti-trade/scripts/models_daily_20191020'
 
-modFiles    = os.listdir( modDir )
+modFiles    = []
+for item in os.listdir( modDir ):
+
+    if item.split( '_' )[0] != 'model':
+        continue
+
+    modFiles.append( item )
+
+modFiles    = random.sample( modFiles, nSamples )
 
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
@@ -44,22 +54,24 @@ for item in modFiles:
     
     modFilePath = os.path.join( modDir, item )
 
-    mfdPrt = MfdPrt( modFile      = modFilePath,
-                     assets       = assets,
-                     nPrdTimes    = nPrdTimes,
-                     totAssetVal  = totAssetVal, 
-                     tradeFee     = tradeFee,
-                     strategy     = 'mad',
-                     minProbLong  = 0.5,
-                     minProbShort = 0.5,
-                     vType        = 'vel',
-                     verbose      = 1          )    
+    try:
+        mfdPrt = MfdPrt( modFile      = modFilePath,
+                         assets       = assets,
+                         nPrdTimes    = nPrdTimes,
+                         totAssetVal  = totAssetVal, 
+                         tradeFee     = tradeFee,
+                         strategy     = 'mad',
+                         minProbLong  = 0.5,
+                         minProbShort = 0.5,
+                         vType        = 'vel',
+                         verbose      = 1          )    
+    except:
+        continue
 
     trendHash  = mfdPrt.trendHash
     quoteHash  = mfdPrt.quoteHash
 
-    mfdMod     = dill.load( open( modFilePath, 'rb' ) )
-    ecoMfd     = mfdMod.ecoMfd
+    ecoMfd     = mfdPrt.ecoMfd
     snapDate   = ecoMfd.maxOosDate
     endDate    = snapDate + datetime.timedelta( minutes = nPrdTimes )
     dfFile     = ecoMfd.dfFile
