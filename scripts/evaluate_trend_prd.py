@@ -16,7 +16,9 @@ from prt.prt import MfdPrt
 # Import libraries
 # ***********************************************************************
 
-modFiles    = os.listdir( 'models' )
+modDir      = '/Volumes/Public/workarea/opti-trade/scripts/models_daily_20191020'
+
+modFiles    = os.listdir( modDir )
 
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
@@ -31,15 +33,16 @@ nPrdTimes   = nPrdDays * 19 * 60
 # Import libraries
 # ***********************************************************************
 
-totCnt   = 0
-matchCnt = 0
+dateList  = []
+assetList = []
+valList   = []
 
 for item in modFiles:
 
     if item.split( '_' )[0] != 'model':
         continue
     
-    modFilePath = os.path.join( 'models', item )
+    modFilePath = os.path.join( modDir, item )
 
     mfdPrt = MfdPrt( modFile      = modFilePath,
                      assets       = assets,
@@ -57,11 +60,11 @@ for item in modFiles:
 
     mfdMod     = dill.load( open( modFilePath, 'rb' ) )
     ecoMfd     = mfdMod.ecoMfd
-    maxOosDate = ecoMfd.maxOosDate
-    endDate    = maxOosDate + datetime.timedelta( days = nPrdDays )
+    snapDate   = ecoMfd.maxOosDate
+    endDate    = snapDate + datetime.timedelta( minutes = nPrdTimes )
     dfFile     = ecoMfd.dfFile
     df         = pd.read_pickle( dfFile ) 
-    tmpDf      = df[ df.Date >= maxOosDate ]
+    tmpDf      = df[ df.Date >= snapDate ]
     tmpDf      = tmpDf[ tmpDf.Date <= endDate ]
     tmpDf      = tmpDf.sort_values( [ 'Date' ] )
 
@@ -75,10 +78,17 @@ for item in modFiles:
 
         fct    = trend * ( np.mean( tmpVec ) - tmpVec[0] )
         
-        totCnt += 1
-        
-        if fct > 0:
-            matchCnt += 1
-    
-print( '%d out of %d matched trend! That is %0.3f ratio' \
-           % ( matchCnt, totCnt, round( float( matchCnt ) / totCnt, 3 ) ) )
+        if fct != 0:
+            val = fct / abs( fct )
+        else:
+            val = 0.0
+
+        dateList.append( snapDate )
+        assetList.append( asset )
+        valList.append( val )
+
+outDf = pd.DataFrame( { 'Date'     : dateList,
+                        'Asset'    : assetList,
+                        'Success'  : valList    }    )
+
+outDf.to_csv( 'trend_prd_success.csv', index = False )
