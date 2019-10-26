@@ -17,7 +17,7 @@ from prt.prt import MfdPrt
 # Import libraries
 # ***********************************************************************
 
-nSamples    = 30
+nSamples    = None
 modDir      = '/Volumes/Public/workarea/opti-trade/scripts/models_daily_20191020'
 
 modFiles    = []
@@ -28,7 +28,8 @@ for item in os.listdir( modDir ):
 
     modFiles.append( item )
 
-modFiles    = random.sample( modFiles, nSamples )
+if nSamples is not None:
+    modFiles = random.sample( modFiles, nSamples )
 
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
@@ -84,16 +85,20 @@ for item in modFiles:
         tmpVec = np.array( tmpDf[ asset ] )
         trend  = trendHash[ asset ][0]
 
-        assert abs( quoteHash[ asset ] - tmpVec[0] ) < 0.01, \
-            'Inconsistent quote price for %s model %s; %0.2f vs %0.2f' \
-            % ( asset, item, quoteHash[ asset ], tmpVec[0] )
+        if len( tmpVec ) == 0:
+            continue
 
-        fct    = trend * ( np.mean( tmpVec ) - tmpVec[0] )
-        
-        if fct != 0:
-            val = fct / abs( fct )
-        else:
-            val = 0.0
+        if abs( quoteHash[ asset ] - tmpVec[0] ) > 0.01:
+            print( 'Inconsistent quote price for %s model %s; %0.2f vs %0.2f' \
+            % ( asset, item, quoteHash[ asset ], tmpVec[0] ) )
+            continue
+
+        fct    = trend * ( tmpVec[-1] - tmpVec[0] )
+
+        if fct == 0:
+            continue
+
+        val = max( 0.0, fct / abs( fct ) )
 
         dateList.append( snapDate )
         assetList.append( asset )
