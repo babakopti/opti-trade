@@ -19,13 +19,13 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-dataFlag    = False
+dataFlag    = True
 cryptoDir   = '/Users/babak/workarea/data/crypto_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 
 dfFile      = 'data/dfFile_crypto.pkl'
 
-minTrnDate  = pd.to_datetime( '2019-01-01 09:00:00' )
+minTrnDate  = pd.to_datetime( '2018-01-01 00:00:00' )
 maxTrnDate  = pd.to_datetime( '2019-06-30 23:59:00' )
 maxOosDate  = pd.to_datetime( '2019-07-10 23:59:00' )
 
@@ -36,11 +36,11 @@ indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = cryptos + forex + [ 'SPY' ]
+velNames    = indices + cryptos
 
 modFileName = 'models/crypto_model.dill'
 
-factor      = 1.0e-5
+factor      = 2.0e-5
     
 # ***********************************************************************
 # Get data and save to pickle file
@@ -50,7 +50,7 @@ if dataFlag:
     df = getCryptoDf( cryptoDir, piDir, velNames )
     df = df[ df.Date >= minTrnDate ]
     df.to_pickle( dfFile )
-
+sys.exit()
 # ***********************************************************************
 # Build model
 # ***********************************************************************

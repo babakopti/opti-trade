@@ -14,11 +14,26 @@ from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt 
 
 # ***********************************************************************
-# Import libraries
+# Set assets
 # ***********************************************************************
 
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+cryptos     = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
+
+# ***********************************************************************
+# Input
+# ***********************************************************************
+
+assets      = cryptos
 nSamples    = None
-modDir      = '/Volumes/Public/workarea/opti-trade/scripts/models_daily_20191020'
+modDir      = 'crypto_models'
+outFile     = 'trend_prd_success_crypto.csv'
+tol         = 10.0
+
+# ***********************************************************************
+# Set some parameters
+# ***********************************************************************
 
 modFiles    = []
 for item in os.listdir( modDir ):
@@ -31,17 +46,13 @@ for item in os.listdir( modDir ):
 if nSamples is not None:
     modFiles = random.sample( modFiles, nSamples )
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
-
-assets      = ETFs
 totAssetVal = 1000000.0
 tradeFee    = 6.95
 nPrdDays    = 1
 nPrdTimes   = nPrdDays * 19 * 60
 
 # ***********************************************************************
-# Import libraries
+# Evaluate
 # ***********************************************************************
 
 dateList  = []
@@ -88,7 +99,7 @@ for item in modFiles:
         if len( tmpVec ) == 0:
             continue
 
-        if abs( quoteHash[ asset ] - tmpVec[0] ) > 0.01:
+        if abs( quoteHash[ asset ] - tmpVec[0] ) > tol:
             print( 'Inconsistent quote price for %s model %s; %0.2f vs %0.2f' \
             % ( asset, item, quoteHash[ asset ], tmpVec[0] ) )
             continue
@@ -108,4 +119,4 @@ outDf = pd.DataFrame( { 'Date'     : dateList,
                         'Asset'    : assetList,
                         'Success'  : valList    }    )
 
-outDf.to_csv( 'trend_prd_success.csv', index = False )
+outDf.to_csv( outFile, index = False )
