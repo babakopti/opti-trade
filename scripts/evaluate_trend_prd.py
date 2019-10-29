@@ -29,6 +29,7 @@ assets      = cryptos
 nSamples    = None
 modDir      = 'crypto_models'
 outFile     = 'trend_prd_success_crypto.csv'
+sumFile     = 'summary_trend_prd_success_crypto.csv'
 tol         = 10.0
 
 # ***********************************************************************
@@ -120,3 +121,9 @@ outDf = pd.DataFrame( { 'Date'     : dateList,
                         'Success'  : valList    }    )
 
 outDf.to_csv( outFile, index = False )
+
+sumDf = outDf.groupby( 'Date', as_index = False )[ 'Success' ].mean()
+
+sumDf.to_csv( sumFile, index = False )
+
+print( 'Mean success rate:', sumDf.Success.mean() )
