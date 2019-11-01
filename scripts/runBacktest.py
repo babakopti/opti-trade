@@ -100,7 +100,7 @@ def buildModPrt( snapDate ):
         
         sFlag = mfdMod.build()
 
-        if sFlag or :
+        if sFlag:
             print( 'Building model took %d seconds!' % ( time.time() - t0 ) )
         elif mfdMod.ecoMfd.getOosTrendCnt( 'vel' ) > 0.8:
             print( 'Warning: Model did not fully converged, but results are good!' )
