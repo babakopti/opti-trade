@@ -91,17 +91,20 @@ def buildModPrt( snapDate ):
                          maxTrnDate   = maxTrnDt,
                          maxOosDate   = maxOosDt,
                          velNames     = velNames,
-                         maxOptItrs   = 500,
-                         optGTol      = 3.0e-2,
-                         optFTol      = 3.0e-2,
+                         maxOptItrs   = 50,
+                         optGTol      = 5.0e-2,
+                         optFTol      = 5.0e-2,
                          regCoef      = 1.0e-3,
                          factor       = factor,
                          verbose      = 1          )
         
         sFlag = mfdMod.build()
 
-        if sFlag:
+        if sFlag or :
             print( 'Building model took %d seconds!' % ( time.time() - t0 ) )
+        elif mfdMod.ecoMfd.getOosTrendCnt( 'vel' ) > 0.8:
+            print( 'Warning: Model did not fully converged, but results are good!' )
+            print( 'Model will be used!' )
         else:
             print( 'Warning: Model build was unsuccessful!' )
             print( 'Warning: Not building a portfolio based on this model!!' )
