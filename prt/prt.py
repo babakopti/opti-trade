@@ -12,6 +12,7 @@ from ode.odeGeo import OdeGeoConst
 
 import dill
 import time
+import talib
 import numpy as np
 import pandas as pd
 import scipy as sp
@@ -45,6 +46,7 @@ class MfdPrt:
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
                     vType        = 'vel',
+                    fallBack     = 'macd',
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
@@ -83,6 +85,7 @@ class MfdPrt:
 
         self.minProbLong  = minProbLong
         self.minProbShort = minProbShort
+        self.fallBack     = fallBack
         self.verbose      = verbose
         self.retDf        = None
         self.prdSol       = None
@@ -139,7 +142,7 @@ class MfdPrt:
                                 nSteps   = nPrdTimes - 1,
                                 intgType = 'LSODA',
                                 tol      = ODE_TOL,
-                                verbose  = self.verbose       )
+                               verbose  = self.verbose       )
 
         sFlag    = odeObj.solve()
 
@@ -247,12 +250,20 @@ class MfdPrt:
             trend /= nPrdTimes
             prob  /= nPrdTimes
         
-            if perfs[m]:
+            if self.fallBack is None:
                 self.trendHash[ asset ] = ( trend, prob )
             else:
-                print( 'Changed trend direction for variable %s' % asset)
-                self.trendHash[ asset ] = ( -trend, prob )
-                
+                if perfs[m]:
+                    self.trendHash[ asset ] = ( trend, prob )
+                else:
+                    if self.fallBack == 'sign_trick':
+                        self.trendHash[ asset ] = ( -trend, prob )
+                    elif self.fallBack == 'macd':
+                        macd = self.getMacd( m )
+                        self.trendHash[ asset ] = ( macd, 0.5 )
+                    elif self.fallBack == 'zero':
+                        self.trendHash[ asset ] = ( 0.0, prob )
+
         return self.trendHash
 
     def getPortfolio( self ):
@@ -474,6 +485,37 @@ class MfdPrt:
             self.optFuncVals.append( val )
 
         return val
+
+    def getMacd( self, m ):
+
+        ecoMfd    = self.ecoMfd
+        nDims     = ecoMfd.nDims
+        nTimes    = ecoMfd.nTimes
+        nOosTimes = ecoMfd.nOosTimes
+        actSol    = ecoMfd.actSol
+        actOosSol = ecoMfd.actOosSol
+        nTmp      = nTimes + nOosTimes - 1
+        tmpVec    = np.empty( shape = ( nTmp ), dtype = 'd' )
+
+        assert m < nDims, 'm should be smaller than nDims!'
+
+        asset     = self.vList[m]
+        tmp       = ecoMfd.deNormHash[ asset ]
+        slope     = tmp[0]
+        intercept = tmp[1]
+
+        for i in range( nTimes ):
+            tmpVec[i] = slope * actSol[m][i] + intercept
+
+        for i in range( 1, nOosTimes ):
+            tmpVec[i + nTimes - 1] = slope * actOosSol[m][i] + intercept
+
+        macd, signal, hist = talib.MACD( tmpVec, 
+                                         fastperiod   = 12, 
+                                         slowperiod   = 26,
+                                         signalperiod = 9  ) 
+
+        return macd[-1] - signal[-1]
 
     def checkCons( self, cons, wts ):
 

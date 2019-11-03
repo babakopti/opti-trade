@@ -23,17 +23,17 @@ from prt.prt import MfdPrt
 # ***********************************************************************
 
 diffFlag    = False
-modFlag     = True
+modFlag     = False
 
 if diffFlag:
     dfFile  = 'data/dfFile_2017plus_diff.pkl'
 else:
-    dfFile  = 'data/dfFile_2017plus.pkl'
+    dfFile  = 'data/dfFile_2005_2010.pkl'
 
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2018-01-03 09:00:00' )
+bkBegDate   = pd.to_datetime( '2019-06-01 00:00:00' )
 bkEndDate   = pd.to_datetime( '2019-06-30 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
@@ -102,9 +102,6 @@ def buildModPrt( snapDate ):
 
         if sFlag:
             print( 'Building model took %d seconds!' % ( time.time() - t0 ) )
-        elif mfdMod.ecoMfd.getOosTrendCnt( 'vel' ) > 0.8:
-            print( 'Warning: Model did not fully converged, but results are good!' )
-            print( 'Model will be used!' )
         else:
             print( 'Warning: Model build was unsuccessful!' )
             print( 'Warning: Not building a portfolio based on this model!!' )
@@ -133,6 +130,7 @@ def buildModPrt( snapDate ):
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
                      vType        = vType,
+                     fallBack     = 'macd',
                      verbose      = 1          )
 
     dateKey = snapDate.strftime( '%Y-%m-%d' )
