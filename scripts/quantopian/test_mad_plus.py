@@ -1,4 +1,3 @@
-
 import talib
 import pandas as pd
 import numpy as np
@@ -8,6 +7,11 @@ import quantopian.algorithm as algo
 from quantopian.algorithm import order_optimal_portfolio
 
 OPT_TOL   = 1.0e-6
+START_HOUR = 6
+THRESHOLD_PROB = 0.6
+TOTAL_MINUTES = 390 
+INTERVAL = 45
+MAX_DATE = '2019-10-31'
 
 stgWtHash = { 'MACD' : 0.6, 
               'MSDP' : 0.1, 
@@ -103,14 +107,14 @@ def getRLSTrend( asset, data ):
 
 def getConsGuesses( context, data ):
     
-    cons = []    
-    guesses = []
-    sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
-    cons.append( { 'type' : 'eq', 'fun' : sumFunc } )
-
-    for i in range( len(context.assets) ):
+    context.assets = []
+    trends         = []
+    guesses        = []
+    offset         = 0.0
+    
+    for i in range( len(context.pool) ):
         
-        asset = context.assets[i]
+        asset = context.pool[i]
         
         macdTrend = getMACDTrend( asset, data )
         msdpTrend = getMSDPTrend( asset, data )
@@ -140,16 +144,37 @@ def getConsGuesses( context, data ):
         elif rlsTrend < 0:
             probShort += stgWtHash[ 'RLS' ] 
             
-        if probLong > 0.8:
-            trendFunc = lambda wts : wts[i]
-            cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
+        if probLong > THRESHOLD_PROB:
+            trends.append( 1.0 )
             guesses.append( 1.0 )
-        elif probShort > 0.8:
+            context.assets.append( asset )
+        elif probShort > THRESHOLD_PROB:
+            trends.append( -1.0 )
+            guesses.append( -1.0 )
+            context.assets.append( asset )       
+        else:
+            offset += abs(context.weights[asset])
+            print( 'No transaction recommended on', asset.symbol)
+    
+    assert len(trends) == len(guesses), 'Inconsistent sizes!'
+    assert len(trends) == len(context.assets), 'Inconsistent sizes!'
+    
+    cons = []    
+    sumFunc = lambda wts : ( sum( abs( wts ) ) + offset - 1.0 )
+    cons.append( { 'type' : 'eq', 'fun' : sumFunc } )
+    for i in range( len(context.assets) ):
+        
+        asset = context.assets[i]
+        trend = trends[i]
+            
+        if trend > 0:
+            trendFunc = lambda wts : wts[i] 
+            cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
+        elif trend < 0:
             trendFunc = lambda wts : -wts[i]
             cons.append( { 'type' : 'ineq', 'fun' : trendFunc } )
-            guesses.append( -1.0 )
         else:
-            guesses.append( 0.0 )
+            assert False, 'Internal error: zero trend!'
             
     return cons, guesses
 
@@ -174,6 +199,9 @@ def minimum_MAD_portfolio( context, data ):
     
     cons, guesses = getConsGuesses( context, data )
     
+    if len(context.assets) == 0:
+        return context.weights
+    
     returns = np.log( data.history( context.assets, 
                                     'price', 
                                     200, 
@@ -197,30 +225,68 @@ def initialize(context):
     
     set_slippage(slippage.FixedSlippage(spread=0))
     
-    context.assets = [ symbol('QQQ'), 
-                       symbol('SPY'), 
-                       symbol('DIA'), 
-                       symbol('MDY'), 
-                       symbol('IWM'), 
-                       symbol('OIH'), 
-                       symbol('SMH'), 
-                       symbol('XLE'), 
-                       symbol('XLF'), 
-                       symbol('XLU'), 
-                       symbol('EWJ') ]
+    context.pool = [ symbol('FAS'), 
+                     symbol('TNA'), 
+                     symbol('TQQQ'), 
+                     symbol('EDC'), 
+                     symbol('LABU') ]
     
-    context.assets = [ symbol('FAS'), 
-                       symbol('TNA'), 
-                       symbol('TQQQ'), 
-                       symbol('EDC'), 
-                       symbol('LABU') ]
+    context.pool11 = [ symbol('QQQ'), 
+                     symbol('SPY'), 
+                     symbol('IWM'), 
+                     symbol('EEM') ]
     
-    schedule_function(rebalance, date_rules.every_day())
-
+    context.pool11 = [ symbol('QQQ'), 
+                     symbol('SPY'), 
+                     symbol('DIA'), 
+                     symbol('MDY'), 
+                     symbol('IWM'), 
+                     symbol('OIH'), 
+                     symbol('SMH'), 
+                     symbol('XLE'), 
+                     symbol('XLF'), 
+                     symbol('XLU'), 
+                     symbol('EWJ')   ]
+    
+    context.assets = []
+    context.weights = {}
+    for asset in context.pool:
+        context.weights[asset] = 0
+    
+    if INTERVAL == 0:
+        schedule_function( rebalance, 
+                           date_rules.every_day(), 
+                           time_rules.market_open(hours=START_HOUR,
+                                                  minutes=1) )
+    elif INTERVAL > 0:
+        for minute in range(1, TOTAL_MINUTES, INTERVAL):  
+            schedule_function( rebalance, 
+                               date_rules.every_day(), 
+                               time_rules.market_open(minutes=minute))
+    else:
+        assert False, 'INTERAVL should be positive!'
+    
+def handle_data(context, data):
+    return
+    record(cash = context.portfolio.cash)
+    record(value = context.portfolio.portfolio_value)
+    
 def rebalance(context, data):
+    
+    if str(get_datetime().date()) > MAX_DATE:
+        for asset in context.pool:
+            order_target(asset, 0)
+        print('Skipping', str(get_datetime().date()))
+        return
     
     weights = minimum_MAD_portfolio( context, data )
  
-    for security in context.assets:
-        print(weights[security])
-        order_target_percent(security, weights[security])
+    for asset in context.assets:
+        context.weights[asset] = weights[asset]
+    
+    for asset in context.weights.keys():
+        print(asset.symbol,
+              context.weights[asset],
+              context.portfolio.positions[asset].amount)
+        order_target_percent(asset, context.weights[asset])
+
