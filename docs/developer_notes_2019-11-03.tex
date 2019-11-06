@@ -213,5 +213,81 @@ months holding periods, the seasonality should be taken into account.
 \caption{Seasonality of S\&P500 index.}
 \end{figure}
 
+\newpage
+
+\section{Some Results}
+
+The above-mentioned algorithm was implemented and backtested on www.quantooian.com.
+
+Testing daily and weekly strategies is rather difficult, because a
+different set of assets are traded every day / week. Based on the
+current market, as of Nov. 03, 2019, the following assets are
+recommended: FAS, TNA, TQQQ, EDC, LABU. Testing this on Oct. 31, 2019
+(last data point available on Quantopian), and adjusting the asset
+allocations every 45 minutes, gives about \$12k on \$1M, as shown in
+figure~\ref{fig:daily-oct31}.
+
+Testing this on the week of Oct. 28, 2019 gives about \%2.5 at the end
+of the week, although it loses early in that week; see
+figure~\ref{fig:weekly-oct28}. The weekly returns are somewhat more
+stable when tested on the week of Oct. 21;
+figure~\ref{fig:weekly-oct21}.
+
+The monthly and quartely behavior of this algorithm was tested using a
+two sets of more canonical assets,
+
+1) QQQ, SPY, IWM, EEM
+
+2) QQQ, SPY, DIA, MDY, IWM, OIH, SMH, XLE, XLF, XLU, EWJ
+
+where the second set is the 11 ETFs we have used to test the manifold gedesic algorithm.
+
+Figures~\ref{fig:monthly-1} and \ref{fig:monthly-2} show the monthly
+results for Oct. 2019 using the above two sets, respectively. As can
+be seen, monthly results with the first set is better than SPY,
+however, using set 2 gives poor results.
+
+Similary, figures~\ref{fig:quarterly-1} and \ref{fig:quarterly-2} show
+the quarterly results for Aug.-Oct. 2019 using the above two sets,
+respectively. In both cases, the results are somewhat better than SPY,
+where set 1 again performs better than set 2.
+
+\newpage
+
+\begin{figure}\label{fig:daily-oct31}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-daily-oct31.png}
+\caption{Daily test results; Oct. 31, 2019; FAS, TNA, TQQQ, EDC, LABU.}
+\end{figure}
+
+\begin{figure}\label{fig:weekly-oct28}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-weekly-oct28-nov1-2019.png}
+\caption{Weekly test results; Week of Oct. 28, 2019; FAS, TNA, TQQQ, EDC, LABU.}
+\end{figure}
+
+\begin{figure}\label{fig:weekly-oct21}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-weekly-oct21-25-2019.png}
+\caption{Weekly test results; Week of Oct. 21, 2019; FAS, TNA, TQQQ, EDC, LABU.}
+\end{figure}
+
+\begin{figure}\label{fig:monthly-1}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-monthly-oct-2019.png}
+\caption{Monthly test results; Oct, 2019; QQQ, SPY, IWM, EEM}
+\end{figure}
+
+\begin{figure}\label{fig:monthly-2}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-monthly-oct-2019-11-ETFs.png}
+\caption{Monthly test results; Oct, 2019; QQQ, SPY, DIA, MDY, IWM, OIH, SMH, XLE, XLF, XLU, EWJ}
+\end{figure}
+
+\begin{figure}\label{fig:quarterly-1}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-quarterly-aug-nov-2019.png}
+\caption{Monthly test results; Aug-Oct, 2019; QQQ, SPY, IWM, EEM}
+\end{figure}
+
+\begin{figure}\label{fig:quarterly-2}
+\includegraphics[width = \textwidth]{figures/ab-results-2019-11-05/ab-quarterly-aug-nov-2019-11-ETFs.png}
+\caption{Monthly test results; Aug-Oct, 2019; QQQ, SPY, DIA, MDY, IWM, OIH, SMH, XLE, XLF, XLU, EWJ}
+\end{figure}
+
 \end{document}
 
