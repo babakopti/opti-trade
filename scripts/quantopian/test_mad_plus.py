@@ -1,3 +1,41 @@
+# Minimum date inclusive
+
+MIN_DATE = '2019-10-31'
+
+# Maximum date inclusive
+MAX_DATE = '2019-10-31'
+
+# Weghts of different strategies
+stgWtHash = { 'MACD' : 0.6, 
+              'MSDP' : 0.1, 
+              'MSDV' : 0.1, 
+              'RLS'  : 0.2   } 
+
+# List of securities to trade
+security_universe = [ symbol('FAS'), 
+                      symbol('TNA'), 
+                      symbol('TQQQ'), 
+                      symbol('EDC'), 
+                      symbol('LABU') ]
+
+# Interval between daily trades in minutes
+INTERVAL = 45
+
+# Total minutes in one trading day
+TOTAL_MINUTES = 390 
+
+# Start so many hours after market opens; applicabla only when interval = 0
+START_HOUR = 6 
+
+# Thershold probability for alllowing a trade
+THRESHOLD_PROB = 0.6
+# optimizer tolerance
+OPT_TOL = 1.0e-6 
+
+# ***********************************************************
+# Import libs
+# ***********************************************************
+
 import talib
 import pandas as pd
 import numpy as np
@@ -6,17 +44,9 @@ import quantopian.optimize as opt
 import quantopian.algorithm as algo
 from quantopian.algorithm import order_optimal_portfolio
 
-OPT_TOL   = 1.0e-6
-START_HOUR = 6
-THRESHOLD_PROB = 0.6
-TOTAL_MINUTES = 390 
-INTERVAL = 45
-MAX_DATE = '2019-10-31'
-
-stgWtHash = { 'MACD' : 0.6, 
-              'MSDP' : 0.1, 
-              'MSDV' : 0.1, 
-              'RLS'  : 0.2   } 
+# ***********************************************************
+# Some utlity functions
+# ***********************************************************
 
 def getMACDTrend( asset, data ):
     
@@ -219,34 +249,17 @@ def minimum_MAD_portfolio( context, data ):
     
     return pd.Series(index=returns.columns, data=results.x)
 
+# ***********************************************************
+# Algorithm
+# ***********************************************************
+
 def initialize(context):
 
     set_commission(commission.PerTrade(cost=0))
     
     set_slippage(slippage.FixedSlippage(spread=0))
-    
-    context.pool = [ symbol('FAS'), 
-                     symbol('TNA'), 
-                     symbol('TQQQ'), 
-                     symbol('EDC'), 
-                     symbol('LABU') ]
-    
-    context.pool11 = [ symbol('QQQ'), 
-                     symbol('SPY'), 
-                     symbol('IWM'), 
-                     symbol('EEM') ]
-    
-    context.pool11 = [ symbol('QQQ'), 
-                     symbol('SPY'), 
-                     symbol('DIA'), 
-                     symbol('MDY'), 
-                     symbol('IWM'), 
-                     symbol('OIH'), 
-                     symbol('SMH'), 
-                     symbol('XLE'), 
-                     symbol('XLF'), 
-                     symbol('XLU'), 
-                     symbol('EWJ')   ]
+        
+    context.pool =  security_universe
     
     context.assets = []
     context.weights = {}
@@ -268,15 +281,17 @@ def initialize(context):
     
 def handle_data(context, data):
     return
-    record(cash = context.portfolio.cash)
+    #record(cash = context.portfolio.cash)
     record(value = context.portfolio.portfolio_value)
     
 def rebalance(context, data):
     
+    if str(get_datetime().date()) < MIN_DATE:
+        return
+    
     if str(get_datetime().date()) > MAX_DATE:
         for asset in context.pool:
             order_target(asset, 0)
-        print('Skipping', str(get_datetime().date()))
         return
     
     weights = minimum_MAD_portfolio( context, data )
@@ -289,4 +304,3 @@ def rebalance(context, data):
               context.weights[asset],
               context.portfolio.positions[asset].amount)
         order_target_percent(asset, context.weights[asset])
-
