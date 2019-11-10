@@ -28,9 +28,9 @@ cryptos     = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
 
 assets      = ETFs
 nSamples    = None
-modDir      = 'models_2019'
-outFile     = 'trend_prd_success_2019.csv'
-sumFile     = 'summary_trend_prd_success_2019.csv'
+modDir      = 'models'
+outFile     = 'trend_prd_success.csv'
+sumFile     = 'summary_trend_prd_success.csv'
 tol         = 0.1
 
 # ***********************************************************************
