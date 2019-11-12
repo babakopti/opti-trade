@@ -23,18 +23,18 @@ from prt.prt import MfdPrt
 # ***********************************************************************
 
 diffFlag    = False
-modFlag     = False
+modFlag     = True
 
 if diffFlag:
     dfFile  = 'data/dfFile_2017plus_diff.pkl'
 else:
-    dfFile  = 'data/dfFile_2005_2010.pkl'
+    dfFile  = 'data/dfFile_2011_2014.pkl'
 
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2019-06-01 00:00:00' )
-bkEndDate   = pd.to_datetime( '2019-06-30 23:59:00' )
+bkBegDate   = pd.to_datetime( '2014-01-01 00:00:00' )
+bkEndDate   = pd.to_datetime( '2014-12-31 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -161,24 +161,25 @@ def worker(snapDate):
 # ***********************************************************************
 # Run the backtest
 # ***********************************************************************
-    
-snapDate = bkBegDate
-pool     = Pool()
 
-while snapDate <= bkEndDate:
+if __name__ ==  '__main__':
+    snapDate = bkBegDate
+    pool     = Pool()
 
-    while True:
-        if snapDate.isoweekday() not in [ 6, 7 ]:
-            break
-        else:
-            snapDate += datetime.timedelta( days = 1 )
+    while snapDate <= bkEndDate:
 
-    pool.apply_async( worker, args = ( snapDate, ) )
+        while True:
+            if snapDate.isoweekday() not in [ 6, 7 ]:
+                break
+            else:
+                snapDate += datetime.timedelta( days = 1 )
 
-    snapDate = snapDate + datetime.timedelta( days = nPrdDays )
+        pool.apply_async( worker, args = ( snapDate, ) )
 
-pool.close()
-pool.join()
+        snapDate = snapDate + datetime.timedelta( days = nPrdDays )
+
+    pool.close()
+    pool.join()
     
 
 
