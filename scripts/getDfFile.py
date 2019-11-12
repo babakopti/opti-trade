@@ -21,10 +21,10 @@ from mod.mfdMod import MfdMod
 
 quandlDir = '/Users/babak/workarea/data/quandl_data'
 piDir     = '/Users/babak/workarea/data/pitrading_data'
-dfFile    = 'data/dfFile_2014_2016.pkl'
+dfFile    = 'data/dfFile_2008_2011.pkl'
 
-minDate  = pd.to_datetime( '2014-01-01 00:00:00' )
-maxDate  = pd.to_datetime( '2017-01-31 23:59:00' )
+minDate  = pd.to_datetime( '2008-01-01 00:00:00' )
+maxDate  = pd.to_datetime( '2011-12-31 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -59,4 +59,4 @@ velNames    = ETFs + indices + futures
 df = getDf( quandlDir, piDir, velNames )
 df = df[ df.Date >= minDate ]
 df = df[ df.Date <= maxDate ]
-df.to_pickle( dfFile )
+df.to_pickle( dfFile, protocol = 4 )
