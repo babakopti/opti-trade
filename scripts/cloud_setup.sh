@@ -7,6 +7,8 @@ sudo apt-get install python3-pip
 sudo pip3 install numpy pandas matplotlib scipy scikit-learn dill
 
 git config --global status.showUntrackedFiles no
+git config --global user.email "optilive.developer@gmail.com"
+git config --global user.name "Babak Emami"
 
 sudo apt-get install build-essential checkinstall
 sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev \
