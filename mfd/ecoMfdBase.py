@@ -459,7 +459,7 @@ class EcoMfdCBase:
 
         return varStdVec
 
-    def getMerit( self, varNames = None ): 
+    def getError( self, varNames = None ): 
 
         if varNames is None:
             varNames = self.varNames
@@ -505,11 +505,17 @@ class EcoMfdCBase:
         funcVal  = 0.5 * trapz( tmpVec, dx = 1.0 )
 
         tmpVal   = np.sqrt( funcVal * funcValFct )
-        tmpVal   = max( 1.0 - tmpVal, 0.0 )
 
         return tmpVal
 
-    def getOosMerit( self, varNames = None ): 
+    def getMerit( self, varNames = None ): 
+
+        tmpVal = self.getError( varNames = varNames ) 
+        tmpVal = max( 1.0 - tmpVal, 0.0 )
+
+        return tmpVal
+
+    def getOosError( self, varNames = None ): 
 
         if varNames is None:
             varNames = self.varNames
@@ -555,7 +561,13 @@ class EcoMfdCBase:
         funcVal  = 0.5 * trapz( tmpVec, dx = 1.0 )
 
         tmpVal   = np.sqrt( funcVal * funcValFct )
-        tmpVal   = max( 1.0 - tmpVal, 0.0 )
+
+        return tmpVal
+
+    def getOosMerit( self, varNames = None ): 
+
+        tmpVal = self.getOosError( varNames = varNames ) 
+        tmpVal = max( 1.0 - tmpVal, 0.0 )
 
         return tmpVal
 
