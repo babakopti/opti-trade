@@ -24,8 +24,8 @@ from mod.mfdMod import MfdMod
 snapDates   = [ '2018-03-10', '2018-11-05', '2019-05-10' ]
 
 trnDaysList = [ 360 ]
-tolList     = [ 0.1, 0.05, 0.03, 0.01 ]
-regCoefList = [ 1.0e-3 ]
+tolList     = [ 0.1, 0.05, 0.03, 0.01, 0.005, 0.001 ]
+regCoefList = [ 1.0e-2 ]
 atnFctList  = [ 1.0 ]
 
 # trnDaysList = [ 360 ]
