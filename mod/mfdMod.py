@@ -44,6 +44,7 @@ class MfdMod:
                     varFiltFlag  = False,
                     validFlag    = False,
                     smoothCount  = None,
+                    atnFct       = 1.0,
                     mode         = 'intraday',
                     verbose      = 1          ):
 
@@ -96,6 +97,19 @@ class MfdMod:
                                                                     win_type = 'blackman',
                                                                     center   = True ).mean()
 
+        assert atnFct > 0, 'atnFct should be positive!'
+        assert atnFct <= 1.0, 'atnFct should be less than or equal to 1.0!'
+        
+        nDims    = len( velNames )
+        varCoefs = np.empty( shape = ( nDims ), dtype = 'd' )
+        
+        varCoefs[nDims-1] = 1.0
+        
+        for m in range( nDims-1 ):
+            varCoefs[nDims-2-m] = atnFct * varCoefs[nDims-1-m]
+
+        self.varCoefs = varCoefs
+        
     def build( self ):
 
         print( 'Building a manifold...' )
@@ -183,6 +197,7 @@ class MfdMod:
                               nPca         = None,
                               diagFlag     = DIAG_FLAG,
                               endBcFlag    = True,
+                              varCoefs     = self.varCoefs,
                               mode         = self.mode,
                               verbose      = self.verbose        )        
 
@@ -305,6 +320,7 @@ class MfdMod:
                                  nPca         = None,
                                  diagFlag     = DIAG_FLAG,
                                  endBcFlag    = True,
+                                 varCoefs     = self.varCoefs,
                                  mode         = self.mode,
                                  verbose      = self.verbose        )
 
