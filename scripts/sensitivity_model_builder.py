@@ -23,26 +23,31 @@ from mod.mfdMod import MfdMod
 
 snapDates   = [ '2018-03-10', '2018-11-05', '2019-05-10' ]
 
-trnDaysList = [ 360 ]
-tolList     = [ 0.1, 0.05, 0.03, 0.01, 0.005, 0.001 ]
-regCoefList = [ 1.0e-2 ]
-atnFctList  = [ 1.0 ]
-
 # trnDaysList = [ 360 ]
-# tolList     = [ 0.01 ]
-# regCoefList = [ 1.0e-5, 1.0e-4, 1.0e-3, 1.0e-2 ]
+# tolList     = [ 0.1, 0.05, 0.03, 0.01, 0.005, 0.001 ]
+# regCoefList = [ 1.0e-2 ]
 # atnFctList  = [ 1.0 ]
 
-# trnDaysList = [ 360, 270, 180, 90, 60, 30 ]
-# tolList     = [ 0.01 ]
+# trnDaysList = [ 360 ]
+# tolList     = [ 0.05 ]
+# regCoefList = [ 1.0e-5, 1.0e-4, 1.0e-1 ]
+# atnFctList  = [ 1.0 ]
+
+# trnDaysList = [ 60, 30 ]
+# tolList     = [ 0.05 ]
 # regCoefList = [ 1.0e-3 ]
-# atnFctList  = [ 1.0, 0.99, 0.95, 0.9, 0.8 ]
+# atnFctList  = [ 1.0 ]
+
+trnDaysList = [ 360 ]
+tolList     = [ 0.05 ]
+regCoefList = [ 1.0e-3 ]
+atnFctList  = [ 1.0, 0.99, 0.95, 0.9, 0.8 ]
 
 modFlag     = True
 modDir      = 'models_sensitivity'
 dfFile      = 'data/dfFile_2017plus.pkl'
 nOosDays    = 3
-maxOptItrs  = 100
+maxOptItrs  = 300
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
