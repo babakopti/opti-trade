@@ -33,19 +33,19 @@ snapDates   = [ '2018-03-10', '2018-11-05', '2019-05-10' ]
 # regCoefList = [ 1.0e-5, 1.0e-4, 1.0e-1 ]
 # atnFctList  = [ 1.0 ]
 
-# trnDaysList = [ 60, 30 ]
-# tolList     = [ 0.05 ]
-# regCoefList = [ 1.0e-3 ]
-# atnFctList  = [ 1.0 ]
-
-trnDaysList = [ 360 ]
+trnDaysList = [ 450, 540, 630, 720 ]
 tolList     = [ 0.05 ]
 regCoefList = [ 1.0e-3 ]
-atnFctList  = [ 1.0, 0.99, 0.95, 0.9, 0.8 ]
+atnFctList  = [ 1.0 ]
+
+# trnDaysList = [ 360 ]
+# tolList     = [ 0.05 ]
+# regCoefList = [ 1.0e-3 ]
+# atnFctList  = [ 1.0, 0.99, 0.95, 0.9, 0.8 ]
 
 modFlag     = True
 modDir      = 'models_sensitivity'
-dfFile      = 'data/dfFile_2017plus.pkl'
+dfFile      = 'data/dfFile_2016plus.pkl'
 nOosDays    = 3
 maxOptItrs  = 300
 

@@ -21,10 +21,10 @@ from mod.mfdMod import MfdMod
 
 quandlDir = '/Users/babak/workarea/data/quandl_data'
 piDir     = '/Users/babak/workarea/data/pitrading_data'
-dfFile    = 'data/dfFile_2008_2011.pkl'
+dfFile    = 'data/dfFile_2016plus.pkl'
 
-minDate  = pd.to_datetime( '2008-01-01 00:00:00' )
-maxDate  = pd.to_datetime( '2011-12-31 23:59:00' )
+minDate  = pd.to_datetime( '2016-01-01 00:00:00' )
+maxDate  = pd.to_datetime( '2019-08-02 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
