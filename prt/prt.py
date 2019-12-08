@@ -39,6 +39,7 @@ class MfdPrt:
     def __init__(   self,
                     modFile,
                     assets,
+                    nRetTimes,
                     nPrdTimes,
                     totAssetVal, 
                     tradeFee     = 0.0,
@@ -47,6 +48,7 @@ class MfdPrt:
                     minProbShort = 0.5,
                     vType        = 'vel',
                     fallBack     = 'macd',
+                    optTol       = OPT_TOL,
                     verbose      = 1          ):
 
         self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
@@ -69,6 +71,7 @@ class MfdPrt:
 
             self.assets.append( asset )
 
+        self.nRetTimes   = nRetTimes
         self.nPrdTimes   = nPrdTimes
         self.totAssetVal = totAssetVal
         self.tradeFee    = tradeFee
@@ -86,6 +89,7 @@ class MfdPrt:
         self.minProbLong  = minProbLong
         self.minProbShort = minProbShort
         self.fallBack     = fallBack
+        self.optTol       = optTol
         self.verbose      = verbose
         self.retDf        = None
         self.prdSol       = None
@@ -103,10 +107,10 @@ class MfdPrt:
     def setRetDf( self ):
 
         self.retDf = pd.DataFrame()
+        nRetTimes  = self.nRetTimes
         ecoMfd     = self.ecoMfd
         actSol     = ecoMfd.actSol
         actOosSol  = ecoMfd.actOosSol
-        nTimes     = ecoMfd.nTimes
         nOosTimes  = ecoMfd.nOosTimes
 
         for m in range( ecoMfd.nDims ):
@@ -118,7 +122,7 @@ class MfdPrt:
             tmp       = ecoMfd.deNormHash[ asset ]
             slope     = tmp[0]
             intercept = tmp[1]
-            df        = pd.DataFrame( { asset : slope * actSol[m][:nTimes] +\
+            df        = pd.DataFrame( { asset : slope * actSol[m][-nRetTimes:] +\
                                             intercept } )
 
             self.retDf[ asset ] = np.log( df[ asset ] ).pct_change().dropna()
@@ -288,7 +292,7 @@ class MfdPrt:
         results   = minimize( fun         = optFunc, 
                               x0          = guess, 
                               method      = 'SLSQP',
-                              tol         = OPT_TOL,
+                              tol         = self.optTol,
                               constraints = optCons,
                               options     = { 'maxiter' : MAX_ITERS } )
 
@@ -405,7 +409,7 @@ class MfdPrt:
 
         sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
 
-        if abs( sumFunc( wts ) ) < OPT_TOL:
+        if abs( sumFunc( wts ) ) < self.optTol:
             self.optFuncVals.append( mad )
 
         return mad 
@@ -444,7 +448,7 @@ class MfdPrt:
 
         sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
 
-        if abs( sumFunc( wts ) ) < OPT_TOL:
+        if abs( sumFunc( wts ) ) < self.optTol:
             self.optFuncVals.append( val )
 
         return val
@@ -457,7 +461,7 @@ class MfdPrt:
 
         sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
 
-        if abs( sumFunc( wts ) ) < OPT_TOL:
+        if abs( sumFunc( wts ) ) < self.optTol:
             self.optFuncVals.append( val )
 
         return val
@@ -481,7 +485,7 @@ class MfdPrt:
         assert val >= 0.0, 'Invalid value %f of probability!' % val
         assert val <= 1.0, 'Invalid value %f of probability!' % val
 
-        if abs( tmpSum - 1.0 ) < OPT_TOL:
+        if abs( tmpSum - 1.0 ) < self.optTol:
             self.optFuncVals.append( val )
 
         return val
@@ -527,17 +531,17 @@ class MfdPrt:
             conFunc = con[ 'fun' ]
             
             if con[ 'type' ] == 'eq':
-                assert abs( conFunc( wts ) ) < OPT_TOL, \
+                assert abs( conFunc( wts ) ) < self.optTol, \
                     'Equality constraint not satisfied!'
             elif con[ 'type' ] == 'ineq':
-                assert conFunc( wts ) >= -OPT_TOL, \
+                assert conFunc( wts ) >= -self.optTol, \
                     'Inequality constraint not satisfied!'
             else:
                 assert False, 'Unknown constraint type!'
 
         val = np.abs( np.sum( np.abs( wts ) ) - 1.0 )
 
-        assert val < OPT_TOL, \
+        assert val < self.optTol, \
             'The weights dp not sum up to 1.0!' 
 
         for i in range( nAssets ):
@@ -546,7 +550,7 @@ class MfdPrt:
             trend = trendHash[ asset ][0]
             val   = trend * wt
 
-            assert val >= -OPT_TOL, \
+            assert val >= -self.optTol, \
                 'The weight %0.4f for asset %s does not match predicted trend!' \
                 % ( wt, asset )
 

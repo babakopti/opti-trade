@@ -28,13 +28,13 @@ modFlag     = True
 if diffFlag:
     dfFile  = 'data/dfFile_2017plus_diff.pkl'
 else:
-    dfFile  = 'data/dfFile_2011_2014.pkl'
+    dfFile  = 'data/dfFile_2017plus.pkl'
 
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2014-01-01 00:00:00' )
-bkEndDate   = pd.to_datetime( '2014-12-31 23:59:00' )
+bkBegDate   = pd.to_datetime( '2018-01-01 00:00:00' )
+bkEndDate   = pd.to_datetime( '2018-12-31 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -123,6 +123,7 @@ def buildModPrt( snapDate ):
 
     mfdPrt = MfdPrt( modFile      = modFilePath,
                      assets       = assets,
+                     nRetTimes    = 360,
                      nPrdTimes    = nPrdTimes,
                      totAssetVal  = totAssetVal, 
                      tradeFee     = tradeFee,

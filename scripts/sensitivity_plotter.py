@@ -18,14 +18,14 @@ from mod.mfdMod import MfdMod
 # ***********************************************************************
 
 xType    = 'nTrnDays'
-yType    = 'error'
+yType    = 'oos_error'
 pltList  = [ { 'model' : '2018-03-10', 'nTrnDays' : None, 'tol' : '0.05', 'regCoef' : '0.001', 'atnFct' : '1.0' }]
 
 legList  = [ '2018-03-10' ]
              
 modDir   = 'models_sensitivity'
 
-figName  = 'nTrnDays-sensitivity-error.png'
+figName  = 'nTrnDays-sensitivity-oos-error.png'
 
 title    = 'tol = 0.05; atnFct = 1.0; regCoef = 0.001'
 
