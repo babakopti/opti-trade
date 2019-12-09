@@ -90,12 +90,87 @@ The above system of ODEs needs a boundary condition,
 where $m,a,b \in [1,n] \cap \mathbb{N}$, and $t_{BC}$ is the time at
 which a boundary condition is set.
 
+This means that the variables of interest are elements of the tangent
+bundle of manifold $M$, that is $y^{m}(t) \in T_{p(t)}M$, where $p(t)
+\in M$ corresponds to coordinates $(x^{1},x^{2},...,x^{n})$.
+
 Now, let us further assume that the values of variables $y^{m}(t)$ are
 known for $t \in [0,T]$. Using this a set of training data, we can
 determine $Gamma^{m}_{ab}$ by fitting Eq.~\ref{eqn:geodesic-1st-order}
-over the training data.
+over the training data. This can be done using a continuous adjoint
+approach.
 
 \section{Some Results}\label{section:results}
+
+A 33-dimensional manifold is built using the above-mentioned
+approach. The dimensions of the manifold correspond to prices of the
+following ETFs (exchanged-traded funds),
+
+    QQQ: PowerShares QQQ
+    SPY: SPDR S&P 500 Growth ETF
+    DIA: SPDR Dow Jones Industrial Average ETF
+    MDY: SPDR S&P MidCap 400 ETF
+    IWM: iShares Russell 2000 Index Fund
+    OIH: Market Vectors Oil Services ETF
+    SMH: Market Vectors Semiconductor ETF
+    XLE: Energy Select Sector SPDR Fund
+    XLF: Financial Select Sector SPDR Fund
+    XLU: Utilities Select Sector SPDR Fund
+    EWJ: iShares MSCI Japan Index Fund
+
+prices of the following (continuous) futures contracts,
+
+    ES: E-mini S&P 500 Continuous Contract
+    NQ: E-mini Nasdaq 100 Continuous Contract
+    YM: E-mini Dow Futures Continuous Contract
+    RTY: E-mini Russell 2000 Continuous Contract
+    EMD: E-mini S&P MidCap 400 Continuous Contract
+    QM: E-mini Crude Oil Futures Continuous Contract
+    US: 30 Year U.S. Treasury Bonds Continuous Contract    
+
+and values of the following financial indices,
+
+    INDU: Dow Jones Industrial Average
+    NDX: Nasdaq 100 Index
+    SPX: S&P 500 Index
+    COMPX: Nasdaq Composite Index
+    RUT: Russell 2000 Index
+    OEX: S&P 100 Index
+    MID: S&P 400 Midcap Index
+    SOX: PHLX Semiconductor Sector Index
+    RUI: Russell 1000 Index
+    RUA: Russell 3000 Index
+    TRAN: Dow Jones Transportation Average
+    HGX: PHLX Housing Sector Index
+    TYX: 30-Year Treasury Bond
+    HUI: NYSE Arca Gold BUGS Index
+    XAU: PHLX Gold/Silver Sector Index
+
+Here we assume that the above variables are elements of the tanget
+bundle of our manifold, that is $y^{m}(t)$ in
+Eq.~\ref{eqn:geodesic-1st-order}. In other words, coordinates of our
+manifold, $x^{m}(t)$ in Eq.~\ref{eqn:geodesic}, are cumulative of the
+above variables.
+
+We trained this maniofold using intraday minute-based data spanning
+2017-01-03 to 2018-01-03. The model is tested on three days of
+out-of-sample data corresponding to the first three business days
+after training period. Figure~\ref{fig:results-spy} shows in-sample
+and out-of-sample forecast results for SPY as a function of time in
+minutes; figure~\ref{fig:results-spy-oos} is zoomed on the
+out-of-sample forecast. The out of sample results are reasonable. The
+average relative error of out-of-sample forecasts of all variables in
+the model is 3.5\%.
+
+\begin{figure}\label{fig:results-spy}
+\includegraphics[bb=0 0 640 480]{figures/results-SPY.png}
+\caption{In-sample and out-of-sample forecast results for SPY.}
+\end{figure}
+
+\begin{figure}\label{fig:results-spy-oos}
+\includegraphics[bb=0 0 640 480]{figures/results-SPY-oos.png}
+\caption{Out-of-sample forecast results for SPY.}
+\end{figure}
 
 \section{Model Parameter Study}\label{section:model-parameter-study}
 
@@ -138,6 +213,8 @@ over the training data.
 \includegraphics[bb=0 0 640 480]{figures/atnFct-sensitivity-oos-error.png}
 \caption{Out-of-sample relative error vs. attenuation coefficient.}
 \end{figure}
+
+\section{On Behavior of Christoffel Symbls}\label{section:christoffel-behavior}
 
 \begin{figure}\label{fig:gamma-time}
 \includegraphics[bb=0 0 640 480]{figures/Gamma_time_2018.png}
