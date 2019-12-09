@@ -50,29 +50,48 @@ given a set of observed economic variables.
 
 \section{Mathematical Framework}\label{section:mathematical-framework}
 
-Let us consider $n$ economic variables $x{1}$ to $x^{n}$ that are
-smooth functions of time $t$; $x^{i} = x^{i}(t)$. Moreover, let us
-consider a smooth real manifold $M$ equipped with
-$(x^{1},x^{2},...,x^{n})$ as a coordinate system. Each set of
-coordinate values $(x^{1}(t),...,x^{n}(t))$ denotes a point $p$ on
-$M$. Values of these $n$ variables over a period of time $[0,T]$ form
-a path over $M$. This path is smooth as $x^{i}$s are smooth functions
-of time. Now let us add a constraint on $M$ by assuming that the path
-formed by $x^{i}(t)$s is a geodesic of $M$. With this assumption, this
-path is governed by the follwoing system of ordinary differential
-equations,
+Let us consider $n$ variables $x{1}$ to $x^{n}$ that are smooth
+functions of time $t$; $x^{i} = x^{i}(t)$. Moreover, let us consider a
+smooth real manifold $M$ equipped with $(x^{1},x^{2},...,x^{n})$ as a
+coordinate system. Each set of coordinate values
+$(x^{1}(t),...,x^{n}(t))$ denotes a point $p$ on $M$. Values of these
+$n$ variables over a period of time $[0,T]$ form a path over $M$. This
+path is smooth as $x^{i}$s are smooth functions of time. Now let us
+add a constraint on $M$ by assuming that the path formed by
+$x^{i}(t)$s is a geodesic of $M$. With this assumption, this path is
+governed by the follwoing system of ordinary differential equations,
 
 \begin{equation}\label{eqn:geodesic}
 \ddot{x}^{m} + \Gamma^{m}_{ab} \dot{x}^{a} \dot{x}^{b} = 0
 \end{equation}
 
-subject to,
+The Christoffel symbols $Gamma^{m}_{ab}$ are in general functions of
+coordinates. In the current work, we assume that Christoffel symbols
+are constant. This is a sufficient (but not necessary) condition for
+the manifold to have a constant curvature. This assumption is rather
+strong and as such we should revisit this subject.
 
-\begin{equation}\label{eqn:geodesic-bc}
-\dot{x}^{m}(0) = \dot{x}^{m}_{0}
+To further simplify the problem, we assume that variables of interest
+are in fact $y^{m} = \frac{dx^{m}}{dt}$. This will allow us to work
+with a set of first order ODEs,
+
+\begin{equation}\label{eqn:geodesic-1st-order}
+\dot{y}^{m} + \Gamma^{m}_{ab} y^{a} y^{b} = 0
 \end{equation}
 
-where $m,a,b \in [1,n] \cap \mathbb{N}$.
+The above system of ODEs needs a boundary condition,
+
+\begin{equation}\label{eqn:geodesic-bc}
+\dot{y}^{m}(t_{BC}) = \dot{y}^{m}_{0}
+\end{equation}
+
+where $m,a,b \in [1,n] \cap \mathbb{N}$, and $t_{BC}$ is the time at
+which a boundary condition is set.
+
+Now, let us further assume that the values of variables $y^{m}(t)$ are
+known for $t \in [0,T]$. Using this a set of training data, we can
+determine $Gamma^{m}_{ab}$ by fitting Eq.~\ref{eqn:geodesic-1st-order}
+over the training data.
 
 \section{Results}\label{section:results}
 

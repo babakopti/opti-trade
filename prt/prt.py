@@ -261,12 +261,15 @@ class MfdPrt:
                     self.trendHash[ asset ] = ( trend, prob )
                 else:
                     if self.fallBack == 'sign_trick':
-                        self.trendHash[ asset ] = ( -trend, prob )
+                        self.trendHash[ asset ] = ( -trend, 0.5 )
                     elif self.fallBack == 'macd':
-                        macd = self.getMacd( m )
-                        self.trendHash[ asset ] = ( macd, 0.5 )
+                        macdTrend = self.getMacdTrend( m )
+                        self.trendHash[ asset ] = ( macdTrend, 0.5 )
+                    elif self.fallBack == 'msd':
+                        msdTrend = self.getMsdTrend( m )
+                        self.trendHash[ asset ] = ( msdTrend, 0.5 )
                     elif self.fallBack == 'zero':
-                        self.trendHash[ asset ] = ( 0.0, prob )
+                        self.trendHash[ asset ] = ( 0.0, 0.5 )
 
         return self.trendHash
 
@@ -490,7 +493,7 @@ class MfdPrt:
 
         return val
 
-    def getMacd( self, m ):
+    def getActSolVec( self, m ):
 
         ecoMfd    = self.ecoMfd
         nDims     = ecoMfd.nDims
@@ -514,12 +517,35 @@ class MfdPrt:
         for i in range( 1, nOosTimes ):
             tmpVec[i + nTimes - 1] = slope * actOosSol[m][i] + intercept
 
+        return tmpVec
+    
+    def getMacdTrend( self, m ):
+
+        tmpVec = self.getActSolVec( m )
+
         macd, signal, hist = talib.MACD( tmpVec, 
                                          fastperiod   = 12, 
                                          slowperiod   = 26,
                                          signalperiod = 9  ) 
 
         return macd[-1] - signal[-1]
+
+    def getMsdTrend( self, m ):
+
+        tmpVec = self.getActSolVec( m )
+        tmpVec = tmpVec[-nRetTimes:]
+
+        mean   = tmpVec.mean()
+        stddev = tmpVec.std()
+ 
+        if tmpVec[-1] < mean - 1.75 * stddev:
+            trend = 1.0
+        elif tmpVec[-1] > mean + 1.75 * stddev:
+            trend = -1.0
+        else:
+            trend = 0.0
+        
+        return trend
 
     def checkCons( self, cons, wts ):
 
