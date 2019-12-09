@@ -115,22 +115,25 @@ for fallBack in fallBacks:
         curDate     = pd.to_datetime( tmpList[1] )
         modFilePath = os.path.join( modDir, fileName )
         nPrdTimes   = getNumPrdTimes( curDate, df )
-        
-        mfdPrt = MfdPrt( modFile      = modFilePath,
-                         assets       = assets,
-                         nRetTimes    = 360,
-                         nPrdTimes    = nPrdTimes,
-                         totAssetVal  = 1000000, 
-                         tradeFee     = 6.95,
-                         strategy     = 'mad',
-                         minProbLong  = 0.5,
-                         minProbShort = 0.5,
-                         vType        = 'vel',
-                         fallBack     = fallBack,
-                         optTol       = 1.0e-6,
-                         verbose      = 1          )
+
+        try:
+            mfdPrt = MfdPrt( modFile      = modFilePath,
+                             assets       = assets,
+                             nRetTimes    = 360,
+                             nPrdTimes    = nPrdTimes,
+                             totAssetVal  = 1000000, 
+                             tradeFee     = 6.95,
+                             strategy     = 'mad',
+                             minProbLong  = 0.5,
+                             minProbShort = 0.5,
+                             vType        = 'vel',
+                             fallBack     = fallBack,
+                             optTol       = 1.0e-6,
+                             verbose      = 1          )
     
-        trendHash = mfdPrt.trendHash
+            trendHash = mfdPrt.trendHash
+        except:
+            continue
 
         actTrendHash = getActTrends( curDate, df )
 
@@ -142,7 +145,7 @@ for fallBack in fallBacks:
 
     cntList.append( totCnt )
     successList.append( success )
-    rateList.append( round( float( totCnt ) / success, 3 ) )
+    rateList.append( round( success / float( totCnt ), 3 ) )
 
 outDf = pd.DataFrame( { 'FallBack' : fallBacks,
                         'Total'    : cntList,
