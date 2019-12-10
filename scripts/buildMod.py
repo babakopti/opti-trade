@@ -21,18 +21,18 @@ from mod.mfdMod import MfdMod
 
 mode        = 'intraday'
 diffFlag    = False
-dataFlag    = True
+dataFlag    = False
 quandlDir   = '/Users/babak/workarea/data/quandl_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 
 if mode == 'day':
     dfFile  = 'data/dfFile_daily.pkl'
 else:
-    dfFile  = 'data/dfFile.pkl'
+    dfFile  = 'data/dfFile_2016plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2017-01-01 09:00:00' )
+minTrnDate  = pd.to_datetime( '2018-01-01 09:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-12-31 09:00:00' )
-maxOosDate  = pd.to_datetime( '2019-07-31 23:59:00' )
+maxOosDate  = pd.to_datetime( '2019-01-07 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -58,7 +58,12 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = ETFs + indices + futures
+velNames    = ETFs + indices + futures + stocks + forex
+
+selParams   = { 'inVelNames' : ETFs,
+                'maxNumVars' : 20,
+                'minImprov'  : 0.01,
+                'strategy'   : 'forward' }
 
 if diffFlag:
     nDims = len( velNames )
@@ -79,7 +84,7 @@ else:
     if mode == 'day':
         factor = 1.0e-2
     else:
-        factor = 1.0e-4
+        factor = 4.0e-5
     
 # ***********************************************************************
 # Get data and save to pickle file
@@ -88,7 +93,7 @@ else:
 if dataFlag:
     df = getDf( quandlDir, piDir, velNames )
     df.to_pickle( dfFile )
-sys.exit()
+
 # ***********************************************************************
 # Build model
 # ***********************************************************************
@@ -98,12 +103,13 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 1000,
+                    maxOptItrs   = 100,
                     optGTol      = 2.0e-2,
                     optFTol      = 2.0e-2,
                     factor       = factor,
-                    regCoef      = 1.0e-5,
+                    regCoef      = 1.0e-3,
                     mode         = mode,
+                    selParams    = selParams,
                     verbose      = 1          )
 
 validFlag = mfdMod.build()
