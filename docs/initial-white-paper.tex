@@ -52,7 +52,7 @@ proposed using this approach to forecast asset prices.
 
 \section{Mathematical Framework}\label{section:mathematical-framework}
 
-Let us consider $n$ variables $x{1}$ to $x^{n}$ that are smooth
+Let us consider $n$ variables $x^{1}$ to $x^{n}$ that are smooth
 functions of time $t$; $x^{i} = x^{i}(t)$. Moreover, let us consider a
 smooth real manifold $M$ equipped with $(x^{1},x^{2},...,x^{n})$ as a
 coordinate system. Each set of coordinate values
@@ -88,17 +88,61 @@ The above system of ODEs needs a boundary condition,
 \end{equation}
 
 where $m,a,b \in [1,n] \cap \mathbb{N}$, and $t_{BC}$ is the time at
-which a boundary condition is set.
+which a boundary condition is set. For now, we choose $t_{BC} = T$ to
+emphasize on the more recent data in training. One can potentially
+define a more complex boundary condition that accounts for some
+attenuation from recent to older data. We shall revisit this in
+future.
 
 This means that the variables of interest are elements of the tangent
-bundle of manifold $M$, that is $y^{m}(t) \in T_{p(t)}M$, where $p(t)
-\in M$ corresponds to coordinates $(x^{1},x^{2},...,x^{n})$.
+bundle of manifold $M$, that is $y^{m}(T) \in T_{p(t)}M$, where $p(t) \in M$
+corresponds to coordinates $(x^{1}(t),x^{2}(t),...,x^{n}(t))$.
 
 Now, let us further assume that the values of variables $y^{m}(t)$ are
 known for $t \in [0,T]$. Using this a set of training data, we can
 determine $Gamma^{m}_{ab}$ by fitting Eq.~\ref{eqn:geodesic-1st-order}
 over the training data. This can be done using a continuous adjoint
-approach.
+approach~\cite{ref:adjoint-giles}.
+
+The adjoint approach is used to solve a minimization problem
+constrained by a system of differential equations. Here, we want to
+solve the follwoing constrained optimization problem,
+
+\begin{equation}\label{eqn:optimization-problem}
+\min_{\Gamma^{m}_{ab}} J(\vec{y},\Gamma^{m}_{ab})
+\end{equation}
+
+where the objective function $J$ is defined as,
+
+\begin{equation}\label{eqn:optimization-objective-raw}
+J(\vec{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t) \left\Vert
+\vec{y}(t) - \hat{\vec{y}}(t) \right\Vert^{2} dt
+\end{equation}
+
+subject to the system of ODEs in Eq.~\ref{eqn:geodesic-1st-order} with
+boundary condition of Eq.~\ref{eqn:geodesic-bc} as a constraint, where
+$\vec{y}$ represents a vector with $y^{i}$ as its elements, and
+$\left\Vert \right\Vert$ is the L2 norm. Also, $\eta(t)$ is a function
+of time which allows to introduce a weight in th eobjective
+function. This weight can be used to emphasize on the more recent
+training data. For instance when treating the problem numerically, we
+can define $\eta(t_{k}) = \eta_{0} \eta(t_{k+1})$ where $t_{k+1} >
+t_{k}$ and $\eta_{0} \in (0,1]$ is an attenuation factor.
+
+The ODE constraint can be added using continuous Lagrangian multiplier
+$\vec{v}$. The objective functiomn
+
+\begin{equation}\label{eqn:optimization-objective}
+J(\vec{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t)
+\left\Vert \vec{y}(t) - \hat{\vec{y}}(t) \right\Vert^{2} dt +
+\int_{0}^{T} \vec{v} \dot ( \dot{y}^{m} + \Gamma^{m}_{ab} y^{a} y^{b}
+) + \frac{1}{2} \zeta \left\Vert \Gamma^{m}_{ab} \right\Vert^{2}
+\end{equation}
+
+where the last term introduces a quadratic regularization, and $\zeta$
+is a constant regularization coefficient. Note too that the continuous
+Lagrangian multiplier $\vec{v}$ is a cotangent vector with elements
+$v_{1}$, $v_{2}$,..., $v_{n}$.
 
 \section{Some Results}\label{section:results}
 
@@ -106,45 +150,51 @@ A 33-dimensional manifold is built using the above-mentioned
 approach. The dimensions of the manifold correspond to prices of the
 following ETFs (exchanged-traded funds),
 
-    QQQ: PowerShares QQQ
-    SPY: SPDR S&P 500 Growth ETF
-    DIA: SPDR Dow Jones Industrial Average ETF
-    MDY: SPDR S&P MidCap 400 ETF
-    IWM: iShares Russell 2000 Index Fund
-    OIH: Market Vectors Oil Services ETF
-    SMH: Market Vectors Semiconductor ETF
-    XLE: Energy Select Sector SPDR Fund
-    XLF: Financial Select Sector SPDR Fund
-    XLU: Utilities Select Sector SPDR Fund
-    EWJ: iShares MSCI Japan Index Fund
+\begin{itemize}
+    \item[] QQQ: PowerShares QQQ 
+    \item[] SPY: SPDR S\&P 500 Growth ETF 
+    \item[] DIA: SPDR Dow Jones Industrial Average ETF 
+    \item[] MDY: SPDR S\&P MidCap 400 ETF 
+    \item[] IWM: iShares Russell 2000 Index Fund 
+    \item[] OIH: Market Vectors Oil Services ETF 
+    \item[] SMH: Market Vectors Semiconductor ETF 
+    \item[] XLE: Energy Select Sector SPDR Fund 
+    \item[] XLF: Financial Select Sector SPDR Fund 
+    \item[] XLU: Utilities Select Sector SPDR Fund 
+    \item[] EWJ: iShares MSCI Japan Index Fund
+\end{itemize}
 
 prices of the following (continuous) futures contracts,
 
-    ES: E-mini S&P 500 Continuous Contract
-    NQ: E-mini Nasdaq 100 Continuous Contract
-    YM: E-mini Dow Futures Continuous Contract
-    RTY: E-mini Russell 2000 Continuous Contract
-    EMD: E-mini S&P MidCap 400 Continuous Contract
-    QM: E-mini Crude Oil Futures Continuous Contract
-    US: 30 Year U.S. Treasury Bonds Continuous Contract    
+\begin{itemize}
+    \item[] ES:  E-mini S\&P 500 Continuous Contract 
+    \item[] NQ:  E-mini Nasdaq 100 Continuous Contract 
+    \item[] YM:  E-mini Dow Futures Continuous Contract 
+    \item[] RTY: E-mini Russell 2000 Continuous Contract 
+    \item[] EMD: E-mini S\&P MidCap 400 Continuous Contract 
+    \item[] QM:  E-mini Crude Oil Futures Continuous Contract 
+    \item[] US:  30 Year U.S. Treasury Bonds Continuous Contract    
+\end{itemize}
 
 and values of the following financial indices,
 
-    INDU: Dow Jones Industrial Average
-    NDX: Nasdaq 100 Index
-    SPX: S&P 500 Index
-    COMPX: Nasdaq Composite Index
-    RUT: Russell 2000 Index
-    OEX: S&P 100 Index
-    MID: S&P 400 Midcap Index
-    SOX: PHLX Semiconductor Sector Index
-    RUI: Russell 1000 Index
-    RUA: Russell 3000 Index
-    TRAN: Dow Jones Transportation Average
-    HGX: PHLX Housing Sector Index
-    TYX: 30-Year Treasury Bond
-    HUI: NYSE Arca Gold BUGS Index
-    XAU: PHLX Gold/Silver Sector Index
+\begin{itemize}
+    \item[] INDU:  Dow Jones Industrial Average 
+    \item[] NDX:   Nasdaq 100 Index 
+    \item[] SPX:   S\&P 500 Index 
+    \item[] COMPX: Nasdaq Composite Index 
+    \item[] RUT:   Russell 2000 Index 
+    \item[] OEX:   S\&P 100 Index 
+    \item[] MID:   S\&P 400 Midcap Index 
+    \item[] SOX:   PHLX Semiconductor Sector Index 
+    \item[] RUI:   Russell 1000 Index 
+    \item[] RUA:   Russell 3000 Index 
+    \item[] TRAN:  Dow Jones Transportation Average 
+    \item[] HGX:   PHLX Housing Sector Index 
+    \item[] TYX:   30-Year Treasury Bond 
+    \item[] HUI:   NYSE Arca Gold BUGS Index 
+    \item[] XAU:   PHLX Gold/Silver Sector Index
+\end{itemize}
 
 Here we assume that the above variables are elements of the tanget
 bundle of our manifold, that is $y^{m}(t)$ in
@@ -163,7 +213,7 @@ average relative error of out-of-sample forecasts of all variables in
 the model is 3.5\%.
 
 \begin{figure}\label{fig:results-spy}
-\includegraphics[bb=0 0 640 480]{figures/results-SPY.png}
+\includegraphics[scale=0.5,bb=0 0 320 240]{figures/results-SPY.png}
 \caption{In-sample and out-of-sample forecast results for SPY.}
 \end{figure}
 
