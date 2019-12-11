@@ -41,8 +41,6 @@ class MfdPrt:
                     assets,
                     nRetTimes,
                     nPrdTimes,
-                    totAssetVal, 
-                    tradeFee     = 0.0,
                     strategy     = 'mad',
                     minProbLong  = 0.5,
                     minProbShort = 0.5,
@@ -73,8 +71,6 @@ class MfdPrt:
 
         self.nRetTimes   = nRetTimes
         self.nPrdTimes   = nPrdTimes
-        self.totAssetVal = totAssetVal
-        self.tradeFee    = tradeFee
 
         assert strategy in [ 'mad', 'gain', 'gain_mad', 'prob' ], \
             'Strategy %s is not known!' % strategy
@@ -282,7 +278,6 @@ class MfdPrt:
         quoteHash    = self.quoteHash
         minProbLong  = self.minProbLong 
         minProbShort = self.minProbShort
-        totAssetVal  = self.totAssetVal 
         nAssets      = len( assets )
         trendHash    = self.trendHash
 
@@ -315,14 +310,6 @@ class MfdPrt:
         totVal  = 0.0
         for i in range( nAssets ):
             asset    = assets[i]
-            curPrice = quoteHash[ asset ]
-            
-            assert curPrice > 0, 'Price for %s should be positive instead found %s!' \
-                % ( asset, curPrice )
-
-            qty      = int( weights[i] * totAssetVal / curPrice )
-
-            totVal  += abs( qty ) * curPrice
  
             prtHash[ asset ] = weights[i]
 
@@ -330,8 +317,6 @@ class MfdPrt:
             print( 'Building portfolio took', 
                    round( time.time() - t0, 2 ), 
                    'seconds!' )
-
-            print( 'Total value of new portfolio:', totVal )
 
             print( 'Sum of wts:', sum( abs( weights ) ) )
 
@@ -422,7 +407,6 @@ class MfdPrt:
         ecoMfd      = self.ecoMfd        
         quoteHash   = self.quoteHash
         totAssetVal = self.totAssetVal 
-        tradeFee    = self.tradeFee
         assets      = self.assets
         prdSol      = self.prdSol
         nAssets     = len( assets )

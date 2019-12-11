@@ -1,0 +1,26 @@
+Design of a trading daemon:
+
+We need to design and implement a daemon that runs continously and
+performs the following with a certain cadence, for most likely daily,
+
+1) Build a manifold model with a set of known variables which include
+the pool of assets in our portfolio. This is done using MfdMod object.
+
+2) Using the results of the model and the MfdPrt object, get portfolio
+weghts.
+
+3) Write the results of of (2) to a file, perhaps a pickled hash
+table.
+
+4) Send a notification to the user that they need to run the
+authentication script.
+
+In addition we need a user authentication script, as metioned in (4)
+above. The script does the following:
+
+1) Read the file generated in (3) above.
+
+2) Read the current holdings. Convert the portfolio weights to the
+quantity that we should long/ short for each asset.
+
+3) Perform the actual trading. Authentication needed by the user.

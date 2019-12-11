@@ -1,0 +1,61 @@
+
+1) Model sensitivity tests:
+
+Model parameters:
+
+   training period for model
+   regularization parameter
+   optimization tolerance
+   attenuation coeffcient
+
+we will need to look at the following:
+
+   in-sample relative error vs. training period
+   out-of-sample relative error vs. training period
+   trend match count vs. training period
+
+   in-sample relative error vs. optimization tolerance
+   out-of-sample relative error vs. optimization tolerance
+   trend match count vs. optimization tolerance
+
+   out-of-sample relative error vs. regularization parameter
+   trend match count vs. regularization parameter
+
+   out-of-sample relative error vs. attenuation coeffcient
+   trend match count vs. attenuation coeffcient
+
+We should do this with several models.
+
+2) Plot norm of Gamma vs. time (from backtest models). Also plot some
+individual elements of Gamma vs. time.
+
+3) Portfolio builder sensitivity tests
+
+Portfolio parameters:
+
+   MAD optimization tolerance
+   period for MAD
+
+We should generate the following plots:
+
+    asset allocations vs. MAD optimization tolerance	
+    asset allocations vs. period for MAD
+
+4) Test different fallback strategies:
+
+   a) Sign flipping
+   b) MACD
+   c) MSDP (mean / standar deviation)
+   d) RLS (relative strength)
+   e) No fallback
+
+We should plot returns over a period for all the above fallback
+strategies. Or plot trend predictiin success rate.
+
+5) Variable selection strategy for model
+
+   Results of 2 can be perhaps useful
+   
+6) Asset selection strategy for portfolio builder
+
+

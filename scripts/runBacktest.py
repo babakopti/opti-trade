@@ -66,8 +66,6 @@ else:
     vType  = 'vel'
 
 assets      = ETFs
-totAssetVal = 1000000.0
-tradeFee    = 6.95
 
 # ***********************************************************************
 # Utility functions
@@ -125,8 +123,6 @@ def buildModPrt( snapDate ):
                      assets       = assets,
                      nRetTimes    = 360,
                      nPrdTimes    = nPrdTimes,
-                     totAssetVal  = totAssetVal, 
-                     tradeFee     = tradeFee,
                      strategy     = 'mad',
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
