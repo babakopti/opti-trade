@@ -49,7 +49,15 @@ class MfdMod:
                     mode         = 'intraday',
                     verbose      = 1          ):
 
-        self.dfFile      = dfFile
+        fileExt = dfFile.split( '.' )[-1]
+
+        if fileExt == 'csv':
+            self.df = pd.read_csv( dfFile ) 
+        elif fileExt == 'pkl':
+            self.df = pd.read_pickle( dfFile ) 
+        else:
+            assert False, 'Unknown input file extension %s' % fileExt
+            
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
@@ -154,10 +162,12 @@ class MfdMod:
             'maxNumVars should be greater than or equal to number of inVelNames!'
                 
         if strategy == 'forward':
-            self.selVelsFwd( candVelNames, selParams )
+            velNames = self.selVelsFwd( candVelNames, selParams )
         else:
             assert False, 'Unknown strategy %s!' % strategy
 
+        return velNames
+    
     def selVelsFwd( self, candVelNames, selParams ):
 
         inVelNames = selParams[ 'inVelNames' ]
@@ -191,6 +201,7 @@ class MfdMod:
         sVelNames = sorted( sVelNames, key = lambda y : sortDict[y] )
         velNames  = inVelNames.copy()
         error     = np.inf
+        cnt       = 0
         
         for velName in sVelNames:
 
@@ -204,12 +215,21 @@ class MfdMod:
 
             newError = self.ecoMfd.getError()
             
-            if newError <= error * ( 1.0 - minImprov ):
+            if error - newError >= minImprov:
                 velNames.append( velName )
                 error = newError
+                cnt += 1
                 print( 'Added %s ; error = %0.4f' % ( velName, error ) )
-
+            else:
+                print( '%s was not added!' % velName )
+                
+            if cnt == maxNumVars:
+                break
+            
         assert len( velNames ) > 0, 'Unsuccessful variable selection!'
+
+        print( 'Selected:', velNames )
+        print( list( set( velNames ) - set( inVelNames ) ), 'were added!' )
         
         return velNames
             
@@ -284,7 +304,7 @@ class MfdMod:
         self.ecoMfd = EcoMfd( varNames     = self.varNames,
                               velNames     = self.velNames,
                               dateName     = 'Date', 
-                              dfFile       = self.dfFile,
+                              df           = self.df,
                               minTrnDate   = self.minTrnDate,
                               maxTrnDate   = self.maxTrnDate,
                               maxOosDate   = self.maxOosDate,
@@ -407,7 +427,7 @@ class MfdMod:
             ecoMfd     = EcoMfd( varNames     = self.varNames,
                                  velNames     = self.velNames,
                                  dateName     = 'Date', 
-                                 dfFile       = self.dfFile,
+                                 df           = self.df,
                                  minTrnDate   = self.minTrnDate,
                                  maxTrnDate   = maxTrnDate,
                                  maxOosDate   = maxOosDate,

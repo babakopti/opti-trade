@@ -30,9 +30,9 @@ if mode == 'day':
 else:
     dfFile  = 'data/dfFile_2016plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2018-01-01 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2018-12-31 09:00:00' )
-maxOosDate  = pd.to_datetime( '2019-01-07 23:59:00' )
+minTrnDate  = pd.to_datetime( '2017-03-01 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-03-01 09:00:00' )
+maxOosDate  = pd.to_datetime( '2018-03-04 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -58,11 +58,11 @@ stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
 forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
                 'GBPUSD', 'EURUSD', 'AUDUSD'               ]
 
-velNames    = ETFs + indices + futures + stocks + forex
+velNames    = ETFs + indices + futures 
 
 selParams   = { 'inVelNames' : ETFs,
                 'maxNumVars' : 20,
-                'minImprov'  : 0.01,
+                'minImprov'  : 0.005,
                 'strategy'   : 'forward' }
 
 if diffFlag:
@@ -103,11 +103,11 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 100,
-                    optGTol      = 2.0e-2,
-                    optFTol      = 2.0e-2,
+                    maxOptItrs   = 200,
+                    optGTol      = 5.0e-2,
+                    optFTol      = 5.0e-2,
                     factor       = factor,
-                    regCoef      = 1.0e-3,
+                    regCoef      = 2.0e-3,
                     mode         = mode,
                     selParams    = selParams,
                     verbose      = 1          )

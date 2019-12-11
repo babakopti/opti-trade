@@ -33,7 +33,7 @@ class EcoMfdCBase:
                     varNames,
                     velNames,
                     dateName, 
-                    dfFile,
+                    df,
                     minTrnDate, 
                     maxTrnDate,
                     maxOosDate,
@@ -66,7 +66,7 @@ class EcoMfdCBase:
         self.varNames    = varNames
         self.velNames    = velNames
         self.dateName    = dateName
-        self.dfFile      = dfFile
+        self.df          = df
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
@@ -140,16 +140,7 @@ class EcoMfdCBase:
     def setDf( self ):
 
         t0             = time.time()
-        dfFile         = self.dfFile
-        fileExt        = dfFile.split( '.' )[-1]
-
-        if fileExt == 'csv':
-            df = pd.read_csv( dfFile ) 
-        elif fileExt == 'pkl':
-            df = pd.read_pickle( dfFile ) 
-        else:
-            assert False, 'Unknown input file extension %s' % fileExt
-
+        df             = self.df
         dateName       = self.dateName
         nDims          = self.nDims
         varNames       = self.varNames
@@ -270,17 +261,7 @@ class EcoMfdCBase:
         dateName       = self.dateName
         varNames       = self.varNames
         trnDf          = self.trnDf
-        dfFile         = self.dfFile
-
-        fileExt        = dfFile.split( '.' )[-1]
-
-        if fileExt == 'csv':
-            df = pd.read_csv( dfFile ) 
-        elif fileExt == 'pkl':
-            df = pd.read_pickle( dfFile ) 
-        else:
-            assert False, 'Unknown input file extension %s' % fileExt
-
+        df             = self.df
         df             = df[ [dateName] + varNames ]
         df[ dateName ] = pd.to_datetime( df[ dateName ] )
         df             = df.interpolate( method = 'linear' )
