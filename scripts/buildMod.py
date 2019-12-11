@@ -64,7 +64,7 @@ selParams   = { 'inVelNames' : ETFs,
                 'maxNumVars' : 20,
                 'minImprov'  : 0.005,
                 'strategy'   : 'forward' }
-
+selParams = None
 if diffFlag:
     nDims = len( velNames )
     for m in range( nDims ):
