@@ -17,17 +17,19 @@ from mod.mfdMod import MfdMod
 # Set input parameters
 # ***********************************************************************
 
-xType    = 'nTrnDays'
-yType    = 'oos_error'
-pltList  = [ { 'model' : '2018-03-10', 'nTrnDays' : None, 'tol' : '0.05', 'regCoef' : '0.001', 'atnFct' : '1.0' }]
+xType    = 'regCoef'
+yType    = 'trend_cnt'
+xlog     = True
+
+pltList  = [ { 'model' : '2018-03-10', 'nTrnDays' : '360', 'tol' : '0.05', 'regCoef' : None, 'atnFct' : '1.0' }]
 
 legList  = [ '2018-03-10' ]
              
 modDir   = 'models_sensitivity'
 
-figName  = 'nTrnDays-sensitivity-oos-error.png'
+figName  = 'regCoef-sensitivity-trend-cnt.png'
 
-title    = 'tol = 0.05; atnFct = 1.0; regCoef = 0.001'
+title    = 'tol = 0.05; atnFct = 1.0; nTrnDays = 360'
 
 # ***********************************************************************
 # Sanity checks + Set some parameters
@@ -133,8 +135,11 @@ for k in range( len( pltList ) ):
 
     xVals = sorted( xVals )
     yVals = sorted( yVals, key = lambda y : sortDict[y] )
-    
-    plt.plot( xVals, yVals, 'o-' )
+
+    if xlog:
+        plt.semilogx( xVals, yVals, 'o-' )
+    else:
+        plt.plot( xVals, yVals, 'o-' )
 
 plt.title( title )
 plt.legend( legList )
