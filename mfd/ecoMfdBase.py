@@ -51,6 +51,7 @@ class EcoMfdCBase:
                     varCoefs     = None,
                     srcCoefs     = None,
                     srcTerm      = None,
+                    atnFct       = 1.0,
                     mode         = 'intraday',
                     verbose      = 1     ):
 
@@ -136,6 +137,10 @@ class EcoMfdCBase:
         self.tmpVec      = np.zeros( shape = ( nTimes ), 	   dtype = 'd' )     
 
         self.trnEndDate  = list( self.trnDf[ dateName ] )[-1]
+
+        self.atnCoefs = np.ones( shape = ( nTimes ) )
+
+        self.setAtnCoefs( atnFct )
 
     def setDf( self ):
 
@@ -271,7 +276,20 @@ class EcoMfdCBase:
         for m in range( nDims ):
             varName            = varNames[m]
             self.varOffsets[m] = list( df[varName] )[nTimes-1]
-        
+
+    def setAtnCoefs( self, atnFct ):
+
+        assert atnFct >= 0.0, 'atnFct should be positive!'
+        assert atnFct <= 1.0, 'atnFct should be less than or equal to 1.0!'
+
+        nTimes = self.nTimes
+        tmp    = ( 1.0 - atnFct ) / ( nTimes - 1 )
+
+        for tsId in range( nTimes ):
+            self.atnCoefs[tsId] = atnFct + tmp * tsId
+
+        return
+
     def setGammaVec( self ):
 
         if self.verbose > 0:
@@ -373,13 +391,14 @@ class EcoMfdCBase:
 
         self.statHash[ 'funCnt' ] += 1
 
-        nDims   = self.nDims
-        nTimes  = self.nTimes
-        regCoef = self.regCoef
-        regL1Wt = self.regL1Wt
-        actSol  = self.actSol
-        coefs   = self.varCoefs
-        tmpVec  = self.tmpVec.copy()
+        nDims    = self.nDims
+        nTimes   = self.nTimes
+        regCoef  = self.regCoef
+        regL1Wt  = self.regL1Wt
+        actSol   = self.actSol
+        varCoefs = self.varCoefs
+        atnCoefs = self.atnCoefs        
+        tmpVec   = self.tmpVec.copy()
 
         odeObj  = self.getSol( GammaVec )
         
@@ -390,7 +409,8 @@ class EcoMfdCBase:
 
         tmpVec.fill( 0.0 )
         for varId in range( nDims ):
-            tmpVec += coefs[varId] * ( sol[varId][:] - actSol[varId][:] )**2 
+            tmpVec += varCoefs[varId] * atnCoefs[:] *\
+                ( sol[varId][:] - actSol[varId][:] )**2 
 
         val = 0.5 * trapz( tmpVec, dx = 1.0 )
 
@@ -445,11 +465,12 @@ class EcoMfdCBase:
         if varNames is None:
             varNames = self.varNames
 
-        nTimes = self.nTimes
-        nDims  = self.nDims
-        actSol = self.actSol
-        coefs  = self.varCoefs
-        tmpVec = self.tmpVec.copy()
+        nTimes   = self.nTimes
+        nDims    = self.nDims
+        actSol   = self.actSol
+        varCoefs = self.varCoefs
+        atnCoefs = self.atnCoefs        
+        tmpVec   = self.tmpVec.copy()
 
         tmpVec.fill( 0.0 )
         for varId in range( nDims ):
@@ -459,7 +480,7 @@ class EcoMfdCBase:
             if varName not in varNames:
                 continue
 
-            tmpVec += coefs[varId] * actSol[varId][:]**2 
+            tmpVec += varCoefs[varId] * atnCoefs[:] * actSol[varId][:]**2 
 
         funcValFct = 0.5 * trapz( tmpVec, dx = 1.0 )
 
@@ -481,7 +502,8 @@ class EcoMfdCBase:
             if varName not in varNames:
                 continue
 
-            tmpVec += coefs[varId] * ( sol[varId][:] - actSol[varId][:] )**2 
+            tmpVec += varCoefs[varId] * atnCoefs[:] *\
+                ( sol[varId][:] - actSol[varId][:] )**2 
 
         funcVal  = 0.5 * trapz( tmpVec, dx = 1.0 )
 
@@ -504,7 +526,7 @@ class EcoMfdCBase:
         nDims     = self.nDims
         nOosTimes = self.nOosTimes
         actOosSol = self.actOosSol
-        coefs     = self.varCoefs
+        varCoefs  = self.varCoefs
         tmpVec    = np.zeros( shape = ( nOosTimes ), dtype = 'd' )
 
         tmpVec.fill( 0.0 )
@@ -515,7 +537,7 @@ class EcoMfdCBase:
             if varName not in varNames:
                 continue
 
-            tmpVec += coefs[varId] * actOosSol[varId][:]**2 
+            tmpVec += varCoefs[varId] * actOosSol[varId][:]**2 
 
         funcValFct = 0.5 * trapz( tmpVec, dx = 1.0 )
 
@@ -537,7 +559,7 @@ class EcoMfdCBase:
             if varName not in varNames:
                 continue
 
-            tmpVec += coefs[varId] * ( oosSol[varId][:] - actOosSol[varId][:] )**2 
+            tmpVec += varCoefs[varId] * ( oosSol[varId][:] - actOosSol[varId][:] )**2 
 
         funcVal  = 0.5 * trapz( tmpVec, dx = 1.0 )
 

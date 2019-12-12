@@ -62,6 +62,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     varCoefs     = None,
                     srcCoefs     = None,
                     srcTerm      = None,
+                    atnFct       = 1.0,
                     mode         = 'intraday',
                     verbose      = 1     ):
 
@@ -87,6 +88,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                varCoefs     = varCoefs,
                                srcCoefs     = srcCoefs,
                                srcTerm      = srcTerm,
+                               atnFct       = atnFct,
                                mode         = mode,
                                verbose      = verbose     )
 
@@ -270,6 +272,8 @@ class EcoMfdConst( EcoMfdCBase ):
                                  actSol    = self.actSol,
                                  adjSol    = sol,
                                  tol       = ADJ_TOL,
+                                 varCoefs  = self.varCoefs,
+                                 atnCoefs  = self.atnCoefs,
                                  verbose   = self.verbose       )
 
         sFlag  = adjOdeObj.solve()

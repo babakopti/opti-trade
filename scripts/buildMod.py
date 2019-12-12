@@ -65,6 +65,7 @@ selParams   = { 'inVelNames' : ETFs,
                 'minImprov'  : 0.005,
                 'strategy'   : 'forward' }
 selParams = None
+
 if diffFlag:
     nDims = len( velNames )
     for m in range( nDims ):
@@ -107,9 +108,10 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     optGTol      = 5.0e-2,
                     optFTol      = 5.0e-2,
                     factor       = factor,
-                    regCoef      = 2.0e-3,
+                    regCoef      = 1.0e-3,
                     mode         = mode,
                     selParams    = selParams,
+                    atnFct       = 0.999,
                     verbose      = 1          )
 
 validFlag = mfdMod.build()

@@ -17,19 +17,19 @@ from mod.mfdMod import MfdMod
 # Set input parameters
 # ***********************************************************************
 
-xType    = 'regCoef'
+xType    = 'atnFct'
 yType    = 'trend_cnt'
-xlog     = True
+xlog     = False
 
-pltList  = [ { 'model' : '2018-03-10', 'nTrnDays' : '360', 'tol' : '0.05', 'regCoef' : None, 'atnFct' : '1.0' }]
+pltList  = [ { 'model' : '2018-03-10', 'nTrnDays' : '360', 'tol' : '0.05', 'regCoef' : '0.001', 'atnFct' : None } ]
 
 legList  = [ '2018-03-10' ]
              
 modDir   = 'models_sensitivity'
 
-figName  = 'regCoef-sensitivity-trend-cnt.png'
+figName  = 'atnFct-sensitivity-trend-cnt.png'
 
-title    = 'tol = 0.05; atnFct = 1.0; nTrnDays = 360'
+title    = 'tol = 0.05; nTrnDays = 360; regCoef = 0.001'
 
 # ***********************************************************************
 # Sanity checks + Set some parameters
@@ -113,7 +113,12 @@ for k in range( len( pltList ) ):
         modFile = os.path.join( modDir, fileName )
         mfdMod  = dill.load( open( modFile, 'rb' ) )
         ecoMfd  = mfdMod.ecoMfd
-    
+
+        try:
+            tmp = ecoMfd.atnCoefs
+        except:
+            ecoMfd.atnCoefs = np.ones( shape = ( ecoMfd.nTimes ) )
+            
         if yType == 'error':
             yVal = ecoMfd.getError()
         elif yType == 'oos_error':

@@ -24,8 +24,10 @@ class OdeBaseConst:
                   adjSol   = None,
                   tol      = 1.0e-4,
                   nMaxItrs = 20,
+                  varCoefs = None,
                   srcCoefs = None,
                   srcTerm  = None,
+                  atnCoefs = None,                  
                   verbose  = 1           ):
 
         nDims   = len( bcVec )
@@ -45,6 +47,11 @@ class OdeBaseConst:
             assert adjSol.shape[0] == nDims,  'Incorrect adjSol size!'
             assert adjSol.shape[1] == nTimes, 'Incorrect adjSol size!'
 
+        if varCoefs is not None:
+            assert len( varCoefs ) == nDims, 'Incorrect varCoefs size!'
+        else:
+            varCoefs = np.ones( shape = ( nDims ), dtype = 'd' )
+            
         if srcTerm is not None:
             assert srcTerm.shape[0] == nDims,  'Incorrect srcTerm size!'
             assert srcTerm.shape[1] == nTimes, 'Incorrect srcTerm size!'
@@ -55,6 +62,11 @@ class OdeBaseConst:
         else:
             srcCoefs = np.zeros( shape = ( nDims, nDims + 1 ), dtype = 'd' )
 
+        if atnCoefs is not None:
+            assert len( atnCoefs ) == nTimes, 'Incorrect atnCoefs size!'
+        else:
+            atnCoefs = np.ones( shape = ( nTimes ), dtype = 'd' )
+            
         self.Gamma    = Gamma
         self.bcVec    = bcVec
         self.bcTime   = bcTime
@@ -64,8 +76,10 @@ class OdeBaseConst:
         self.intgType = intgType
         self.actSol   = actSol
         self.adjSol   = adjSol
+        self.varCoefs = varCoefs
         self.srcCoefs = srcCoefs
         self.srcTerm  = srcTerm
+        self.atnCoefs = atnCoefs                
         self.tol      = tol
         self.nMaxItrs = nMaxItrs
         self.verbose  = verbose

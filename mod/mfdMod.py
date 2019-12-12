@@ -83,7 +83,7 @@ class MfdMod:
         
         self.factor   = factor
 
-        assert atnFct > 0, 'atnFct should be positive!'
+        assert atnFct >= 0, 'atnFct should be positive!'
         assert atnFct <= 1.0, 'atnFct should be less than or equal to 1.0!'
 
         self.atnFct = atnFct
@@ -117,18 +117,6 @@ class MfdMod:
             varNames.append( varName )
 
         return varNames
-
-    def getVarCoefs( self ):
-
-        nDims    = len( self.velNames )
-        varCoefs = np.empty( shape = ( nDims ), dtype = 'd' )
-        
-        varCoefs[nDims-1] = 1.0
-        
-        for m in range( nDims-1 ):
-            varCoefs[nDims-2-m] = self.atnFct * varCoefs[nDims-1-m]
-
-        return varCoefs
 
     def selVels( self, candVelNames, selParams ):
 
@@ -320,7 +308,7 @@ class MfdMod:
                               nPca         = None,
                               diagFlag     = DIAG_FLAG,
                               endBcFlag    = True,
-                              varCoefs     = self.getVarCoefs(),
+                              atnFct       = self.atnFct,
                               mode         = self.mode,
                               verbose      = self.verbose        )        
 
@@ -443,7 +431,7 @@ class MfdMod:
                                  nPca         = None,
                                  diagFlag     = DIAG_FLAG,
                                  endBcFlag    = True,
-                                 varCoefs     = self.getVarCoefs(),
+                                 atnFct       = self.atnFct,
                                  mode         = self.mode,
                                  verbose      = self.verbose        )
 

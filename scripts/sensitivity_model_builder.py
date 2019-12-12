@@ -21,7 +21,12 @@ from mod.mfdMod import MfdMod
 # Set some parameters
 # ***********************************************************************
 
-snapDates   = [ '2018-03-10', '2018-11-05', '2019-05-10' ]
+snapDates   = [ '2018-03-10' ]
+
+# snapDates   = [ '2018-01-15', '2018-02-15', '2019-04-18',
+#                 '2018-05-15', '2018-06-15', '2019-07-18',
+#                 '2018-08-15', '2018-09-18', '2019-10-15',
+#                 '2018-12-18' ]
 
 # trnDaysList = [ 360 ]
 # tolList     = [ 0.1, 0.05, 0.03, 0.01, 0.005, 0.001 ]
@@ -33,19 +38,18 @@ snapDates   = [ '2018-03-10', '2018-11-05', '2019-05-10' ]
 # regCoefList = [ 1.0e-5, 1.0e-4, 1.0e-1 ]
 # atnFctList  = [ 1.0 ]
 
-trnDaysList = [ 450, 540, 630, 720 ]
-tolList     = [ 0.05 ]
-regCoefList = [ 1.0e-3 ]
-atnFctList  = [ 1.0 ]
-
-# trnDaysList = [ 360 ]
+# trnDaysList = [ 1080, 1170, 1260, 1350, 1440 ]
 # tolList     = [ 0.05 ]
 # regCoefList = [ 1.0e-3 ]
-# atnFctList  = [ 1.0, 0.99, 0.95, 0.9, 0.8 ]
+# atnFctList  = [ 1.0 ]
 
-modFlag     = True
+trnDaysList = [ 360 ]
+tolList     = [ 0.05 ]
+regCoefList = [ 1.0e-3 ]
+atnFctList  = [ 0.75, 0.5, 0.25, 0.0 ]
+
 modDir      = 'models_sensitivity'
-dfFile      = 'data/dfFile_2016plus.pkl'
+dfFile      = 'data/dfFile_2017plus.pkl'
 nOosDays    = 3
 maxOptItrs  = 300
 
@@ -58,6 +62,7 @@ ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 velNames    = indices + ETFs + futures
 
 factor      = 4.0e-05
+numCores    = 1
 
 # ***********************************************************************
 # Some utility functions
@@ -118,7 +123,7 @@ def buildMod( snapDate, nTrnDays, tol, regCoef, atnFct ):
 
 def build():
     
-    pool = Pool()
+    pool = Pool( numCores )
 
     for snapDate in snapDates:
         for nTrnDays in trnDaysList:
@@ -143,7 +148,6 @@ def build():
 
 if __name__ ==  '__main__':
                         
-    if modFlag:
-        build()
+    build()
 
                     
