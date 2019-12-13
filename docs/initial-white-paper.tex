@@ -386,6 +386,126 @@ Christoffel symbols in future work.
 
 \section{A Proposed Trading Algorithm}\label{section:trading-algorithm}
 
+A trading algorithm which uses the above-mentioned differential
+geometric model to forecast price of securities. In a nutshell, given
+a pool of securities, we propose buliding a portfolioi by minimizing
+mean absolute deviation (MAD) where taking a long or short position on
+each security is based on the price trend as predicted by the manifold
+model.
+
+Let us us assume that we trade with a pool of $\tilde{n}$ assets with
+prices $x_{i}(t)$, where $i = 1, ...,\tilde{n}$. The proposed trading
+algorithm is in fact solving the following constrained optimization
+problem,
+
+\begin{equation}\label{eqn:mad-optimization-problem}
+\min_{w_{i}} \frac{1}{N}\sum_{t=t_{curr}}^{t_{curr}-N+1}
+|\sum_{i=1}^{\tilde{n}} w_{i} (x_{i}(t)-\bar{x_{i}})|
+\end{equation}
+
+subject to equality constraint
+
+\begin{equation}\label{eqn:mad-sum-constraint}
+\sum_{i=1}^{\tilde{n}} |w_{i}| = 1
+\end{equation}
+
+and inequality constraint
+
+\begin{case}\label{eqn:mad-trend-constraint}
+    w_{i} > 0 & \text{if upward forecast price trend} \\
+    w_{i} < 0 & \text{if downward forecast price trend}
+\end{cases}
+
+where $w_{i}$ is the portfolio weight for asset $i$; a positive or
+negative weight indicates a long or short position, respectively. Also
+note that $N$ indicates the number of data points used for training,
+i.e. $t_{k} \in [0,T]$ where $k = 1, ...,N$.
+
+\subsection{A Fallback Plan for Trend Prediction}\label{subsection:fallback-macd}
+
+It is advised to keep a short out-of-sample period with available
+historical data for each forecast model. We can then test the
+performance of the model's trend prediction for each asset. If a model
+fails to predict the correct trend of a security price in the
+out-of-sample period following the training period, it will likely
+fail beyond the out-of-sample period as well. In this case, we can
+fall back on one of the more standard trend prediction
+methodologies. As an example, we can use Moving Average Convergence
+Divergence (MACD) method.
+
+MACD is used to calculate short term acceleration of a security and as
+such helps with making a decision to take a long or short position on
+a security. MACD of a signal $x(t)$ is defined as,
+
+\begin{equation}\label{eqn:macd}
+F_{MACD}^{(f,s)}(x)|_{t_{curr}} = E^{f}(x)|_{t_{curr}} -
+E^{s}(x)|_{t_{curr}}
+\end{equation}
+
+where $E^{p}$ represents exponential moving average with respect to a
+period $p$, and $f$ and $s$ are fast and slow periods,
+respectively. The signal $x(t)$ has a positive/negative acceleration
+at $t=t_{curr}$ if $F_{MACD}^{(f,s)}(x)|_{t_{curr}}$ is
+greater/smaller than $E^{r}(F_{MACD}^{(f,s)}(x))|_{t_{curr}}$, where
+$r$ is called the signal period. The starndard values for fast, slow,
+and signal periods are 12, 26, and 9 days, respectively. One should
+long/short when acceleration becomes positive/negative. In fact, one
+can check the sign of both $F_{MACD}^{(f,s)}(x)|_{t_{curr}}$ and
+$F_{MACD}^{(f,s)}(x)|_{t_{curr}}-E^{r}(F_{MACD}^{(f,s)}(x))|_{t_{curr}}$
+as they represent velocity and acceleration signs, respectively. The
+number of historical times used to calculate MACD should be at least
+$s$ + $r$ ($N > s + r$).
+
+\subsection{Some Trading Backtest Results}\label{subsection:trading-backtest}
+
+The proposed trading algorithm was backtested over a number of recent
+years. Here we have used a pool of 11 ETFs for trading,
+
+\begin{itemize}
+    \item[] QQQ: PowerShares QQQ 
+    \item[] SPY: SPDR S\&P 500 Growth ETF 
+    \item[] DIA: SPDR Dow Jones Industrial Average ETF 
+    \item[] MDY: SPDR S\&P MidCap 400 ETF 
+    \item[] IWM: iShares Russell 2000 Index Fund 
+    \item[] OIH: Market Vectors Oil Services ETF 
+    \item[] SMH: Market Vectors Semiconductor ETF 
+    \item[] XLE: Energy Select Sector SPDR Fund 
+    \item[] XLF: Financial Select Sector SPDR Fund 
+    \item[] XLU: Utilities Select Sector SPDR Fund 
+    \item[] EWJ: iShares MSCI Japan Index Fund
+\end{itemize}
+
+The models and portfolio weights were generated at the beginning of
+each business day and the portfolio was adjusted using the updated
+weights on a daily basis. For each ''current'' date, the previous 363
+days were used, where the first 360 days was used for training and the
+last three days was kept as the out-of-sample period; MACD was used as
+a fallback strategy whenever the model failed to predict the trend in
+the out-of-sample period. We used Quantioan~\cite{ref:quantopian} to
+run backtests and generate plots.
+
+\begin{figure}\label{fig:backtest-2019-half}
+\end{figure}
+
+\begin{figure}\label{fig:backtest-2018}
+\end{figure}
+
+\begin{figure}\label{fig:backtest-2017}
+\end{figure}
+
+\begin{figure}\label{fig:backtest-2016}
+\end{figure}
+
+\begin{figure}\label{fig:backtest-2015}
+\end{figure}
+
+\begin{figure}\label{fig:backtest-2014}
+\end{figure}
+
+\begin{figure}\label{fig:backtest-2008-2009}
+\end{figure}
+
+
 
 \bibliography{references}
 \bibliographystyle{plain}
