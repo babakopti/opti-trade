@@ -484,28 +484,65 @@ a fallback strategy whenever the model failed to predict the trend in
 the out-of-sample period. We used Quantioan~\cite{ref:quantopian} to
 run backtests and generate plots.
 
+Figure~\ref{fig:backtest-2019-half} shows the backtest results of the
+proposed algorithm for the first half of 2019 (blue line), compared to
+performance of SPY (red line). As can be seen, the proposed algorithm
+shows a better performance.
+
 \begin{figure}\label{fig:backtest-2019-half}
+\includegraphics[bb=0 0 640 480]{figures/2019_half_mfd_macd.png}
+\caption{Comparison of proposed algorithm (blue) to SPY (red); first half of 2019.}  
 \end{figure}
 
+Figures~\ref{fig:backtest-2018} and ~\ref{fig:backtest-2017} show
+backtest results for 2018 and 2017, respectively.
+
 \begin{figure}\label{fig:backtest-2018}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2018.png}
+\caption{Comparison of proposed algorithm (blue) to SPY (red); 2018.}  
 \end{figure}
 
 \begin{figure}\label{fig:backtest-2017}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2017.png}
+\caption{Comparison of proposed algorithm to SPY; 2017.}  
 \end{figure}
 
 \begin{figure}\label{fig:backtest-2016}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2016.png}
+\caption{Comparison of proposed algorithm to SPY; 2016.}  
 \end{figure}
 
 \begin{figure}\label{fig:backtest-2015}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2015.png}
+\caption{Comparison of proposed algorithm to SPY; 2015.}  
 \end{figure}
 
 \begin{figure}\label{fig:backtest-2014}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2014.png}
+\caption{Comparison of proposed algorithm to SPY; 2014.}  
 \end{figure}
 
-\begin{figure}\label{fig:backtest-2008-2009}
+\begin{figure}\label{fig:backtest-2013}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2013.png}
+\caption{Comparison of proposed algorithm to SPY; 2013.}  
 \end{figure}
 
+\begin{figure}\label{fig:backtest-2012}
+\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2012.png}
+\caption{Comparison of proposed algorithm to SPY; 2012.}  
+\end{figure}
 
+\begin{figure}\label{fig:backtest-2007-2008}
+\includegraphics[bb=0 0 640 480]{figures/crash_period_mfd_macd.png}
+\caption{Comparison of proposed algorithm to SPY; 2007-2008.}  
+\end{figure}
+
+\subsection{Trading Algorithm Parameter Study}\label{subsection:mad-parameter-study}
+
+\begin{figure}\label{fig:mad-period-sensitivity}
+\includegraphics[bb=0 0 640 480]{figures/mad-sensitivity-period-SPY.png}
+\caption{The weight of SPY vs. period used for calculation of MAD.}
+\end{figure}
 
 \bibliography{references}
 \bibliographystyle{plain}
