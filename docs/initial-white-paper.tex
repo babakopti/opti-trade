@@ -121,13 +121,14 @@ J(\vec{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t) \left\Vert
 
 subject to the system of ODEs in Eq.~\ref{eqn:geodesic-1st-order} with
 boundary condition of Eq.~\ref{eqn:geodesic-bc} as a constraint, where
-$\vec{y}$ represents a vector with $y^{i}$ as its elements, and
-$\left\Vert \right\Vert$ is the L2 norm. Also, $\eta(t)$ is a function
-of time which allows to introduce a weight in th eobjective
-function. This weight can be used to emphasize on the more recent
-training data. For instance when treating the problem numerically, we
-can define $\eta(t_{k}) = \eta_{0} \eta(t_{k+1})$ where $t_{k+1} >
-t_{k}$ and $\eta_{0} \in (0,1]$ is an attenuation factor.
+$\vec{y}$ represents a vector with $y^{i}$ as its elements,
+$\hat{\vec{y}}$ is the observed value of $\vec{y}$, and $\left\Vert
+\right\Vert$ is the L2 norm. Also, $\eta(t)$ is a function of time
+which allows to introduce a weight in th eobjective function. This
+weight can be used to emphasize on the more recent training data. For
+instance when treating the problem numerically, we can define $\eta(t)
+= \eta_{0} + \frac{1.0 - \eta_{0}}{T} t$ where $\eta_{0} \in (0,1]$ is
+  an attenuation parameter.
 
 The ODE constraint can be added using continuous Lagrangian multiplier
 $\vec{v}$. The objective functiomn
@@ -144,7 +145,9 @@ is a constant regularization coefficient. Note too that the continuous
 Lagrangian multiplier $\vec{v}$ is a cotangent vector with elements
 $v_{1}$, $v_{2}$,..., $v_{n}$.
 
-\section{Some Results}\label{section:results}
+\section{Results and Discussion}\label{section:results-discussion}
+
+\subsection{Results of a Sample Manifold}\label{subsection:some-results}
 
 A 33-dimensional manifold is built using the above-mentioned
 approach. The dimensions of the manifold correspond to prices of the
@@ -222,59 +225,167 @@ the model is 3.5\%.
 \caption{Out-of-sample forecast results for SPY.}
 \end{figure}
 
-\section{Model Parameter Study}\label{section:model-parameter-study}
+\subsection{A Model Parameter Study}\label{subsection:model-parameter-study}
+
+A model parameter study is performed for the following parameters,
+
+\begin{itemize}
+
+    \item Tolerance used for norm of gradient of objective function in
+      numerical solution of optimization problem in
+      Eq.~\ref{eqn:optimization-objective}.
+  
+    \item Training period, that is $T$ in
+      Eq.~\ref{eqn:optimization-objective}.
+  
+    \item Regularization coefficient, that is $\zeta$ in
+      Eq.~\ref{eqn:optimization-objective}.
+
+    \item Attenuation parameter $\eta_{0}$.
+      
+\end{itemize}
+
+Manifold models are built using the variables discussed in
+section~\ref{subsection:some-results}.
+
+Figure~\ref{fig:tolerance-sensitivity-error} shows the in-sample
+relative error vs. optimization tolerance, where the in-sample
+relative error, $E$ is defined as,
+
+\begin{equation}\label{eqn:in-sample-error}
+E = \frac{\int_{0}^{T} \eta(t) \left\Vert \vec{y}(t) -
+  \hat{\vec{y}}(t) \right\Vert^{2} dt}{\int_{0}^{T} \eta(t) \left\Vert
+  \hat{\vec{y}}(t) \right\Vert^{2} dt}
+\end{equation}
 
 \begin{figure}\label{fig:tolerance-sensitivity-error}
 \includegraphics[bb=0 0 640 480]{figures/tolerance-sensitivity-error.png}
-\caption{In-sample relative error vs. optimization tolerance.}
+\caption{In-sample relative error vs. optimization tolerance; $T$ =
+  360 days, $\eta(t) = 1.0$, $\zeta$ = 1.0e-3.}
 \end{figure}
+
+As expected, the in-sample error reduces as a tighter optimization
+tolerance is used.
+
+To evaluate the out-of-sample performance of the forecast model, we
+define an out-of-sample period $(T,T+T^{oos}]$, and an out-of-sample
+  error $E^{oos}$, defined as,
+
+\begin{equation}\label{eqn:out-of-sample-error}
+E^{oos} = \frac{\int_{T}^{T+T^{oos}} \eta(t) \left\Vert \vec{y}(t) -
+  \hat{\vec{y}}(t) \right\Vert^{2} dt}{\int_{T}^{T+T^{oos}} \eta(t)
+  \left\Vert \hat{\vec{y}}(t) \right\Vert^{2} dt}
+\end{equation}
+
+Figure~\ref{fig:tolerance-sensitivity-oos-error} shows out-of-sample
+error vs. optimization tolerance. As can be seen, the behavior of
+out-of-sample error is consistent with that of in-sample and decreases
+when the tolerance is made tighter.
 
 \begin{figure}\label{fig:tolerance-sensitivity-oos-error}
 \includegraphics[bb=0 0 640 480]{figures/tolerance-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. optimization tolerance.}
+\caption{Out-of-sample relative error vs. optimization tolerance; $T$
+  = 360 days, $T^{oos}$ = 3, days$\eta(t)$ = 1.0, $\zeta$ = 1.0e-3.}
 \end{figure}
 
-\begin{figure}\label{fig:nTrnDays-sensitivity-error}
-\includegraphics[bb=0 0 640 480]{figures/nTrnDays-sensitivity-error.png}
-\caption{In-sample relative error vs. number of days used for training.}
-\end{figure}
+Figure~\ref{fig:nTrnDays-sensitivity-oos-error} show the out-of-sample
+error vs. number of days, $T$, used for model training. As can be
+seen, the out-of-sample performance improves when a longer training
+period is used, while the improvement begins to plateau around a
+training period of two years. 
 
 \begin{figure}\label{fig:nTrnDays-sensitivity-oos-error}
 \includegraphics[bb=0 0 640 480]{figures/nTrnDays-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. number of days used for training.}
+\caption{Out-of-sample relative error vs. number of days used for
+  training; $T^{oos}$ = 3, $\eta(t)$ = 1.0, $\zeta$ = 1.0e-3,
+  tolerance = 0.05.}
 \end{figure}
+
+It is worth mentioning that the in-sample error did not show any
+correlation to the length of training period as can be seen in
+Figure~\ref{fig:nTrnDays-sensitivity-error}.
+
+\begin{figure}\label{fig:nTrnDays-sensitivity-error}
+\includegraphics[bb=0 0 640 480]{figures/nTrnDays-sensitivity-error.png}
+\caption{In-sample relative error vs. number of days used for
+  training; $\eta(t) = 1.0$, $\zeta$ = 1.0e-3, tolerance = 0.05.}
+\end{figure}
+
+Turning to regularization, Figure~\ref{fig:regCoef-sensitivity-error}
+shows that using a regularization coefficient, $\zeta$, of up to
+around 1.0e-3 does not introduce a significant in-sample error. The
+in-sample error, however, increases as regularization coefficient
+grows beyond 1.0e-3.
 
 \begin{figure}\label{fig:regCoef-sensitivity-error}
 \includegraphics[bb=0 0 640 480]{figures/regCoef-sensitivity-error.png}
-\caption{In-sample relative error vs. regularization coefficient.}
+\caption{In-sample relative error vs. regularization coefficient; $T$
+  = 360 days, $\eta(t)$ = 1.0, tolerance = 0.05.}
 \end{figure}
+
+The out-of-sample error shows a similar relationship to regularization
+coefficient, as shown in
+Figure~\ref{fig:regCoef-sensitivity-oos-error}.
 
 \begin{figure}\label{fig:regCoef-sensitivity-oos-error}
 \includegraphics[bb=0 0 640 480]{figures/regCoef-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. regularization coefficient.}
+\caption{Out-of-sample relative error vs. regularization coefficient;
+  $T$ = 360 days, $T^{oos}$ = 3, $\eta(t)$ = 1.0, tolerance = 0.05.}
 \end{figure}
+
+Finally, we studied the effect of the attenuation parameter,
+$\eta_{0}$. Note that the attenuatuation function is defined as
+$\eta(t) = \eta_{0} + \frac{1.0 - \eta_{0}}{T} t$. This means that
+$\eta_{0}$ = 1.0 corresponds to no attenuation, whereas $\eta_{0}$ = 0
+yields the maximum attenuation using the above-mentioned attenuation
+function. Figure~\ref{fig:atnFct-sensitivity-error} show the in-sample
+error vs. attenuation parameter $\eta_{0}$. The in-sample error
+decreases as more attenuation is introduced. This is expected as we
+apply a boundary condition at $t = T$, so the in-sample results
+already tend to better match the recent actuals. Inroducing
+attenuation lowers weight of the less recent data and as such reduces
+the overall in-sample error.
 
 \begin{figure}\label{fig:atnFct-sensitivity-error}
 \includegraphics[bb=0 0 640 480]{figures/atnFct-sensitivity-error.png}
-\caption{In-sample relative error vs. attenuation coefficient.}
+\caption{In-sample relative error vs. attenuation parameter; $T$ = 360
+  days, $\zeta$ = 1.0e-3, tolerance = 0.05.}
 \end{figure}
+
+The out-of-sample error, on the other hand, does not show any obvious
+relationship to attenuation as seen in
+Figure~\ref{fig:atnFct-sensitivity-oos-error}.
 
 \begin{figure}\label{fig:atnFct-sensitivity-oos-error}
 \includegraphics[bb=0 0 640 480]{figures/atnFct-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. attenuation coefficient.}
+\caption{Out-of-sample relative error vs. attenuation parameter; $T$ =
+  360 days, $T^{oos}$ = 3, $\zeta$ = 1.0e-3, tolerance = 0.05.}
 \end{figure}
 
-\section{On Behavior of Christoffel Symbls}\label{section:christoffel-behavior}
+\subsection{On Behavior of Christoffel Symbols}\label{subsection:christoffel-behavior}
+
+Let us revist the assumption of a constant Christoffel symbol,
+$\Gamma^{m}_{ab}$ briefly. To study this, a collection of manifold
+models were built using training data of 360 days ending at each
+business day of 2018. Each model uses a constant Christoffel symbol as
+explained in
+section~\ref{section:mathematical-framework}. Figure~\ref{fig:gamma-time}
+shows the norm of christoffel symbol, $\left\Vert \Gamma^{m}_{ab}
+\right\Vert$, vs. the last training day of each model. This shows the
+behavior of Christoffel symbol; it is more more or less
+periodic. These results can be useful when we move beyonf constant
+Christoffel symbols in future work.
 
 \begin{figure}\label{fig:gamma-time}
 \includegraphics[bb=0 0 640 480]{figures/Gamma_time_2018.png}
 \caption{Norm of Gamma vs. snapdate Each point on the plot comes from
-  a model with a constant Christoffel symbol.}
+  a model with a constant Christoffel symbol; for all models we have
+  $T$ = 360 days, $\zeta$ = 1.0e-3, $\eta_{0}$ = 1.0, tolerance =
+  0.05.}
 \end{figure}
 
 \section{A Proposed Trading Algorithm}\label{section:trading-algorithm}
 
-\section{Conclusions}\label{section:conclusions}
 
 \bibliography{references}
 \bibliographystyle{plain}
