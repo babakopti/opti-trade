@@ -23,10 +23,10 @@
 \section{Introduction}\label{section:introduction}
 
 The usual approach to predicting price of an asset is to regress the
-historical prices of tat asset against a set of economic
+historical prices of an asset against a set of economic
 indicators. The problem with this approach is that we still need
-knowldege of the future values of economic indicators. This is done by
-relying on estimate forecasts of econimic indicators which are often
+knowledge of the future values of economic indicators. This is done by
+relying on estimate forecasts of economic indicators which are often
 based on qualitative methods, such as those in Blue Chip Economic
 Indicators and Blue Chip Financial Forecasts~\cite{ref:blue-chip}. The
 forecasts in Blue Chip publications are based on surveying top
@@ -34,13 +34,13 @@ business economists in the United States.
 
 An approach is proposed to forecast economic variables without
 depending on future values of any economic indicators. We look at the
-economy as a multi-demensional manifold; each dimension is an economic
-variable. These variables can be marco-economic indicators or asset
+economy as a multi-dimensional manifold; each dimension is an economic
+variable. These variables can be macro-economic indicators or asset
 prices. We refer to this manifold as an economic universe. The
 observed values of economic variables in a time period form a path in
 this universe. We refer to this path as the economic path. We then
 find a manifold for which this path is a geodesic, governed by a
-system of differential equations. The fututre value of economc
+system of differential equations. The future value of economic
 variables can be predicted by solving this system of differential
 equations.
 
@@ -61,7 +61,7 @@ $n$ variables over a period of time $[0,T]$ form a path over $M$. This
 path is smooth as $x^{i}$s are smooth functions of time. Now let us
 add a constraint on $M$ by assuming that the path formed by
 $x^{i}(t)$s is a geodesic of $M$. With this assumption, this path is
-governed by the follwoing system of ordinary differential equations,
+governed by the following system of ordinary differential equations,
 
 \begin{equation}\label{eqn:geodesic}
 \ddot{x}^{m} + \Gamma^{m}_{ab} \dot{x}^{a} \dot{x}^{b} = 0
@@ -106,7 +106,7 @@ approach~\cite{ref:adjoint-giles}.
 
 The adjoint approach is used to solve a minimization problem
 constrained by a system of differential equations. Here, we want to
-solve the follwoing constrained optimization problem,
+solve the following constrained optimization problem,
 
 \begin{equation}\label{eqn:optimization-problem}
 \min_{\Gamma^{m}_{ab}} J(\vec{y},\Gamma^{m}_{ab})
@@ -124,14 +124,14 @@ boundary condition of Eq.~\ref{eqn:geodesic-bc} as a constraint, where
 $\vec{y}$ represents a vector with $y^{i}$ as its elements,
 $\hat{\vec{y}}$ is the observed value of $\vec{y}$, and $\left\Vert
 \right\Vert$ is the L2 norm. Also, $\eta(t)$ is a function of time
-which allows to introduce a weight in th eobjective function. This
+which allows to introduce a weight in the objective function. This
 weight can be used to emphasize on the more recent training data. For
 instance when treating the problem numerically, we can define $\eta(t)
 = \eta_{0} + \frac{1.0 - \eta_{0}}{T} t$ where $\eta_{0} \in (0,1]$ is
   an attenuation parameter.
 
 The ODE constraint can be added using continuous Lagrangian multiplier
-$\vec{v}$. The objective functiomn
+$\vec{v}$. The objective function
 
 \begin{equation}\label{eqn:optimization-objective}
 J(\vec{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t)
@@ -199,13 +199,13 @@ and values of the following financial indices,
     \item[] XAU:   PHLX Gold/Silver Sector Index
 \end{itemize}
 
-Here we assume that the above variables are elements of the tanget
+Here we assume that the above variables are elements of the tangent
 bundle of our manifold, that is $y^{m}(t)$ in
 Eq.~\ref{eqn:geodesic-1st-order}. In other words, coordinates of our
 manifold, $x^{m}(t)$ in Eq.~\ref{eqn:geodesic}, are cumulative of the
 above variables.
 
-We trained this maniofold using intraday minute-based data spanning
+We trained this manifold using intraday minute-based data spanning
 2017-01-03 to 2018-01-03. The model is tested on three days of
 out-of-sample data corresponding to the first three business days
 after training period. Figure~\ref{fig:results-spy} shows in-sample
@@ -334,7 +334,7 @@ Figure~\ref{fig:regCoef-sensitivity-oos-error}.
 \end{figure}
 
 Finally, we studied the effect of the attenuation parameter,
-$\eta_{0}$. Note that the attenuatuation function is defined as
+$\eta_{0}$. Note that the attenuation function is defined as
 $\eta(t) = \eta_{0} + \frac{1.0 - \eta_{0}}{T} t$. This means that
 $\eta_{0}$ = 1.0 corresponds to no attenuation, whereas $\eta_{0}$ = 0
 yields the maximum attenuation using the above-mentioned attenuation
@@ -342,7 +342,7 @@ function. Figure~\ref{fig:atnFct-sensitivity-error} show the in-sample
 error vs. attenuation parameter $\eta_{0}$. The in-sample error
 decreases as more attenuation is introduced. This is expected as we
 apply a boundary condition at $t = T$, so the in-sample results
-already tend to better match the recent actuals. Inroducing
+already tend to better match the recent actuals. Introducing
 attenuation lowers weight of the less recent data and as such reduces
 the overall in-sample error.
 
@@ -364,16 +364,16 @@ Figure~\ref{fig:atnFct-sensitivity-oos-error}.
 
 \subsection{On Behavior of Christoffel Symbols}\label{subsection:christoffel-behavior}
 
-Let us revist the assumption of a constant Christoffel symbol,
+Let us revisit the assumption of a constant Christoffel symbol,
 $\Gamma^{m}_{ab}$ briefly. To study this, a collection of manifold
 models were built using training data of 360 days ending at each
 business day of 2018. Each model uses a constant Christoffel symbol as
 explained in
 section~\ref{section:mathematical-framework}. Figure~\ref{fig:gamma-time}
-shows the norm of christoffel symbol, $\left\Vert \Gamma^{m}_{ab}
+shows the norm of Christoffel symbol, $\left\Vert \Gamma^{m}_{ab}
 \right\Vert$, vs. the last training day of each model. This shows the
 behavior of Christoffel symbol; it is more more or less
-periodic. These results can be useful when we move beyonf constant
+periodic. These results can be useful when we move beyond constant
 Christoffel symbols in future work.
 
 \begin{figure}\label{fig:gamma-time}
@@ -388,7 +388,7 @@ Christoffel symbols in future work.
 
 A trading algorithm which uses the above-mentioned differential
 geometric model to forecast price of securities. In a nutshell, given
-a pool of securities, we propose buliding a portfolioi by minimizing
+a pool of securities, we propose building a portfolio by minimizing
 mean absolute deviation (MAD) where taking a long or short position on
 each security is based on the price trend as predicted by the manifold
 model.
@@ -448,7 +448,7 @@ period $p$, and $f$ and $s$ are fast and slow periods,
 respectively. The signal $x(t)$ has a positive/negative acceleration
 at $t=t_{curr}$ if $F_{MACD}^{(f,s)}(x)|_{t_{curr}}$ is
 greater/smaller than $E^{r}(F_{MACD}^{(f,s)}(x))|_{t_{curr}}$, where
-$r$ is called the signal period. The starndard values for fast, slow,
+$r$ is called the signal period. The standard values for fast, slow,
 and signal periods are 12, 26, and 9 days, respectively. One should
 long/short when acceleration becomes positive/negative. In fact, one
 can check the sign of both $F_{MACD}^{(f,s)}(x)|_{t_{curr}}$ and
@@ -495,7 +495,7 @@ shows a better performance.
 \caption{Comparison of proposed algorithm (blue) to SPY (red); first half of 2019.}  
 \end{figure}
 
-A similar trend is observed in the backtest resutls going back to
+A similar trend is observed in the backtest results going back to
 2012, as can be seen in Figures~\ref{fig:backtest-2018} to
 ~\ref{fig:backtest-2012}. The only exception is 2016, where the
 proposed algorithm is superior to SPY in the first quarter, however,
