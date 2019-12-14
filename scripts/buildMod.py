@@ -28,7 +28,7 @@ piDir       = '/Users/babak/workarea/data/pitrading_data'
 if mode == 'day':
     dfFile  = 'data/dfFile_daily.pkl'
 else:
-    dfFile  = 'data/dfFile_2016plus.pkl'
+    dfFile  = 'data/dfFile_2017plus.pkl'
 
 minTrnDate  = pd.to_datetime( '2017-03-01 09:00:00' )
 maxTrnDate  = pd.to_datetime( '2018-03-01 09:00:00' )

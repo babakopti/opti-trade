@@ -10,6 +10,7 @@ sys.path.append( os.path.abspath( '../' ) )
 from mfd.ecoMfd import EcoMfdConst as EcoMfd
 
 import dill
+import logging
 import pickle as pk
 import numpy as np
 import pandas as pd
@@ -47,6 +48,7 @@ class MfdMod:
                     smoothCount  = None,
                     atnFct       = 1.0,
                     mode         = 'intraday',
+                    logFileName  = None,                    
                     verbose      = 1          ):
 
         fileExt = dfFile.split( '.' )[-1]
@@ -70,10 +72,24 @@ class MfdMod:
         self.varFiltFlag = varFiltFlag
         self.validFlag   = validFlag
         self.mode        = mode
-        self.verbose     = verbose
         self.ecoMfd      = None
         self.trmFuncDict = {}
 
+        verboseHash      = { 0 : logging.NOTSET,
+                             1 : logging.INFO,
+                             2 : logging.DEBUG }
+        if logFileName is None:
+            logging.basicConfig( stream   = sys.stdout,
+                                 level    = verboseHash[ verbose ],
+                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
+        else:
+            logging.basicConfig( filename = logFileName,
+                                 level    = verboseHash[ verbose ],
+                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
+            
+        self.verbose     = verbose
+        self.logFileName = logFileName
+        
         if regCoef is None:
             self.regCoef    = 0.0
             self.optRegFlag = True
@@ -207,28 +223,27 @@ class MfdMod:
                 velNames.append( velName )
                 error = newError
                 cnt += 1
-                print( 'Added %s ; error = %0.4f' % ( velName, error ) )
+                logging.info( 'Added %s ; error = %0.4f' % ( velName, error ) )
             else:
-                print( '%s was not added!' % velName )
+                logging.info( '%s was not added!' % velName )
                 
             if cnt == maxNumVars:
                 break
             
         assert len( velNames ) > 0, 'Unsuccessful variable selection!'
 
-        print( 'Selected:', velNames )
-        print( list( set( velNames ) - set( inVelNames ) ), 'were added!' )
+        logging.info( 'Selected:', velNames )
+        logging.info( list( set( velNames ) - set( inVelNames ) ), 'were added!' )
         
         return velNames
             
     def build( self ):
 
-        print( 'Building a manifold...' )
+        logging.info( 'Building a manifold...' )
 
         sFlag  = self.setMfd()
 
-        if self.verbose > 0:
-            self.echoMod()
+        self.echoMod()
         
         if not sFlag:
             return False
@@ -238,8 +253,7 @@ class MfdMod:
             if dropFlag:
                 sFlag = self.setMfd()
 
-                if self.verbose > 0:
-                    self.echoMod()
+                self.echoMod()
 
                 if not sFlag:
                     return False
@@ -248,8 +262,7 @@ class MfdMod:
             self.regCoef = self.optReg()
             sFlag = self.setMfd()
 
-            if self.verbose > 0:
-                self.echoMod()
+            self.echoMod()
 
             if not sFlag:
                 return False
@@ -271,15 +284,15 @@ class MfdMod:
             bias = max( bias, ecoMfd.getRelBias( varId ) )
         
         if merit < self.minMerit:
-            print( 'Merit does not meet criteria!' )
+            logging.warning( 'Merit does not meet criteria!' )
             sFlag = False
 
         if trend < self.minTrend:
-            print( 'Trend does not need criteria!' )
+            logging.warning( 'Trend does not need criteria!' )
             sFlag = False
             
         if bias > self.maxBias:
-            print( 'Bias does not meet criteria' )
+            logging.warning( 'Bias does not meet criteria' )
             sFlag = False
 
         if not sFlag:
@@ -310,12 +323,13 @@ class MfdMod:
                               endBcFlag    = True,
                               atnFct       = self.atnFct,
                               mode         = self.mode,
+                              logFileName  = self.logFileName,                              
                               verbose      = self.verbose        )        
 
         sFlag = self.ecoMfd.setGammaVec()
 
         if not sFlag:
-            print( 'Warning: did not converge!' )
+            logging.warning( 'Did not converge!' )
 
         return sFlag
 
@@ -334,13 +348,12 @@ class MfdMod:
             bias = ecoMfd.getRelBias( m )
             biasVec.append( bias )
 
-        print( 'Manifold merit    :', ecoMfd.getMerit(),       '\n' )
-        print( 'Manifold oos merit:', ecoMfd.getOosMerit(),    '\n' )
-        print( 'Manifold oos velocity trend match:', ecoMfd.getOosTrendCnt( 'vel' ), '\n' )
-        print( 'Manifold oos variable trend match:', ecoMfd.getOosTrendCnt( 'var' ), '\n' )
-        print( 'Manifold max bias :', max( biasVec ),          '\n' )            
+        logging.info( 'Manifold merit    : %0.6f', ecoMfd.getMerit() )
+        logging.info( 'Manifold oos merit: %0.6f', ecoMfd.getOosMerit() )
+        logging.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
+        logging.info( 'Manifold max bias: %0.6f', max( biasVec ) )            
 
-        print( ecoMfd.getTimeDf(), '\n' )
+        logging.info( '\n' + str( ecoMfd.getTimeDf() ) )
 
     def filtVars( self ):
 
@@ -386,11 +399,11 @@ class MfdMod:
         maxOosDt  = pd.to_datetime( self.maxOosDate )
 
         if 2 * incYrs > ( maxDt.year - minDt.year ):
-            print( 'Increment is too small! No cross validation done!' )
+            logging.warning( 'Increment is too small! No cross validation done!' )
             return None
 
         if 3 * incYrs > ( maxOosDt.year - minDt.year ):
-            print( 'Increment is too small! No cross validation done!' )
+            logging.warning( 'Increment is too small! No cross validation done!' )
             return None
 
         maxDt    = minDt + pd.DateOffset( years = int( minYrs ) )
@@ -433,6 +446,7 @@ class MfdMod:
                                  endBcFlag    = True,
                                  atnFct       = self.atnFct,
                                  mode         = self.mode,
+                                 logFileName  = self.logFileName,                                 
                                  verbose      = self.verbose        )
 
             ecoMfds.append( ecoMfd )
@@ -444,8 +458,7 @@ class MfdMod:
         if not self.optRegFlag:
             return
 
-        if self.verbose > 0:
-            print( 'Running optimization for regularization coefficient!' )
+        logging.info( 'Running optimization for regularization coefficient!' )
 
         options    = {    'disp'       : False,
                           'gtol'       : 1e-05,
@@ -458,8 +471,8 @@ class MfdMod:
                                      x0      = 0.0,
                                      method  = 'CG',
                                      options = options   )
-        print( res )
-        print( res[ 'x' ] )
+        logging.info( res )
+        logging.info( res[ 'x' ] )
 
         return res[ 'x' ]
 
@@ -492,8 +505,7 @@ class MfdMod:
 
         oosMeritAvg = self.optRegFunc( self.regCoef )
         
-        if self.verbose > 0:
-            print( 'Average OOS merit:', oosMeritAvg )
+        logging.info( 'Average OOS merit:', oosMeritAvg )
 
         validFlag = validFlag & (oosMeritAvg >= self.minMerit)
         

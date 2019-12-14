@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
+import logging
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
@@ -64,6 +65,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     srcTerm      = None,
                     atnFct       = 1.0,
                     mode         = 'intraday',
+                    logFileName  = None,                    
                     verbose      = 1     ):
 
         EcoMfdCBase.__init__(  self,
@@ -90,6 +92,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                srcTerm      = srcTerm,
                                atnFct       = atnFct,
                                mode         = mode,
+                               logFileName  = logFileName,                               
                                verbose      = verbose     )
 
         self.diagFlag    = diagFlag
@@ -197,10 +200,8 @@ class EcoMfdConst( EcoMfdCBase ):
 
                     gammaId += 1
 
-        if self.verbose > 1:
-            print( '\nSetting gradient:', 
-                   round( time.time() - t0, 2 ), 
-                   'seconds.\n'         )
+        logging.debug( 'Setting gradient: %0.2f seconds.', 
+                       time.time() - t0 ) 
 
         return grad
 
@@ -219,8 +220,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         Gamma    = self.getGammaArray( GammaVec )
 
-        if self.verbose > 1:
-            print( '\nSolving geodesic...\n' )
+        logging.debug( 'Solving geodesic...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = self.bcSol,
@@ -236,16 +236,13 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag = odeObj.solve()
 
         if not sFlag:
-            if self.verbose > 0:
-                print( 'Geodesic equation did not converge!' )
+            logging.warning( 'Geodesic equation did not converge!' )
             return None
 
         self.statHash[ 'odeTime' ] += time.time() - t0
 
-        if self.verbose > 1:
-            print( '\nGeodesic equation:', 
-                   round( time.time() - t0, 2 ), 
-                   'seconds.\n'         )
+        logging.debug( 'Geodesic equation: %0.2f seconds.', 
+                       time.time() - t0 ) 
 
         return odeObj
 
@@ -260,8 +257,7 @@ class EcoMfdConst( EcoMfdCBase ):
         bcVec    = np.zeros( shape = ( nDims ), dtype = 'd' )
         bkFlag   = not self.endBcFlag
 
-        if self.verbose > 1:
-            print( '\nSolving adjoint geodesic equation...\n' )
+        logging.debug( 'Solving adjoint geodesic equation...' )
 
         adjOdeObj = OdeAdjConst( Gamma    = Gamma,
                                  bcVec    = bcVec,
@@ -279,16 +275,13 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag  = adjOdeObj.solve()
 
         if not sFlag:
-            if self.verbose > 0:
-                print( 'Adjoint equation did not converge!' )
+            logging.warning( 'Adjoint equation did not converge!' )
             return None
 
         self.statHash[ 'adjOdeTime' ] += time.time() - t0
 
-        if self.verbose > 1:
-            print( '\nAdjoint equation:', 
-                   round( time.time() - t0, 2 ), 
-                   'seconds.\n'         )
+        logging.debug( 'Adjoint equation: %0.2f seconds.', 
+                       time.time() - t0 ) 
 
         return adjOdeObj
 
@@ -327,8 +320,7 @@ class EcoMfdConst( EcoMfdCBase ):
         Gamma     = self.getGammaArray( self.GammaVec )
         srcCoefs  = self.srcCoefs
 
-        if self.verbose > 0:
-            print( '\nSolving geodesic to predict...\n' )
+        logging.debug( 'Solving geodesic to predict...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = self.endSol,
@@ -344,8 +336,7 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag = odeObj.solve()
 
         if not sFlag:
-            if self.verbose > 0:
-                print( 'Geodesic equation did not converge!' )
+            logging.warning( 'Geodesic equation did not converge!' )
             return None
 
         return odeObj
@@ -398,8 +389,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         nTimes = len( dates )
 
-        if self.verbose > 0:
-            print( '\nSolving geodesic to predict...\n' )
+        logging.info( 'Solving geodesic to predict...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = bcVec,
@@ -413,8 +403,7 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag  = odeObj.solve()
 
         if not sFlag:
-            if self.verbose > 0:
-                print( 'Geodesic equation did not converge!' )
+            logging.warning( 'Geodesic equation did not converge!' )
             return None
 
         prdSol  = odeObj.getSol()

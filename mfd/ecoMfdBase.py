@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
+import logging
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
@@ -53,7 +54,8 @@ class EcoMfdCBase:
                     srcTerm      = None,
                     atnFct       = 1.0,
                     mode         = 'intraday',
-                    verbose      = 1     ):
+                    logFileName  = None,
+                    verbose      = 1        ):
 
         assert len( varNames ) == len( velNames ),\
             'Inconsistent variable and velocity lists!'
@@ -83,7 +85,6 @@ class EcoMfdCBase:
         self.regL1Wt     = regL1Wt
         self.endBcFlag   = endBcFlag
         self.mode        = mode
-        self.verbose     = verbose
         self.trnDf       = None
         self.oosDf       = None
         self.errVec      = []
@@ -91,6 +92,19 @@ class EcoMfdCBase:
         self.statHash    = {}
         self.deNormHash  = {}
 
+        self.verbose     = verbose
+        verboseHash      = { 0 : logging.NOTSET,
+                             1 : logging.INFO,
+                             2 : logging.DEBUG }
+        if logFileName is None:
+            logging.basicConfig( stream   = sys.stdout,
+                                 level    = verboseHash[ verbose ],
+                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
+        else:
+            logging.basicConfig( filename = logFileName,
+                                 level    = verboseHash[ verbose ],
+                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
+            
         self.statHash[ 'funCnt' ]     = 0
         self.statHash[ 'gradCnt' ]    = 0
         self.statHash[ 'odeCnt' ]     = 0
@@ -105,7 +119,7 @@ class EcoMfdCBase:
 
             self.pcaFlag = True
 
-            if nPca is 'full':
+            if nPca == 'full':
                 self.nPca = self.nDims
             else:
                 self.nPca = nPca
@@ -163,10 +177,10 @@ class EcoMfdCBase:
         elif self.mode == 'intraday':
             pass
         else:
-            print( 'Mode %s is not supported!' % self.mode )
+            assert False, 'Mode %s is not supported!' % self.mode 
         
         df             = df[ [ dateName ] + velNames ]
-        df[ dateName ] = pd.to_datetime( df[ dateName ] )
+        df[ dateName ] = df[ dateName ].apply( pd.to_datetime )
         df             = df.interpolate( method = 'linear' )
         df             = df.dropna()
         df             = df[ df[ dateName ] >= minDt ]
@@ -209,10 +223,8 @@ class EcoMfdCBase:
         except:
             pass
 
-        if self.verbose > 0:
-            print( '\nSetting data frame:', 
-                   round( time.time() - t0, 2 ), 
-                   'seconds.\n'         )
+        logging.info( 'Setting data frame: %0.2f seconds', 
+                      time.time() - t0  )
 
     def trmVars( self, df ):
  
@@ -224,8 +236,7 @@ class EcoMfdCBase:
 
             varVel = velNames[varId]
 
-            if self.verbose > 1:
-                print( 'Transforming ' + varVel )
+            logging.debug( 'Transforming ' + varVel )
 
             if varVel in trmFuncDict.keys():
                 trmFunc      = trmFuncDict[ varVel ]
@@ -292,8 +303,7 @@ class EcoMfdCBase:
 
     def setGammaVec( self ):
 
-        if self.verbose > 0:
-            print( '\nRunning discrete adjoint optimization to set Christoffel symbols\n' )
+        logging.info( 'Running discrete adjoint optimization to set Christoffel symbols...' )
 
         t0 = time.time()
 
@@ -304,34 +314,27 @@ class EcoMfdCBase:
             options  = { 'gtol'       : self.optGTol, 
                          'ftol'       : self.optFTol, 
                          'maxiter'    : self.maxOptItrs, 
-                         'disp'       : True or ( self.verbose > 1 )  }
+                         'disp'       : True              }
 
             try:
-                verbose      = self.verbose
-                
                 optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
                                                   x0       = self.GammaVec, 
                                                   method   = self.optType, 
                                                   jac      = self.getGrad,
                                                   options  = options          )
-                self.verbose = verbose
-
                 sFlag   = optObj.success
     
                 self.GammaVec = optObj.x
 
-                if self.verbose > 0:
-                    print( 'Success:', sFlag )
+                logging.info( 'Success: %s', str( sFlag ) )
 
             except:
                 sFlag = False
 
         self.statHash[ 'totTime' ] = time.time() - t0
 
-        if self.verbose > 0:
-            print( '\nSetting Gamma:', 
-                   round( time.time() - t0, 2 ), 
-                   'seconds.\n'         )
+        logging.info( 'Setting Gamma: %0.2f seconds.', 
+                      time.time() - t0   )
 
         return sFlag
 
@@ -361,26 +364,22 @@ class EcoMfdCBase:
             if obj[0] is not None:
                 stepSize = obj[0]
             else:
-                print( 'Line search did not converge! Using previous value!' )
+                logging.warning( 'Line search did not converge! Using previous value!' )
 
             tmp = np.linalg.norm( grad ) / norm0
 
-            if self.verbose > 1:                
-                print( 'Iteration %d: step size     = %.8f' % ( itr + 1, stepSize ) )
+            logging.debug( 'Iteration %d: step size     = %.8f' % ( itr + 1, stepSize ) )
 
-            if self.verbose > 0:                
-                print( 'Iteration %d: rel. gradient norm = %.8f' % ( itr + 1, tmp ) )
+            logging.info( 'Iteration %d: rel. gradient norm = %.8f' % ( itr + 1, tmp ) )
             
             if tmp < self.optGTol:
-                if self.verbose > 0:                
-                    print( 'Converged at iteration %d; rel. gradient norm = %.8f' % ( itr + 1, tmp ) )
+                logging.info( 'Converged at iteration %d; rel. gradient norm = %.8f' % ( itr + 1, tmp ) )
                 return True
 
             tmp = funcVal / funcVal0
 
             if tmp < self.optFTol:
-                if self.verbose > 0:                
-                    print( 'Converged at iteration %d; rel. func. val. = %.8f' % ( itr + 1, tmp ) )
+                logging.info( 'Converged at iteration %d; rel. func. val. = %.8f' % ( itr + 1, tmp ) )
                 return True
 
             self.GammaVec = self.GammaVec - stepSize * grad
