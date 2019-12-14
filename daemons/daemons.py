@@ -57,9 +57,9 @@ class MfdPrtBuilder( Daemon ):
                     factor      = 4.0e-05,
                     modHead     = 'mfd_model_',
                     prtHead     = 'prt_weights_',                    
-                    modDir      = '/opt',
-                    prtDir      = '/opt',
-                    datDir      = '/var',
+                    modDir      = '/var/mfd_models',
+                    prtDir      = '/var/prt_weights',
+                    datDir      = '/var/mfd_data',
                     timeZone    = 'America/New_York',
                     schedTime   = '10:00',
                     logFileName = '/var/log/mfd_prt_builder.log',
@@ -87,33 +87,45 @@ class MfdPrtBuilder( Daemon ):
         self.datDir      = datDir
         self.timeZone    = timeZone
         self.schedTime   = schedTime
+        self.verbose     = verbose
+        self.logFileName = logFileName
 
+        if not os.path.exists( self.modDir ):
+            os.makedirs( self.modDir )
+
+        if not os.path.exists( self.prtDir ):
+            os.makedirs( self.prtDir )
+
+        if not os.path.exists( self.datDir ):
+            os.makedirs( self.datDir )            
+            
         verboseHash      = { 0 : logging.NOTSET,
                              1 : logging.INFO,
                              2 : logging.DEBUG }
+
+        logFmt           = '%(asctime)s - %(levelname)-s - %(message)s'
         
         if logFileName is None:
             logging.basicConfig( stream   = sys.stdout,
                                  level    = verboseHash[ verbose ],
-                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
+                                 format   = logFmt  )
         else:
             logging.basicConfig( filename = logFileName,
                                  level    = verboseHash[ verbose ],
-                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
-            
-        self.verbose     = verbose
-        self.logFileName = logFileName
-        
+                                 format   = logFmt  )
+                    
         self.dfFile      = None        
-        self.mfdMod      = None
-        self.mfdPrt      = None
 
     def setDfFile( self, snapDate ):
-        pass
+
+        fileName = 'dfFile_' + str( snapDate )
+        fileName = os.path.join( self.datDir, fileName )
+        df = None
+        df.to_pickle( fileName )
     
     def build( self ):
 
-        os.environ['TZ'] = self.timeZone
+        os.environ[ 'TZ' ] = self.timeZone
         
         snapDate = datetime.datetime.now()
         
@@ -134,22 +146,23 @@ class MfdPrtBuilder( Daemon ):
 
         t0       = time.time()
 
-        self.mfdMod = MfdMod( dfFile       = self.dfFile,
-                              minTrnDate   = self.minTrnDt,
-                              maxTrnDate   = self.maxTrnDt,
-                              maxOosDate   = self.maxOosDt,
-                              velNames     = self.velNames,
-                              maxOptItrs   = self.maxOptItrs,
-                              optGTol      = self.optTol,
-                              optFTol      = self.optTol,
-                              regCoef      = self.regCoef,
-                              factor       = self.factor,
-                              verbose      = self.verbose      )
+        mfdMod   = MfdMod( dfFile       = self.dfFile,
+                           minTrnDate   = self.minTrnDt,
+                           maxTrnDate   = self.maxTrnDt,
+                           maxOosDate   = self.maxOosDt,
+                           velNames     = self.velNames,
+                           maxOptItrs   = self.maxOptItrs,
+                           optGTol      = self.optTol,
+                           optFTol      = self.optTol,
+                           regCoef      = self.regCoef,
+                           factor       = self.factor,
+                           verbose      = self.verbose      )
         
-        sFlag = self.mfdMod.build()
+        sFlag = mfdMod.build()
 
         if sFlag:
-            logging.info( 'Building model took %0.2f seconds!' % ( time.time() - t0 ) )
+            logging.info( 'Building model took %0.2f seconds!',
+                          ( time.time() - t0 ) )
         else:
             logging.critical( 'Model build was unsuccessful!' )
             logging.warning( 'Not building a portfolio based on this model!!' )
@@ -157,7 +170,7 @@ class MfdPrtBuilder( Daemon ):
 
         mfdMod.save( modFile )
 
-        logging.info( 'Building portfolio for snapdate %s' % str( snapDate ) )
+        logging.info( 'Building portfolio for snapdate %s', str( snapDate ) )
 
         t0     = time.time()
         wtHash = {}
@@ -181,19 +194,20 @@ class MfdPrtBuilder( Daemon ):
 
         pickle.dump( wtHash, open( prtFile, 'wb' ) )    
     
-        logging.info( 'Building portfolio took %0.2f seconds!' % ( time.time() - t0 ) )
+        logging.info( 'Building portfolio took %0.2f seconds!',
+                      ( time.time() - t0 ) )
 
         return True
 
     def run( self ):
 
-        os.environ['TZ'] = self.timeZone
+        os.environ[ 'TZ' ] = self.timeZone
 
         schedule.every().day.at( self.schedTime ).do( self.build )
 
         while True: 
               schedule.run_pending() 
-              time.sleep( 10 )
+              time.sleep( 60 )
               
 # ***********************************************************************
 # Run daemon

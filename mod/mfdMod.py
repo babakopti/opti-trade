@@ -223,9 +223,9 @@ class MfdMod:
                 velNames.append( velName )
                 error = newError
                 cnt += 1
-                logging.info( 'Added %s ; error = %0.4f' % ( velName, error ) )
+                logging.info( 'Added %s ; error = %0.4f', ( velName, error ) )
             else:
-                logging.info( '%s was not added!' % velName )
+                logging.info( '%s was not added!', velName )
                 
             if cnt == maxNumVars:
                 break

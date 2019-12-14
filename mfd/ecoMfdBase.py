@@ -368,18 +368,18 @@ class EcoMfdCBase:
 
             tmp = np.linalg.norm( grad ) / norm0
 
-            logging.debug( 'Iteration %d: step size     = %.8f' % ( itr + 1, stepSize ) )
+            logging.debug( 'Iteration %d: step size     = %.8f', ( itr + 1, stepSize ) )
 
-            logging.info( 'Iteration %d: rel. gradient norm = %.8f' % ( itr + 1, tmp ) )
+            logging.info( 'Iteration %d: rel. gradient norm = %.8f', ( itr + 1, tmp ) )
             
             if tmp < self.optGTol:
-                logging.info( 'Converged at iteration %d; rel. gradient norm = %.8f' % ( itr + 1, tmp ) )
+                logging.info( 'Converged at iteration %d; rel. gradient norm = %.8f', ( itr + 1, tmp ) )
                 return True
 
             tmp = funcVal / funcVal0
 
             if tmp < self.optFTol:
-                logging.info( 'Converged at iteration %d; rel. func. val. = %.8f' % ( itr + 1, tmp ) )
+                logging.info( 'Converged at iteration %d; rel. func. val. = %.8f', ( itr + 1, tmp ) )
                 return True
 
             self.GammaVec = self.GammaVec - stepSize * grad
