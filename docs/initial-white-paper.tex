@@ -399,7 +399,7 @@ algorithm is in fact solving the following constrained optimization
 problem,
 
 \begin{equation}\label{eqn:mad-optimization-problem}
-\min_{w_{i}} \frac{1}{N}\sum_{t=t_{curr}}^{t_{curr}-N+1}
+\min_{w_{i}} \frac{1}{\tilde{N}}\sum_{t=t_{curr}}^{t_{curr}-\tilde{N}+1}
 |\sum_{i=1}^{\tilde{n}} w_{i} (x_{i}(t)-\bar{x_{i}})|
 \end{equation}
 
@@ -418,8 +418,9 @@ and inequality constraint
 
 where $w_{i}$ is the portfolio weight for asset $i$; a positive or
 negative weight indicates a long or short position, respectively. Also
-note that $N$ indicates the number of data points used for training,
-i.e. $t_{k} \in [0,T]$ where $k = 1, ...,N$.
+note that $\tilde{N}$ indicates the number of data points used for
+calculation of MAD, i.e. $t_{k} \in [\tilde{T},T]$ where $k = 1,
+...,\tilde{N}$.
 
 \subsection{A Fallback Plan for Trend Prediction}\label{subsection:fallback-macd}
 
@@ -477,8 +478,8 @@ years. Here we have used a pool of 11 ETFs for trading,
 
 The models and portfolio weights were generated at the beginning of
 each business day and the portfolio was adjusted using the updated
-weights on a daily basis. For each ''current'' date, the previous 363
-days were used, where the first 360 days was used for training and the
+weights on a daily basis. For each ''current'' date, the previous 360
+days were used, where the first 357 days was used for training and the
 last three days was kept as the out-of-sample period; MACD was used as
 a fallback strategy whenever the model failed to predict the trend in
 the out-of-sample period. We used Quantioan~\cite{ref:quantopian} to
@@ -494,8 +495,11 @@ shows a better performance.
 \caption{Comparison of proposed algorithm (blue) to SPY (red); first half of 2019.}  
 \end{figure}
 
-Figures~\ref{fig:backtest-2018} and ~\ref{fig:backtest-2017} show
-backtest results for 2018 and 2017, respectively.
+A similar trend is observed in the backtest resutls going back to
+2012, as can be seen in Figures~\ref{fig:backtest-2018} to
+~\ref{fig:backtest-2012}. The only exception is 2016, where the
+proposed algorithm is superior to SPY in the first quarter, however,
+performs poorly for the rest of 2016.
 
 \begin{figure}\label{fig:backtest-2018}
 \includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2018.png}
@@ -538,6 +542,9 @@ backtest results for 2018 and 2017, respectively.
 \end{figure}
 
 \subsection{Trading Algorithm Parameter Study}\label{subsection:mad-parameter-study}
+
+We performed a study on the effect of the period used for calculation
+of MAD, $\tilde{N}$ in Eq.~\ref{eqn:mad-optimization-problem}.
 
 \begin{figure}\label{fig:mad-period-sensitivity}
 \includegraphics[bb=0 0 640 480]{figures/mad-sensitivity-period-SPY.png}
