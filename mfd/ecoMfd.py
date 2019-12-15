@@ -4,9 +4,6 @@
 
 import sys
 import os
-
-sys.path.append( os.path.abspath( '../' ) )
-
 import math
 import time
 import scipy
@@ -16,12 +13,13 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
-import logging
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
+
+sys.path.append( os.path.abspath( '../' ) )
 
 from mfd.ecoMfdBase import EcoMfdCBase
 from ode.odeGeo import OdeGeoConst 
@@ -200,8 +198,8 @@ class EcoMfdConst( EcoMfdCBase ):
 
                     gammaId += 1
 
-        logging.debug( 'Setting gradient: %0.2f seconds.', 
-                       time.time() - t0 ) 
+        self.logger.debug( 'Setting gradient: %0.2f seconds.', 
+                           time.time() - t0 ) 
 
         return grad
 
@@ -220,7 +218,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         Gamma    = self.getGammaArray( GammaVec )
 
-        logging.debug( 'Solving geodesic...' )
+        self.logger.debug( 'Solving geodesic...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = self.bcSol,
@@ -236,13 +234,13 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag = odeObj.solve()
 
         if not sFlag:
-            logging.warning( 'Geodesic equation did not converge!' )
+            self.logger.warning( 'Geodesic equation did not converge!' )
             return None
 
         self.statHash[ 'odeTime' ] += time.time() - t0
 
-        logging.debug( 'Geodesic equation: %0.2f seconds.', 
-                       time.time() - t0 ) 
+        self.logger.debug( 'Geodesic equation: %0.2f seconds.', 
+                           time.time() - t0 ) 
 
         return odeObj
 
@@ -257,7 +255,7 @@ class EcoMfdConst( EcoMfdCBase ):
         bcVec    = np.zeros( shape = ( nDims ), dtype = 'd' )
         bkFlag   = not self.endBcFlag
 
-        logging.debug( 'Solving adjoint geodesic equation...' )
+        self.logger.debug( 'Solving adjoint geodesic equation...' )
 
         adjOdeObj = OdeAdjConst( Gamma    = Gamma,
                                  bcVec    = bcVec,
@@ -275,13 +273,13 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag  = adjOdeObj.solve()
 
         if not sFlag:
-            logging.warning( 'Adjoint equation did not converge!' )
+            self.logger.warning( 'Adjoint equation did not converge!' )
             return None
 
         self.statHash[ 'adjOdeTime' ] += time.time() - t0
 
-        logging.debug( 'Adjoint equation: %0.2f seconds.', 
-                       time.time() - t0 ) 
+        self.logger.debug( 'Adjoint equation: %0.2f seconds.', 
+                           time.time() - t0 ) 
 
         return adjOdeObj
 
@@ -320,7 +318,7 @@ class EcoMfdConst( EcoMfdCBase ):
         Gamma     = self.getGammaArray( self.GammaVec )
         srcCoefs  = self.srcCoefs
 
-        logging.debug( 'Solving geodesic to predict...' )
+        self.logger.debug( 'Solving geodesic to predict...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = self.endSol,
@@ -336,7 +334,7 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag = odeObj.solve()
 
         if not sFlag:
-            logging.warning( 'Geodesic equation did not converge!' )
+            self.logger.warning( 'Geodesic equation did not converge!' )
             return None
 
         return odeObj
@@ -389,7 +387,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         nTimes = len( dates )
 
-        logging.info( 'Solving geodesic to predict...' )
+        self.logger.info( 'Solving geodesic to predict...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
                                 bcVec    = bcVec,
@@ -403,7 +401,7 @@ class EcoMfdConst( EcoMfdCBase ):
         sFlag  = odeObj.solve()
 
         if not sFlag:
-            logging.warning( 'Geodesic equation did not converge!' )
+            self.logger.warning( 'Geodesic equation did not converge!' )
             return None
 
         prdSol  = odeObj.getSol()

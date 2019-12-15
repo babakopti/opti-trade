@@ -21,7 +21,8 @@ from daemonBase import Daemon
 sys.path.append( os.path.abspath( '../' ) )
 
 from mod.mfdMod import MfdMod
-from prt.prt import MfdPrt 
+from prt.prt import MfdPrt
+from utl.utils import getLogger
 
 # ***********************************************************************
 # Set some parameters 
@@ -87,8 +88,8 @@ class MfdPrtBuilder( Daemon ):
         self.datDir      = datDir
         self.timeZone    = timeZone
         self.schedTime   = schedTime
+        self.logFileName = logFileName        
         self.verbose     = verbose
-        self.logFileName = logFileName
 
         if not os.path.exists( self.modDir ):
             os.makedirs( self.modDir )
@@ -99,22 +100,9 @@ class MfdPrtBuilder( Daemon ):
         if not os.path.exists( self.datDir ):
             os.makedirs( self.datDir )            
             
-        verboseHash      = { 0 : logging.NOTSET,
-                             1 : logging.INFO,
-                             2 : logging.DEBUG }
-
-        logFmt           = '%(asctime)s - %(levelname)-s - %(message)s'
+        self.logger = getLogger( logFileName, verbose )
         
-        if logFileName is None:
-            logging.basicConfig( stream   = sys.stdout,
-                                 level    = verboseHash[ verbose ],
-                                 format   = logFmt  )
-        else:
-            logging.basicConfig( filename = logFileName,
-                                 level    = verboseHash[ verbose ],
-                                 format   = logFmt  )
-                    
-        self.dfFile      = None        
+        self.dfFile = None        
 
     def setDfFile( self, snapDate ):
 
@@ -161,16 +149,16 @@ class MfdPrtBuilder( Daemon ):
         sFlag = mfdMod.build()
 
         if sFlag:
-            logging.info( 'Building model took %0.2f seconds!',
-                          ( time.time() - t0 ) )
+            self.logger.info( 'Building model took %0.2f seconds!',
+                              ( time.time() - t0 ) )
         else:
-            logging.critical( 'Model build was unsuccessful!' )
-            logging.warning( 'Not building a portfolio based on this model!!' )
+            self.logger.critical( 'Model build was unsuccessful!' )
+            self.logger.warning( 'Not building a portfolio based on this model!!' )
             return False
 
         mfdMod.save( modFile )
 
-        logging.info( 'Building portfolio for snapdate %s', str( snapDate ) )
+        self.logger.info( 'Building portfolio for snapdate %s', str( snapDate ) )
 
         t0     = time.time()
         wtHash = {}
@@ -194,8 +182,8 @@ class MfdPrtBuilder( Daemon ):
 
         pickle.dump( wtHash, open( prtFile, 'wb' ) )    
     
-        logging.info( 'Building portfolio took %0.2f seconds!',
-                      ( time.time() - t0 ) )
+        self.logger.info( 'Building portfolio took %0.2f seconds!',
+                          ( time.time() - t0 ) )
 
         return True
 

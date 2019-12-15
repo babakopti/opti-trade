@@ -4,9 +4,6 @@
 
 import sys
 import os
-
-sys.path.append( os.path.abspath( '../' ) )
-
 import math
 import time
 import scipy
@@ -16,13 +13,16 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
-import logging
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
 from scipy.optimize import fsolve
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
+
+sys.path.append( os.path.abspath( '../' ) )
+
+from utl.utils import getLogger
 
 # ***********************************************************************
 # Class EcoMfdCBase: Base economic manifold ; continues adjoint
@@ -91,20 +91,10 @@ class EcoMfdCBase:
         self.nDims       = len( varNames )
         self.statHash    = {}
         self.deNormHash  = {}
-
+        self.logFileName = logFileName
         self.verbose     = verbose
-        verboseHash      = { 0 : logging.NOTSET,
-                             1 : logging.INFO,
-                             2 : logging.DEBUG }
-        if logFileName is None:
-            logging.basicConfig( stream   = sys.stdout,
-                                 level    = verboseHash[ verbose ],
-                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
-        else:
-            logging.basicConfig( filename = logFileName,
-                                 level    = verboseHash[ verbose ],
-                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
-            
+        self.logger      = getLogger( logFileName, verbose, 'mfd' )
+        
         self.statHash[ 'funCnt' ]     = 0
         self.statHash[ 'gradCnt' ]    = 0
         self.statHash[ 'odeCnt' ]     = 0
@@ -223,8 +213,8 @@ class EcoMfdCBase:
         except:
             pass
 
-        logging.info( 'Setting data frame: %0.2f seconds', 
-                      time.time() - t0  )
+        self.logger.info( 'Setting data frame: %0.2f seconds', 
+                          time.time() - t0  )
 
     def trmVars( self, df ):
  
@@ -236,7 +226,7 @@ class EcoMfdCBase:
 
             varVel = velNames[varId]
 
-            logging.debug( 'Transforming ' + varVel )
+            self.logger.debug( 'Transforming ' + varVel )
 
             if varVel in trmFuncDict.keys():
                 trmFunc      = trmFuncDict[ varVel ]
@@ -303,7 +293,7 @@ class EcoMfdCBase:
 
     def setGammaVec( self ):
 
-        logging.info( 'Running discrete adjoint optimization to set Christoffel symbols...' )
+        self.logger.info( 'Running discrete adjoint optimization to set Christoffel symbols...' )
 
         t0 = time.time()
 
@@ -326,15 +316,15 @@ class EcoMfdCBase:
     
                 self.GammaVec = optObj.x
 
-                logging.info( 'Success: %s', str( sFlag ) )
+                self.logger.info( 'Success: %s', str( sFlag ) )
 
             except:
                 sFlag = False
 
         self.statHash[ 'totTime' ] = time.time() - t0
 
-        logging.info( 'Setting Gamma: %0.2f seconds.', 
-                      time.time() - t0   )
+        self.logger.info( 'Setting Gamma: %0.2f seconds.', 
+                          time.time() - t0   )
 
         return sFlag
 
@@ -364,22 +354,22 @@ class EcoMfdCBase:
             if obj[0] is not None:
                 stepSize = obj[0]
             else:
-                logging.warning( 'Line search did not converge! Using previous value!' )
+                self.logger.warning( 'Line search did not converge! Using previous value!' )
 
             tmp = np.linalg.norm( grad ) / norm0
 
-            logging.debug( 'Iteration %d: step size     = %.8f', ( itr + 1, stepSize ) )
+            self.logger.debug( 'Iteration %d: step size     = %.8f', itr + 1, stepSize )
 
-            logging.info( 'Iteration %d: rel. gradient norm = %.8f', ( itr + 1, tmp ) )
+            self.logger.info( 'Iteration %d: rel. gradient norm = %.8f', itr + 1, tmp )
             
             if tmp < self.optGTol:
-                logging.info( 'Converged at iteration %d; rel. gradient norm = %.8f', ( itr + 1, tmp ) )
+                self.logger.info( 'Converged at iteration %d; rel. gradient norm = %.8f', itr + 1, tmp )
                 return True
 
             tmp = funcVal / funcVal0
 
             if tmp < self.optFTol:
-                logging.info( 'Converged at iteration %d; rel. func. val. = %.8f', ( itr + 1, tmp ) )
+                self.logger.info( 'Converged at iteration %d; rel. func. val. = %.8f', itr + 1, tmp )
                 return True
 
             self.GammaVec = self.GammaVec - stepSize * grad

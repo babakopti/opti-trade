@@ -4,17 +4,17 @@
 
 import sys
 import os
+import dill
+import pickle as pk
+import numpy as np
+import pandas as pd
+import scipy as sp
 
 sys.path.append( os.path.abspath( '../' ) )
 
 from mfd.ecoMfd import EcoMfdConst as EcoMfd
 
-import dill
-import logging
-import pickle as pk
-import numpy as np
-import pandas as pd
-import scipy as sp
+from utl.utils import getLogger
 
 # ***********************************************************************
 # Some definitions
@@ -74,21 +74,9 @@ class MfdMod:
         self.mode        = mode
         self.ecoMfd      = None
         self.trmFuncDict = {}
-
-        verboseHash      = { 0 : logging.NOTSET,
-                             1 : logging.INFO,
-                             2 : logging.DEBUG }
-        if logFileName is None:
-            logging.basicConfig( stream   = sys.stdout,
-                                 level    = verboseHash[ verbose ],
-                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
-        else:
-            logging.basicConfig( filename = logFileName,
-                                 level    = verboseHash[ verbose ],
-                                 format   = '%(asctime)s - %(levelname)-s - %(message)s' )
-            
-        self.verbose     = verbose
         self.logFileName = logFileName
+        self.verbose     = verbose
+        self.logger      = getLogger( logFileName, verbose, 'mod' )
         
         if regCoef is None:
             self.regCoef    = 0.0
@@ -223,23 +211,23 @@ class MfdMod:
                 velNames.append( velName )
                 error = newError
                 cnt += 1
-                logging.info( 'Added %s ; error = %0.4f', ( velName, error ) )
+                self.logger.info( 'Added %s ; error = %0.4f', velName, error )
             else:
-                logging.info( '%s was not added!', velName )
+                self.logger.info( '%s was not added!', velName )
                 
             if cnt == maxNumVars:
                 break
             
         assert len( velNames ) > 0, 'Unsuccessful variable selection!'
 
-        logging.info( 'Selected:', velNames )
-        logging.info( list( set( velNames ) - set( inVelNames ) ), 'were added!' )
+        self.logger.info( 'Selected:', velNames )
+        self.logger.info( list( set( velNames ) - set( inVelNames ) ), 'were added!' )
         
         return velNames
             
     def build( self ):
 
-        logging.info( 'Building a manifold...' )
+        self.logger.info( 'Building a manifold...' )
 
         sFlag  = self.setMfd()
 
@@ -284,15 +272,15 @@ class MfdMod:
             bias = max( bias, ecoMfd.getRelBias( varId ) )
         
         if merit < self.minMerit:
-            logging.warning( 'Merit does not meet criteria!' )
+            self.logger.warning( 'Merit does not meet criteria!' )
             sFlag = False
 
         if trend < self.minTrend:
-            logging.warning( 'Trend does not need criteria!' )
+            self.logger.warning( 'Trend does not need criteria!' )
             sFlag = False
             
         if bias > self.maxBias:
-            logging.warning( 'Bias does not meet criteria' )
+            self.logger.warning( 'Bias does not meet criteria' )
             sFlag = False
 
         if not sFlag:
@@ -329,7 +317,7 @@ class MfdMod:
         sFlag = self.ecoMfd.setGammaVec()
 
         if not sFlag:
-            logging.warning( 'Did not converge!' )
+            self.logger.warning( 'Did not converge!' )
 
         return sFlag
 
@@ -348,12 +336,12 @@ class MfdMod:
             bias = ecoMfd.getRelBias( m )
             biasVec.append( bias )
 
-        logging.info( 'Manifold merit    : %0.6f', ecoMfd.getMerit() )
-        logging.info( 'Manifold oos merit: %0.6f', ecoMfd.getOosMerit() )
-        logging.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
-        logging.info( 'Manifold max bias: %0.6f', max( biasVec ) )            
+        self.logger.info( 'Manifold merit    : %0.6f', ecoMfd.getMerit() )
+        self.logger.info( 'Manifold oos merit: %0.6f', ecoMfd.getOosMerit() )
+        self.logger.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
+        self.logger.info( 'Manifold max bias: %0.6f', max( biasVec ) )            
 
-        logging.info( '\n' + str( ecoMfd.getTimeDf() ) )
+        self.logger.info( '\n' + str( ecoMfd.getTimeDf() ) )
 
     def filtVars( self ):
 
@@ -399,11 +387,11 @@ class MfdMod:
         maxOosDt  = pd.to_datetime( self.maxOosDate )
 
         if 2 * incYrs > ( maxDt.year - minDt.year ):
-            logging.warning( 'Increment is too small! No cross validation done!' )
+            self.logger.warning( 'Increment is too small! No cross validation done!' )
             return None
 
         if 3 * incYrs > ( maxOosDt.year - minDt.year ):
-            logging.warning( 'Increment is too small! No cross validation done!' )
+            self.logger.warning( 'Increment is too small! No cross validation done!' )
             return None
 
         maxDt    = minDt + pd.DateOffset( years = int( minYrs ) )
@@ -458,7 +446,7 @@ class MfdMod:
         if not self.optRegFlag:
             return
 
-        logging.info( 'Running optimization for regularization coefficient!' )
+        self.logger.info( 'Running optimization for regularization coefficient!' )
 
         options    = {    'disp'       : False,
                           'gtol'       : 1e-05,
@@ -471,8 +459,8 @@ class MfdMod:
                                      x0      = 0.0,
                                      method  = 'CG',
                                      options = options   )
-        logging.info( res )
-        logging.info( res[ 'x' ] )
+        self.logger.info( res )
+        self.logger.info( res[ 'x' ] )
 
         return res[ 'x' ]
 
@@ -505,7 +493,7 @@ class MfdMod:
 
         oosMeritAvg = self.optRegFunc( self.regCoef )
         
-        logging.info( 'Average OOS merit:', oosMeritAvg )
+        self.logger.info( 'Average OOS merit:', oosMeritAvg )
 
         validFlag = validFlag & (oosMeritAvg >= self.minMerit)
         
