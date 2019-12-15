@@ -11,9 +11,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-# ***********************************************************************
-# Some definitions
-# ***********************************************************************
+from logging.handlers import SMTPHandler
 
 # ***********************************************************************
 # getLogger(): Get a logger object
@@ -41,3 +39,21 @@ def getLogger( logFileName, verbose, pkgName = None ):
     logger.addHandler( fHd )
 
     return logger
+
+# ***********************************************************************
+# getLogger(): Get a logger object
+# ***********************************************************************
+
+def getAlertHandler( alertLevel, subject = None, mailList = [] ):
+    
+    mHd = SMTPHandler( mailhost    = ( 'smtp.gmail.com', 587 ),
+                       fromaddr    = 'optilive.noreply@gmail.com',
+                       toaddrs     = mailList,
+                       subject     = subject,
+                       credentials = ('optilive.noreply@gmail.com',
+                                      'optilivenoreply'),
+                       secure      = () )
+    
+    mHd.setLevel( alertLevel )
+        
+    return mHd

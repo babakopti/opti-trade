@@ -20,9 +20,11 @@ from daemonBase import Daemon
 
 sys.path.append( os.path.abspath( '../' ) )
 
+import utl.utils as utl
+
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
-from utl.utils import getLogger
+
 
 # ***********************************************************************
 # Set some parameters 
@@ -39,6 +41,9 @@ ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 
 velNames    = indices + ETFs + futures
 assets      = ETFs
+
+DEV_LIST    = [ 'babak.emami@gmail.com' ]
+USR_LIST    = [ 'babak.emami@gmail.com' ]
 
 # ***********************************************************************
 # Class MfdPrtBuilder: Daemon to build portfolios using mfd, prt
@@ -100,7 +105,18 @@ class MfdPrtBuilder( Daemon ):
         if not os.path.exists( self.datDir ):
             os.makedirs( self.datDir )            
             
-        self.logger = getLogger( logFileName, verbose )
+        self.logger = utl.getLogger( logFileName, verbose )
+
+        devAlertHd = utl.getAlertHandler( alertLevel = logging.ERROR,
+                                          subject    = 'A message for Opti-Trade developers!',
+                                          mailList   = DEV_LIST )
+        
+        usrAlertHd = utl.getAlertHandler( alertLevel = logging.CRITICAL,
+                                          subject    = 'A message for Opti-Trade users!',
+                                          mailList   = USR_LIST )
+
+        self.logger.addHandler( devAlertHd )
+        self.logger.addHandler( usrAlertHd )
         
         self.dfFile = None        
 
