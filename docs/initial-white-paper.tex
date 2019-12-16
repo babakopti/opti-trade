@@ -68,10 +68,11 @@ governed by the following system of ordinary differential equations,
 \end{equation}
 
 The Christoffel symbols $Gamma^{m}_{ab}$ are in general functions of
-coordinates. In the current work, we assume that Christoffel symbols
-are constant. This is a sufficient (but not necessary) condition for
-the manifold to have a constant curvature. This assumption is rather
-strong and as such we should revisit this subject.
+coordinates. Note that $\Gamma^{m}{ab} = \Gamma{m}{ba}$. that In the
+current work, we assume that Christoffel symbols are constant. This is
+a sufficient (but not necessary) condition for the manifold to have a
+constant curvature. This assumption is rather strong and as such we
+should revisit this subject.
 
 To further simplify the problem, we assume that variables of interest
 are in fact $y^{m} = \frac{dx^{m}}{dt}$. This will allow us to work
@@ -84,7 +85,7 @@ with a set of first order ODEs,
 The above system of ODEs needs a boundary condition,
 
 \begin{equation}\label{eqn:geodesic-bc}
-\dot{y}^{m}(t_{BC}) = \dot{y}^{m}_{0}
+y^{m}(t_{BC}) = y^{m}_{0}
 \end{equation}
 
 where $m,a,b \in [1,n] \cap \mathbb{N}$, and $t_{BC}$ is the time at
@@ -145,6 +146,64 @@ is a constant regularization coefficient. Note too that the continuous
 Lagrangian multiplier $\vec{v}$ is a cotangent vector with elements
 $v_{1}$, $v_{2}$,..., $v_{n}$.
 
+We can use contnuous adjoint method~\cite{ref:adjoint-giles} to
+calculate the gradient of $J(\vec{y},\Gamma^{m}_{ab})$ with respect to
+$\Gamma^{m}_{ab}$. For notation convenience, we define
+$\tilde{\Gamma}^{\alpha} = \Gamma^{m}_{ab}$ where $\alpha$ =
+$\alpha(m,a,b)$. Note too that $\Gamma^{m}{ab} = \Gamma{m}{ba}$, and
+so $\alpha$ = 1,..., $n ( n + 1) / 2$.
+
+Using Eq.~\ref{eqn:optimization-objective} and
+Eq.~\ref{eqn:geodesic-1st-order} and considering that $\Gamma^{m}{ab}
+= \Gamma{m}{ba}$, we get,
+
+\begin{equation}\label{eqn:objective-gradient-raw}
+\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T} ( y^{r} -
+\hat{y}^{r} ) \frac{d y^{r}}{d \tilde{\Gamma}^{\alpha}} \eta(t) dt +
+\int_{0}^{T} v_{m} ( \frac{d}{dt}(\frac{d y^{m}}{d
+  \tilde{\Gamma}^{\alpha}}) + \frac{d \Gamma^{m}_{ab}}{d
+  \tilde{\Gamma}^{\alpha}} y^{a} y^{b} + 2 \Gamma^{m}_{ab} y^{a}
+\frac{d y^{b}}{d \tilde{\Gamma}^{\alpha}} ) dt + \zeta
+\tilde{\Gamma}^{\alpha}
+\end{equation}
+
+where $\apha$ = $\alpha(r,p,q)$. Integrating by parts, considering the
+boundary condition in Eq.~\ref{eqn:geodesic-bc}, and letting $v_{r}(t
+= 0)$ = 0, we have,
+
+\begin{equation}\label{eqn:objective-gradient-intg}
+\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T} [ ( y^{s} -
+  \hat{y}^{s} ) \eta(t) + 2 \Gamma^{m}_{as} y^{a} v_{m} - \dot{v}_{s}
+] \frac{d y^{s}}{d \tilde{\Gamma}^{\alpha}} dt + \int_{0}^{T} v_{m}
+\frac{d \Gamma^{m}_{ab}}{d \tilde{\Gamma}^{\alpha}} y^{a} y^{b} dt
+\end{equation}
+
+We can choose $\vec{v}$ such that the first integral in
+Eq.~\ref{eqn:objective-gradient-intg} becomes zero. So we have,
+
+\begin{equation}\label{eqn:objective-gradient}
+\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T} v_{m} \frac{d
+  \Gamma^{m}_{ab}}{d \tilde{\Gamma}^{\alpha}} y^{a} y^{b} dt
+\end{equation}
+
+subject to,
+
+\begin{equation}\label{eqn:adjoint-equation}
+\dot{v}_{s} - 2 \Gamma^{m}_{as} y^{a} v_{m} = \eta(t) ( y^{s} -
+\hat{y}^{s} )
+\end{equation}
+
+with boundary condition,
+
+\begin{equation}\label{eqn:adjoint-bc}
+v_{r}( t = 0 ) = 0  
+\end{equation}
+
+Eq.~\ref{eqn:adjoint-equation} is called the adjoint equation. We can
+then calculate the gradient of the objective function using
+Eq.~\ref{eqn:objective-gradient}, where the adjoint variable $v_{s}$
+is calculated by solving the ODE in Eq.~\ref{eqn:adjoint-equation}.
+  
 \section{Results and Discussion}\label{section:results-discussion}
 
 \subsection{Results of a Sample Manifold}\label{subsection:some-results}
