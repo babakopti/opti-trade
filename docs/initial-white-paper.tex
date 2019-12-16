@@ -22,57 +22,84 @@
 
 \section{Introduction}\label{section:introduction}
 
-The usual approach to predicting price of an asset is to regress the
-historical prices of an asset against a set of economic
-indicators. The problem with this approach is that we still need
-knowledge of the future values of economic indicators. This is done by
-relying on estimate forecasts of economic indicators which are often
-based on qualitative methods, such as those in Blue Chip Economic
-Indicators and Blue Chip Financial Forecasts~\cite{ref:blue-chip}. The
-forecasts in Blue Chip publications are based on surveying top
-business economists in the United States.
+The usual approach to predicting price of an asset is to regress its
+historical prices against a set of economic indicators. The problem
+with this approach is that we still need knowledge of the future
+values of these indicators. This is done by relying on estimate
+forecasts of economic indicators which are often based on qualitative
+methods, such as those in Blue Chip Economic Indicators and Blue Chip
+Financial Forecasts~\cite{ref:blue-chip}. The forecasts in Blue Chip
+publications are based on surveying top business economists in the
+United States.
 
 An approach is proposed to forecast economic variables without
 depending on future values of any economic indicators. We look at the
-economy as a multi-dimensional manifold; each dimension is an economic
-variable. These variables can be macro-economic indicators or asset
-prices. We refer to this manifold as an economic universe. The
-observed values of economic variables in a time period form a path in
-this universe. We refer to this path as the economic path. We then
-find a manifold for which this path is a geodesic, governed by a
-system of differential equations. The future value of economic
-variables can be predicted by solving this system of differential
-equations.
+economy as a multi-dimensional manifold~\cite{deFelice:1990}; each
+dimension is an economic variable. These variables can be
+macro-economic indicators or asset prices. We refer to this manifold
+as an \textit{economic universe}. The observed values of economic
+variables in a time period form a path in this universe. We refer to
+this path as the \textit{economic path}. We then find a manifold for
+which this path is a geodesic, governed by a system of ordinary
+differential equations (ODEs). The future value of economic variables
+can be predicted by solving this system of ODEs.
 
 In what follows the mathematical framework used is discussed and a
 methodology is proposed to infer the structure of economic universe
 given a set of observed economic variables. Some results are presented
 followed by a model parameter study. Finally, a trading algorithm is
-proposed using this approach to forecast asset prices.
+proposed based on this approach.
 
 \section{Mathematical Framework}\label{section:mathematical-framework}
 
-Let us consider $n$ variables $x^{1}$ to $x^{n}$ that are smooth
-functions of time $t$; $x^{i} = x^{i}(t)$. Moreover, let us consider a
-smooth real manifold $M$ equipped with $(x^{1},x^{2},...,x^{n})$ as a
-coordinate system. Each set of coordinate values
-$(x^{1}(t),...,x^{n}(t))$ denotes a point $p$ on $M$. Values of these
-$n$ variables over a period of time $[0,T]$ form a path over $M$. This
+Let us consider $n$ economic variables $x^{1}$ to $x^{n}$. The
+realized values of these variables are smooth functions of time $t$;
+$x^{i} = x^{i}(t)$. Moreover, let us consider a smooth real manifold
+$M$ equipped with $(x^{1},x^{2},...,x^{n})$ as a coordinate
+system. Each set of coordinate values $(x^{1},...,x^{n})$ denotes a
+point $p$ on $M$. The realized values of these $n$ variables over a
+period of time $[0,T]$ form a path over $M$, connecting $p_{0}$ =
+$(x^{1}(0),...,x^{n}(0))$ to $p_{T}$ = $(x^{1}(T),...,x^{n}(T))$. This
 path is smooth as $x^{i}$s are smooth functions of time. Now let us
-add a constraint on $M$ by assuming that the path formed by
-$x^{i}(t)$s is a geodesic of $M$. With this assumption, this path is
-governed by the following system of ordinary differential equations,
+add a constraint on $M$ by assuming that the above-mentioned path is a
+geodesic of $M$. With this assumption, this path is governed by the
+following system of ODEs,
 
 \begin{equation}\label{eqn:geodesic}
 \ddot{x}^{m} + \Gamma^{m}_{ab} \dot{x}^{a} \dot{x}^{b} = 0
 \end{equation}
 
-The Christoffel symbols $Gamma^{m}_{ab}$ are in general functions of
-coordinates. Note that $\Gamma^{m}{ab} = \Gamma{m}{ba}$. that In the
-current work, we assume that Christoffel symbols are constant. This is
-a sufficient (but not necessary) condition for the manifold to have a
-constant curvature. This assumption is rather strong and as such we
-should revisit this subject.
+where $m,a,b \in [1,n] \cap \mathbb{N}$. The Christoffel symbols
+$\Gamma^{m}_{ab}$ are in general functions of coordinates. Henceforth,
+the summation convention is in effect unless stated otherwise.
+
+We further assume manifold $M$ is equipped with a
+Levi-Civita~\cite{deFelice:1990} connection and thus,
+
+\begin{equation}\label{eqn:gamma}
+\Gamma^{m}_{ab} = \frac{g^{ml}}{2} ( \frac{\partial g_{al}}{\partial
+  x^{b}} + \frac{\partial g_{lb}}{\partial x^{a}} - \frac{\partial
+  g_{ab}}{\partial x^{l}} )
+\end{equation}
+
+where $g_{ab}$ is the metric tensor (that is a symmetric,
+non-degenerate, second order covariant tensor), and $g^{ab}$ is the
+inverse of $g_{ab}$. Because the metric tensor is symmetric we have,
+
+\begin{equation}\label{eqn:gamma-symmetry}
+\Gamma^{m}_{ab} = \Gamma^{m}_{ba}
+\end{equation}
+
+In the current work, we assume that Christoffel symbols are
+constant. This is a sufficient (but not necessary) condition for the
+manifold to have a constant curvature. This assumption is rather
+strong and as such we should revisit this subject in the near
+future. We further assume that the metric tensor, $g_{ab}$ is
+diagonal. Looking at Eq.~\ref{eqn:gamma}, this assumption indicates,
+
+\begin{equation}\label{eqn:gamma-diagonal-metric}
+\Gamma^{m}_{ab}|_{m \ne a \ne b} = 0
+\end{equation}
 
 To further simplify the problem, we assume that variables of interest
 are in fact $y^{m} = \frac{dx^{m}}{dt}$. This will allow us to work
@@ -82,27 +109,28 @@ with a set of first order ODEs,
 \dot{y}^{m} + \Gamma^{m}_{ab} y^{a} y^{b} = 0
 \end{equation}
 
-The above system of ODEs needs a boundary condition,
+This means that the variables of interest are elements of the tangent
+bundle of manifold $M$, that is $y^{m}(T) \in T_{p(t)}M$, where $p(t)
+\in M$ corresponds to coordinates $(x^{1}(t),x^{2}(t),...,x^{n}(t))$.
+
+The system of ODEs in Eq.~\ref{eqn:geodesic-1st-order} needs a
+boundary condition,
 
 \begin{equation}\label{eqn:geodesic-bc}
 y^{m}(t_{BC}) = y^{m}_{0}
 \end{equation}
 
-where $m,a,b \in [1,n] \cap \mathbb{N}$, and $t_{BC}$ is the time at
-which a boundary condition is set. For now, we choose $t_{BC} = T$ to
-emphasize on the more recent data in training. One can potentially
-define a more complex boundary condition that accounts for some
-attenuation from recent to older data. We shall revisit this in
-future.
-
-This means that the variables of interest are elements of the tangent
-bundle of manifold $M$, that is $y^{m}(T) \in T_{p(t)}M$, where $p(t) \in M$
-corresponds to coordinates $(x^{1}(t),x^{2}(t),...,x^{n}(t))$.
+where $t_{BC}$ is the time at which a boundary condition is set. For
+now, we choose $t_{BC} = T$ to emphasize on the more recent data in
+training. One can potentially define a more complex boundary condition
+that accounts for some attenuation from recent to older data. We
+should revisit this in future.
 
 Now, let us further assume that the values of variables $y^{m}(t)$ are
-known for $t \in [0,T]$. Using this a set of training data, we can
-determine $Gamma^{m}_{ab}$ by fitting Eq.~\ref{eqn:geodesic-1st-order}
-over the training data. This can be done using a continuous adjoint
+known for $t \in [0,T]$. We can use this as a set of training data. In
+other words, we can determine $\Gamma^{m}_{ab}$ by fitting
+Eq.~\ref{eqn:geodesic-1st-order} over the known values of
+$y^{m}$. This can be done using a continuous adjoint
 approach~\cite{ref:adjoint-giles}.
 
 The adjoint approach is used to solve a minimization problem
@@ -110,75 +138,80 @@ constrained by a system of differential equations. Here, we want to
 solve the following constrained optimization problem,
 
 \begin{equation}\label{eqn:optimization-problem}
-\min_{\Gamma^{m}_{ab}} J(\vec{y},\Gamma^{m}_{ab})
+\min_{\Gamma^{m}_{ab}} J(\boldsymbol{y},\Gamma^{m}_{ab})
 \end{equation}
 
 where the objective function $J$ is defined as,
 
 \begin{equation}\label{eqn:optimization-objective-raw}
-J(\vec{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t) \left\Vert
-\vec{y}(t) - \hat{\vec{y}}(t) \right\Vert^{2} dt
+J(\boldsymbol{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t)
+\left\Vert \boldsymbol{y}(t) - \hat{\boldsymbol{y}}(t) \right\Vert^{2}
+dt
 \end{equation}
 
 subject to the system of ODEs in Eq.~\ref{eqn:geodesic-1st-order} with
 boundary condition of Eq.~\ref{eqn:geodesic-bc} as a constraint, where
-$\vec{y}$ represents a vector with $y^{i}$ as its elements,
-$\hat{\vec{y}}$ is the observed value of $\vec{y}$, and $\left\Vert
-\right\Vert$ is the L2 norm. Also, $\eta(t)$ is a function of time
-which allows to introduce a weight in the objective function. This
-weight can be used to emphasize on the more recent training data. For
-instance when treating the problem numerically, we can define $\eta(t)
-= \eta_{0} + \frac{1.0 - \eta_{0}}{T} t$ where $\eta_{0} \in (0,1]$ is
-  an attenuation parameter.
+$\boldsymbol{y}$ represents a vector with $y^{i}$ as its elements,
+$\hat{\boldsymbol{y}}$ is the observed value of $\boldsymbol{y}$, and
+$\left\Vert \right\Vert$ is the $L^{2}$ norm. Also, $\eta(t)$ is a
+function of time which introduces a weight in the objective
+function. This weight can be used to emphasize on the more recent
+training data. For instance when treating the problem numerically, we
+can define $\eta(t) = \eta_{0} + \frac{1.0 - \eta_{0}}{T} t$ where
+$\eta_{0} \in (0,1]$ is an attenuation parameter.
 
-The ODE constraint can be added using continuous Lagrangian multiplier
-$\vec{v}$. The objective function
+The ODE constraint can be added using a continuous Lagrangian
+multiplier $\boldsymbol{v}$. The objective function becomes,
 
 \begin{equation}\label{eqn:optimization-objective}
-J(\vec{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t)
-\left\Vert \vec{y}(t) - \hat{\vec{y}}(t) \right\Vert^{2} dt +
-\int_{0}^{T} \vec{v} \dot ( \dot{y}^{m} + \Gamma^{m}_{ab} y^{a} y^{b}
-) + \frac{1}{2} \zeta \left\Vert \Gamma^{m}_{ab} \right\Vert^{2}
+J(\boldsymbol{y},\Gamma^{m}_{ab}) = \int_{0}^{T} \frac{1}{2} \eta(t)
+\left\Vert \boldsymbol{y}(t) - \hat{\boldsymbol{y}}(t) \right\Vert^{2} dt +
+\int_{0}^{T} v_{m} \left( \dot{y}^{m} + \Gamma^{m}_{ab} y^{a} y^{b}
+\right) + \frac{1}{2} \zeta \left\Vert \boldsymbol{\Gamma} \right\Vert^{2}
 \end{equation}
 
-where the last term introduces a quadratic regularization, and $\zeta$
-is a constant regularization coefficient. Note too that the continuous
-Lagrangian multiplier $\vec{v}$ is a cotangent vector with elements
-$v_{1}$, $v_{2}$,..., $v_{n}$.
+where the last term introduces a quadratic regularization;
+$\boldsymbol{\Gamma} = \left(\Gamma^{m}_{ab}\right)$ and $\zeta$ is a
+constant regularization coefficient. Note too that the continuous
+Lagrangian multiplier $\boldsymbol{v}$ is a cotangent vector on $M$
+with elements $v_{1}$, $v_{2}$,..., $v_{n}$.
 
-We can use contnuous adjoint method~\cite{ref:adjoint-giles} to
-calculate the gradient of $J(\vec{y},\Gamma^{m}_{ab})$ with respect to
-$\Gamma^{m}_{ab}$. For notation convenience, we define
-$\tilde{\Gamma}^{\alpha} = \Gamma^{m}_{ab}$ where $\alpha$ =
-$\alpha(m,a,b)$. Note too that $\Gamma^{m}{ab} = \Gamma{m}{ba}$, and
-so $\alpha$ = 1,..., $n ( n + 1) / 2$.
+We can use continuous adjoint method~\cite{ref:adjoint-giles} to
+calculate the gradient of $J(\boldsymbol{y},\Gamma^{m}_{ab})$ with
+respect to $\Gamma^{m}_{ab}$. For notation convenience, we define
+$\tilde{\Gamma}^{\alpha}$ = $\Gamma^{m}_{ab}$ where $\alpha$ =
+$\alpha(m,a,b)$. Note that because of Eq.~\ref{eqn:gamma-symmetry} and
+Eq.~\ref{eqn:gamma-diagonal-metric}, $\alpha$ = 1,..., $n (2n - 1)$.
 
-Using Eq.~\ref{eqn:optimization-objective} and
-Eq.~\ref{eqn:geodesic-1st-order} and considering that $\Gamma^{m}{ab}
-= \Gamma{m}{ba}$, we get,
+Using Eq.~\ref{eqn:optimization-objective},
+Eq.~\ref{eqn:geodesic-1st-order}, and Eq.~\ref{eqn:gamma-symmetry}, we
+get,
 
 \begin{equation}\label{eqn:objective-gradient-raw}
-\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T} ( y^{r} -
-\hat{y}^{r} ) \frac{d y^{r}}{d \tilde{\Gamma}^{\alpha}} \eta(t) dt +
-\int_{0}^{T} v_{m} ( \frac{d}{dt}(\frac{d y^{m}}{d
-  \tilde{\Gamma}^{\alpha}}) + \frac{d \Gamma^{m}_{ab}}{d
-  \tilde{\Gamma}^{\alpha}} y^{a} y^{b} + 2 \Gamma^{m}_{ab} y^{a}
-\frac{d y^{b}}{d \tilde{\Gamma}^{\alpha}} ) dt + \zeta
+\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T}
+\frac{df}{dy^{s}}\frac{d y^{s}}{d \tilde{\Gamma}^{\alpha}} dt +
+\int_{0}^{T} v_{m} \left[ \frac{d}{dt}(\frac{d y^{m}}{d
+    \tilde{\Gamma}^{\alpha}}) + \frac{d \Gamma^{m}_{ab}}{d
+    \tilde{\Gamma}^{\alpha}} y^{a} y^{b} + 2 \Gamma^{m}_{ab} y^{a}
+  \frac{d y^{b}}{d \tilde{\Gamma}^{\alpha}} \right] dt + \zeta
 \tilde{\Gamma}^{\alpha}
 \end{equation}
 
-where $\apha$ = $\alpha(r,p,q)$. Integrating by parts, considering the
-boundary condition in Eq.~\ref{eqn:geodesic-bc}, and letting $v_{r}(t
-= 0)$ = 0, we have,
+where $\alpha$ = $\alpha(r,p,q)$ and $f = \frac{1}{2} \eta(t)
+\left\Vert\boldsymbol{y} - \hat{\boldsymbol{y}}\right\Vert^{2}$, and
+thus $\frac{df}{dy^{s}} = \eta(t) \left( y^{s} - \hat{y}^{s}
+\right)$. Integrating by parts, considering the boundary condition in
+Eq.~\ref{eqn:geodesic-bc}, and letting $v_{r}(t = 0)$ = 0, we have,
 
 \begin{equation}\label{eqn:objective-gradient-intg}
-\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T} [ ( y^{s} -
-  \hat{y}^{s} ) \eta(t) + 2 \Gamma^{m}_{as} y^{a} v_{m} - \dot{v}_{s}
-] \frac{d y^{s}}{d \tilde{\Gamma}^{\alpha}} dt + \int_{0}^{T} v_{m}
-\frac{d \Gamma^{m}_{ab}}{d \tilde{\Gamma}^{\alpha}} y^{a} y^{b} dt
+\frac{d J}{d \tilde{\Gamma}^{\alpha}} = \int_{0}^{T} \left[
+  \frac{df}{dy^{s}} + 2 \Gamma^{m}_{as} y^{a} v_{m} - \dot{v}_{s}
+  \right] \frac{d y^{s}}{d \tilde{\Gamma}^{\alpha}} dt + \int_{0}^{T}
+v_{m} \frac{d \Gamma^{m}_{ab}}{d \tilde{\Gamma}^{\alpha}} y^{a} y^{b}
+dt
 \end{equation}
 
-We can choose $\vec{v}$ such that the first integral in
+We can choose $\boldsymbol{v}$ such that the first integral in
 Eq.~\ref{eqn:objective-gradient-intg} becomes zero. So we have,
 
 \begin{equation}\label{eqn:objective-gradient}
@@ -200,9 +233,10 @@ v_{r}( t = 0 ) = 0
 \end{equation}
 
 Eq.~\ref{eqn:adjoint-equation} is called the adjoint equation. We can
-then calculate the gradient of the objective function using
+calculate the gradient of the objective function using
 Eq.~\ref{eqn:objective-gradient}, where the adjoint variable $v_{s}$
-is calculated by solving the ODE in Eq.~\ref{eqn:adjoint-equation}.
+is calculated by solving the system of ODEs in
+Eq.~\ref{eqn:adjoint-equation}.
   
 \section{Results and Discussion}\label{section:results-discussion}
 
@@ -274,16 +308,6 @@ out-of-sample forecast. The out of sample results are reasonable. The
 average relative error of out-of-sample forecasts of all variables in
 the model is 3.5\%.
 
-\begin{figure}\label{fig:results-spy}
-\includegraphics[scale=0.5,bb=0 0 320 240]{figures/results-SPY.png}
-\caption{In-sample and out-of-sample forecast results for SPY.}
-\end{figure}
-
-\begin{figure}\label{fig:results-spy-oos}
-\includegraphics[bb=0 0 640 480]{figures/results-SPY-oos.png}
-\caption{Out-of-sample forecast results for SPY.}
-\end{figure}
-
 \subsection{A Model Parameter Study}\label{subsection:model-parameter-study}
 
 A model parameter study is performed for the following parameters,
@@ -312,16 +336,10 @@ relative error vs. optimization tolerance, where the in-sample
 relative error, $E$ is defined as,
 
 \begin{equation}\label{eqn:in-sample-error}
-E = \frac{\int_{0}^{T} \eta(t) \left\Vert \vec{y}(t) -
-  \hat{\vec{y}}(t) \right\Vert^{2} dt}{\int_{0}^{T} \eta(t) \left\Vert
-  \hat{\vec{y}}(t) \right\Vert^{2} dt}
+E = \frac{\int_{0}^{T} \eta(t) \left\Vert \boldsymbol{y}(t) -
+  \hat{\boldsymbol{y}}(t) \right\Vert^{2} dt}{\int_{0}^{T} \eta(t) \left\Vert
+  \hat{\boldsymbol{y}}(t) \right\Vert^{2} dt}
 \end{equation}
-
-\begin{figure}\label{fig:tolerance-sensitivity-error}
-\includegraphics[bb=0 0 640 480]{figures/tolerance-sensitivity-error.png}
-\caption{In-sample relative error vs. optimization tolerance; $T$ =
-  360 days, $\eta(t) = 1.0$, $\zeta$ = 1.0e-3.}
-\end{figure}
 
 As expected, the in-sample error reduces as a tighter optimization
 tolerance is used.
@@ -331,9 +349,9 @@ define an out-of-sample period $(T,T+T^{oos}]$, and an out-of-sample
   error $E^{oos}$, defined as,
 
 \begin{equation}\label{eqn:out-of-sample-error}
-E^{oos} = \frac{\int_{T}^{T+T^{oos}} \eta(t) \left\Vert \vec{y}(t) -
-  \hat{\vec{y}}(t) \right\Vert^{2} dt}{\int_{T}^{T+T^{oos}} \eta(t)
-  \left\Vert \hat{\vec{y}}(t) \right\Vert^{2} dt}
+E^{oos} = \frac{\int_{T}^{T+T^{oos}} \eta(t) \left\Vert \boldsymbol{y}(t) -
+  \hat{\boldsymbol{y}}(t) \right\Vert^{2} dt}{\int_{T}^{T+T^{oos}} \eta(t)
+  \left\Vert \hat{\boldsymbol{y}}(t) \right\Vert^{2} dt}
 \end{equation}
 
 Figure~\ref{fig:tolerance-sensitivity-oos-error} shows out-of-sample
@@ -341,34 +359,15 @@ error vs. optimization tolerance. As can be seen, the behavior of
 out-of-sample error is consistent with that of in-sample and decreases
 when the tolerance is made tighter.
 
-\begin{figure}\label{fig:tolerance-sensitivity-oos-error}
-\includegraphics[bb=0 0 640 480]{figures/tolerance-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. optimization tolerance; $T$
-  = 360 days, $T^{oos}$ = 3, days$\eta(t)$ = 1.0, $\zeta$ = 1.0e-3.}
-\end{figure}
-
 Figure~\ref{fig:nTrnDays-sensitivity-oos-error} show the out-of-sample
 error vs. number of days, $T$, used for model training. As can be
 seen, the out-of-sample performance improves when a longer training
 period is used, while the improvement begins to plateau around a
 training period of two years. 
 
-\begin{figure}\label{fig:nTrnDays-sensitivity-oos-error}
-\includegraphics[bb=0 0 640 480]{figures/nTrnDays-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. number of days used for
-  training; $T^{oos}$ = 3, $\eta(t)$ = 1.0, $\zeta$ = 1.0e-3,
-  tolerance = 0.05.}
-\end{figure}
-
 It is worth mentioning that the in-sample error did not show any
 correlation to the length of training period as can be seen in
 Figure~\ref{fig:nTrnDays-sensitivity-error}.
-
-\begin{figure}\label{fig:nTrnDays-sensitivity-error}
-\includegraphics[bb=0 0 640 480]{figures/nTrnDays-sensitivity-error.png}
-\caption{In-sample relative error vs. number of days used for
-  training; $\eta(t) = 1.0$, $\zeta$ = 1.0e-3, tolerance = 0.05.}
-\end{figure}
 
 Turning to regularization, Figure~\ref{fig:regCoef-sensitivity-error}
 shows that using a regularization coefficient, $\zeta$, of up to
@@ -376,21 +375,9 @@ around 1.0e-3 does not introduce a significant in-sample error. The
 in-sample error, however, increases as regularization coefficient
 grows beyond 1.0e-3.
 
-\begin{figure}\label{fig:regCoef-sensitivity-error}
-\includegraphics[bb=0 0 640 480]{figures/regCoef-sensitivity-error.png}
-\caption{In-sample relative error vs. regularization coefficient; $T$
-  = 360 days, $\eta(t)$ = 1.0, tolerance = 0.05.}
-\end{figure}
-
 The out-of-sample error shows a similar relationship to regularization
 coefficient, as shown in
 Figure~\ref{fig:regCoef-sensitivity-oos-error}.
-
-\begin{figure}\label{fig:regCoef-sensitivity-oos-error}
-\includegraphics[bb=0 0 640 480]{figures/regCoef-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. regularization coefficient;
-  $T$ = 360 days, $T^{oos}$ = 3, $\eta(t)$ = 1.0, tolerance = 0.05.}
-\end{figure}
 
 Finally, we studied the effect of the attenuation parameter,
 $\eta_{0}$. Note that the attenuation function is defined as
@@ -405,21 +392,9 @@ already tend to better match the recent actuals. Introducing
 attenuation lowers weight of the less recent data and as such reduces
 the overall in-sample error.
 
-\begin{figure}\label{fig:atnFct-sensitivity-error}
-\includegraphics[bb=0 0 640 480]{figures/atnFct-sensitivity-error.png}
-\caption{In-sample relative error vs. attenuation parameter; $T$ = 360
-  days, $\zeta$ = 1.0e-3, tolerance = 0.05.}
-\end{figure}
-
 The out-of-sample error, on the other hand, does not show any obvious
 relationship to attenuation as seen in
 Figure~\ref{fig:atnFct-sensitivity-oos-error}.
-
-\begin{figure}\label{fig:atnFct-sensitivity-oos-error}
-\includegraphics[bb=0 0 640 480]{figures/atnFct-sensitivity-oos-error.png}
-\caption{Out-of-sample relative error vs. attenuation parameter; $T$ =
-  360 days, $T^{oos}$ = 3, $\zeta$ = 1.0e-3, tolerance = 0.05.}
-\end{figure}
 
 \subsection{On Behavior of Christoffel Symbols}\label{subsection:christoffel-behavior}
 
@@ -435,14 +410,6 @@ behavior of Christoffel symbol; it is more more or less
 periodic. These results can be useful when we move beyond constant
 Christoffel symbols in future work.
 
-\begin{figure}\label{fig:gamma-time}
-\includegraphics[bb=0 0 640 480]{figures/Gamma_time_2018.png}
-\caption{Norm of Gamma vs. snapdate Each point on the plot comes from
-  a model with a constant Christoffel symbol; for all models we have
-  $T$ = 360 days, $\zeta$ = 1.0e-3, $\eta_{0}$ = 1.0, tolerance =
-  0.05.}
-\end{figure}
-
 \section{A Proposed Trading Algorithm}\label{section:trading-algorithm}
 
 A trading algorithm which uses the above-mentioned differential
@@ -453,13 +420,13 @@ each security is based on the price trend as predicted by the manifold
 model.
 
 Let us us assume that we trade with a pool of $\tilde{n}$ assets with
-prices $x_{i}(t)$, where $i = 1, ...,\tilde{n}$. The proposed trading
+prices $X_{i}(t)$, where $i = 1, ...,\tilde{n}$. The proposed trading
 algorithm is in fact solving the following constrained optimization
 problem,
 
 \begin{equation}\label{eqn:mad-optimization-problem}
 \min_{w_{i}} \frac{1}{\tilde{N}}\sum_{t=t_{curr}}^{t_{curr}-\tilde{N}+1}
-|\sum_{i=1}^{\tilde{n}} w_{i} (x_{i}(t)-\bar{x_{i}})|
+|\sum_{i=1}^{\tilde{n}} w_{i} (X_{i}(t)-\bar{X_{i}})|
 \end{equation}
 
 subject to equality constraint
@@ -470,10 +437,12 @@ subject to equality constraint
 
 and inequality constraint
 
-\begin{case}\label{eqn:mad-trend-constraint}
+\[
+\begin{cases}\label{eqn:mad-trend-constraint}
     w_{i} > 0 & \text{if upward forecast price trend} \\
     w_{i} < 0 & \text{if downward forecast price trend}
 \end{cases}
+\]
 
 where $w_{i}$ is the portfolio weight for asset $i$; a positive or
 negative weight indicates a long or short position, respectively. Also
@@ -549,66 +518,169 @@ proposed algorithm for the first half of 2019 (blue line), compared to
 performance of SPY (red line). As can be seen, the proposed algorithm
 shows a better performance.
 
-\begin{figure}\label{fig:backtest-2019-half}
-\includegraphics[bb=0 0 640 480]{figures/2019_half_mfd_macd.png}
-\caption{Comparison of proposed algorithm (blue) to SPY (red); first half of 2019.}  
-\end{figure}
-
 A similar trend is observed in the backtest results going back to
 2012, as can be seen in Figures~\ref{fig:backtest-2018} to
 ~\ref{fig:backtest-2012}. The only exception is 2016, where the
 proposed algorithm is superior to SPY in the first quarter, however,
-performs poorly for the rest of 2016.
+performs poorly for the rest of 2016. The performance is also poor in
+the first 4 months of 2012.
 
-\begin{figure}\label{fig:backtest-2018}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2018.png}
-\caption{Comparison of proposed algorithm (blue) to SPY (red); 2018.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2017}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2017.png}
-\caption{Comparison of proposed algorithm to SPY; 2017.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2016}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2016.png}
-\caption{Comparison of proposed algorithm to SPY; 2016.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2015}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2015.png}
-\caption{Comparison of proposed algorithm to SPY; 2015.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2014}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2014.png}
-\caption{Comparison of proposed algorithm to SPY; 2014.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2013}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2013.png}
-\caption{Comparison of proposed algorithm to SPY; 2013.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2012}
-\includegraphics[bb=0 0 640 480]{figures/mad_mfd_macd_2012.png}
-\caption{Comparison of proposed algorithm to SPY; 2012.}  
-\end{figure}
-
-\begin{figure}\label{fig:backtest-2007-2008}
-\includegraphics[bb=0 0 640 480]{figures/crash_period_mfd_macd.png}
-\caption{Comparison of proposed algorithm to SPY; 2007-2008.}  
-\end{figure}
+Figure~\ref{fig:backtest-2007-2008} shows backtest results for
+2007-2008 period. This is specifically of interest, because this
+period shows the performance of the algorithm during the 2008 economic
+crisis. As can be seen, the algorithm certainly performs better than
+SPY. While these results may not be realistic, as the market may not
+be liquid enough for taking short positions on losing assets during an
+economic crisis, it is likely that using this algorithm could have
+protected portfolios that were built based on it.
 
 \subsection{Trading Algorithm Parameter Study}\label{subsection:mad-parameter-study}
 
 We performed a study on the effect of the period used for calculation
 of MAD, $\tilde{N}$ in Eq.~\ref{eqn:mad-optimization-problem}.
 
-\begin{figure}\label{fig:mad-period-sensitivity}
-\includegraphics[bb=0 0 640 480]{figures/mad-sensitivity-period-SPY.png}
-\caption{The weight of SPY vs. period used for calculation of MAD.}
+\newpage
+
+\begin{figure}
+\includegraphics[scale=0.42,bb=0 0 320 240]{figures/results-SPY.png}
+\caption{In-sample and out-of-sample forecast results for SPY.}
+\label{fig:results-spy}
 \end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/results-SPY-oos.png}
+\caption{Out-of-sample forecast results for SPY.}
+\label{fig:results-spy-oos}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/tolerance-sensitivity-error.png}
+\caption{In-sample relative error vs. optimization tolerance; $T$ =
+  360 days, $\eta(t) = 1.0$, $\zeta$ = 1.0e-3.}
+\label{fig:tolerance-sensitivity-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/tolerance-sensitivity-oos-error.png}
+\caption{Out-of-sample relative error vs. optimization tolerance; $T$
+  = 360 days, $T^{oos}$ = 3, days$\eta(t)$ = 1.0, $\zeta$ = 1.0e-3.}
+\label{fig:tolerance-sensitivity-oos-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/nTrnDays-sensitivity-oos-error.png}
+\caption{Out-of-sample relative error vs. number of days used for
+  training; $T^{oos}$ = 3, $\eta(t)$ = 1.0, $\zeta$ = 1.0e-3,
+  tolerance = 0.05.}
+\label{fig:nTrnDays-sensitivity-oos-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/nTrnDays-sensitivity-error.png}
+\caption{In-sample relative error vs. number of days used for
+  training; $\eta(t) = 1.0$, $\zeta$ = 1.0e-3, tolerance = 0.05.}
+\label{fig:nTrnDays-sensitivity-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/regCoef-sensitivity-error.png}
+\caption{In-sample relative error vs. regularization coefficient; $T$
+  = 360 days, $\eta(t)$ = 1.0, tolerance = 0.05.}
+\label{fig:regCoef-sensitivity-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/regCoef-sensitivity-oos-error.png}
+\caption{Out-of-sample relative error vs. regularization coefficient;
+  $T$ = 360 days, $T^{oos}$ = 3, $\eta(t)$ = 1.0, tolerance = 0.05.}
+\label{fig:regCoef-sensitivity-oos-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/atnFct-sensitivity-error.png}
+\caption{In-sample relative error vs. attenuation parameter; $T$ = 360
+  days, $\zeta$ = 1.0e-3, tolerance = 0.05.}
+\label{fig:atnFct-sensitivity-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/atnFct-sensitivity-oos-error.png}
+\caption{Out-of-sample relative error vs. attenuation parameter; $T$ =
+  360 days, $T^{oos}$ = 3, $\zeta$ = 1.0e-3, tolerance = 0.05.}
+\label{fig:atnFct-sensitivity-oos-error}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/Gamma_time_2018.png}
+\caption{Norm of Gamma vs. snapdate Each point on the plot comes from
+  a model with a constant Christoffel symbol; for all models we have
+  $T$ = 360 days, $\zeta$ = 1.0e-3, $\eta_{0}$ = 1.0, tolerance =
+  0.05.}
+\label{fig:gamma-time}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/2019_half_mfd_macd.png}
+\caption{Comparison of proposed algorithm (blue) to SPY (red); first
+  half of 2019.}
+\label{fig:backtest-2019-half}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2018.png}
+\caption{Comparison of proposed algorithm (blue) to SPY (red); 2018.}
+\label{fig:backtest-2018}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2017.png}
+\caption{Comparison of proposed algorithm to SPY; 2017.}
+\label{fig:backtest-2017}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2016.png}
+\caption{Comparison of proposed algorithm to SPY; 2016.}
+\label{fig:backtest-2016}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2015.png}
+\caption{Comparison of proposed algorithm to SPY; 2015.}
+\label{fig:backtest-2015}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2014.png}
+\caption{Comparison of proposed algorithm to SPY; 2014.}
+\label{fig:backtest-2014}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2013.png}
+\caption{Comparison of proposed algorithm to SPY; 2013.}
+\label{fig:backtest-2013}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/mad_mfd_macd_2012.png}
+\caption{Comparison of proposed algorithm to SPY; 2012.}
+\label{fig:backtest-2012}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.5,bb=0 0 640 480]{figures/crash_period_mfd_macd.png}
+\caption{Comparison of proposed algorithm to SPY; 2007-2008.}
+\label{fig:backtest-2007-2008}
+\end{figure}
+
+\begin{figure}
+\includegraphics[scale=0.9,bb=0 0 640 480]{figures/mad-sensitivity-period-SPY.png}
+\caption{The weight of SPY vs. period used for calculation of MAD.}
+\label{fig:mad-period-sensitivity}
+\end{figure}
+
+\clearpage
 
 \bibliography{references}
 \bibliographystyle{plain}
