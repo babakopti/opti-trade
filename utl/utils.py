@@ -13,6 +13,7 @@ import pandas as pd
 
 from logging.handlers import SMTPHandler
 from io import StringIO
+from collections import defaultdict
 
 # ***********************************************************************
 # getLogger(): Get a logger object
@@ -227,7 +228,7 @@ def getKibotData( etfs     = [],
     # Merge intraday and daily data frames
     
     tmpList = np.unique( list( df[ 'Date' ] ) )
-    tmpHash = {}
+    tmpHash = defaultdict( lambda: '09:30' )
     
     for date in tmpList:
         tmpDf = df[ df.Date == date ]

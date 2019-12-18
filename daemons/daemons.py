@@ -11,6 +11,7 @@ import dill
 import logging
 import pickle
 import schedule
+import re
 import numpy as np
 import pandas as pd
 
@@ -25,12 +26,11 @@ import utl.utils as utl
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
 
-
 # ***********************************************************************
 # Set some parameters 
 # ***********************************************************************
 
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
+indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
                 'TYX',  'HUI', 'XAU'                       ] 
 
@@ -38,9 +38,6 @@ futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
-
-velNames    = indices + ETFs + futures
-assets      = ETFs
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
 USR_LIST    = [ 'babak.emami@gmail.com' ]
@@ -52,8 +49,11 @@ USR_LIST    = [ 'babak.emami@gmail.com' ]
 class MfdPrtBuilder( Daemon ):
 
     def __init__(   self,
-                    assets      = assets,
-                    velNames    = velNames,
+                    assets      = ETFs,
+                    etfs        = ETFs,
+                    stocks      = [],
+                    futures     = futures,
+                    indexes     = indexes,
                     nTrnDays    = 720,
                     nOosDays    = 3,
                     nPrdDays    = 1,
@@ -72,12 +72,12 @@ class MfdPrtBuilder( Daemon ):
                     verbose     = 1         ):
 
         Daemon.__init__( self, '/var/run/mfd_prt_builder.pid' )
-        
-        assert set( assets ).issubset( set( velNames ) ), \
-            'Assets should be a subset of velNames!'
-        
+
         self.assets      = assets
-        self.velNames    = velNames
+        self.etfs        = etfs
+        self.stocks      = stocks
+        self.futures     = futures
+        self.indexes     = indexes
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
         self.nPrdDays    = nPrdDays
@@ -95,6 +95,10 @@ class MfdPrtBuilder( Daemon ):
         self.schedTime   = schedTime
         self.logFileName = logFileName        
         self.verbose     = verbose
+        self.velNames    = etfs + stocks + futures + indexes
+        
+        assert set( assets ).issubset( set( self.velNames ) ), \
+            'Assets should be a subset of velNames!'
 
         if not os.path.exists( self.modDir ):
             os.makedirs( self.modDir )
@@ -122,10 +126,89 @@ class MfdPrtBuilder( Daemon ):
 
     def setDfFile( self, snapDate ):
 
+        nDays   = self.nTrnDays + self.nOosDays
+        maxDate = pd.to_datetime( snapDate )
+        minDate = maxdate - datetime.timedelta( days = nDays )
+
+        try:
+            oldDf = self.getOldDf()
+        except Exception as e:
+            oldDf = None
+            self.logger.warning( e )            
+            self.logger.warning( 'Could not read the old dfFile!' )
+
+        updFlag = False
+        
+        if oldDf is not None:
+            
+            oldMinDate = min( oldDf.Date )
+            oldMaxDate = max( oldDf.Date )
+            
+            if minDate < oldMaxDate and \
+               minDate > oldMinDate and \
+               maxDate > oldMaxDate:
+                updFlag = True
+                
+        if updFlag:
+            nDays = ( maxDate - oldMaxDate ).days
+        else:
+            nDays = self.nTrnDays + self.nOosDays
+
+        newDf = utl.getKibotData( etfs    = self.etfs,
+                                  stocks  = self.stocks,
+                                  futures = self.futures,
+                                  indexes = self.indexes,
+                                  nDays   = nDays       )
+
+        if updFlag:
+            newDf = pd.concat( [ oldDf, newDf ] )
+            
         fileName = 'dfFile_' + str( snapDate )
-        fileName = os.path.join( self.datDir, fileName )
-        df = None
-        df.to_pickle( fileName )
+        filePath = os.path.join( self.datDir, fileName )
+
+        try:
+            newDf.to_pickle( filePath )
+        except Exception as e:
+            msgStr = e + '; Could not write the data file!'
+            self.logger.error( msgStr )            
+
+        self.dfFile = filePath
+
+        try:
+            df = read_pickle( self.dfFile )
+        except Exception as e:
+            msgStr = e + \
+                '; Something is not right with the new data file %s!' %\
+                self.dfFile
+            self.logger.error( msgStr )        
+
+    def getOldDf( self ):
+
+        tmpList = []
+        tmpHash = {}
+        pattern = 'dfFile_\d+-\d+-\d+ \d+:\d+:\d+.pkl'
+        
+        for fileName in os.listdir( self.datDir ):
+
+            if not re.search( pattern, item ):
+                continue
+
+            baseName = os.path.splitext( item )
+            date = baseName.split( '_' )[1]
+            date = pd.to_datetime( date )
+
+            tmpList.append( fileName )
+            
+            tmpHash[ fileName ] = date
+
+        if len( tmpList ) > 0:
+            fileName = max( tmpList, key = lambda x : tmpHash[x] )
+            filePath = os.path.join( self.datDir, fileName )
+            oldDf    = df.read_pickle( filePath )
+        else:
+            return None
+
+        return oldDf
     
     def build( self ):
 
