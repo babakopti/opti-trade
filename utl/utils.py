@@ -160,7 +160,7 @@ def getKibotData( etfs     = [],
             assert False, 'Authentication failed!'
     
         url  = 'http://api.kibot.com/?action=history'
-        url  = url + '&symbol=%s&interval=%d&period=%d&type=%s&regularsession=1' \
+        url  = url + '&symbol=%s&interval=%d&period=%d&type=%s&regularsession=0' \
             % ( symbol, interval, nDays, typeHash[ symbol ] )
 
         for itr in range( maxTries ):
@@ -256,8 +256,8 @@ def getKibotData( etfs     = [],
     # Merge intraday and daily data frames
 
     if len( symbols ) > 0 and len( indexes ) > 0:
-        tmpList = np.unique( list( df[ 'Date' ] ) )
-        tmpHash = defaultdict( lambda: '16:00' )
+        tmpList = set( list( df[ 'Date' ] ) )
+        tmpHash = defaultdict( lambda: '23:59' )
     
         for date in tmpList:
             tmpDf = df[ df.Date == date ]
