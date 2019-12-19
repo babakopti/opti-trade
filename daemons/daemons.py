@@ -30,14 +30,14 @@ from prt.prt import MfdPrt
 # Set some parameters 
 # ***********************************************************************
 
-indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
+indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
+                'TYX',  'XAU'                      ] 
+
+ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
+                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
-
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
 USR_LIST    = [ 'babak.emami@gmail.com' ]
