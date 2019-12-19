@@ -83,6 +83,26 @@ def getKibotAuth( timeout = 60, maxTries = 10 ):
     return resp.ok
 
 # ***********************************************************************
+# combineDateTime( ): Combine Date and Time columns
+# ***********************************************************************
+
+def combineDateTime( df ):
+    
+    assert 'Date' in df.columns, 'Date column not found!'
+    assert 'Time' in df.columns, 'Time column not found!'    
+
+    df[ 'Date' ] = ( df[ 'Date' ] + \
+                     ' ' + \
+                     df[ 'Time' ] ).apply( pd.to_datetime )
+    
+    cols = set( df.columns ) - set( [ 'Date', 'Time' ] )
+    cols = [ 'Date' ] + list( cols )
+    df   = df[ cols ]
+    df   = df.sort_values( [ 'Date' ], ascending = [ True ] )
+    
+    return df
+
+# ***********************************************************************
 # getKibotData( ): Read data from kibot
 # ***********************************************************************
 
@@ -123,6 +143,11 @@ def getKibotData( etfs     = [],
     # Get a data frae of intraday ETFs, stocks, and futures
     
     symbols = etfs + futures + stocks
+    df      = pd.DataFrame()
+
+    if len( symbols + indexes ) == 0:
+        logger.warning( 'No symbol is given!' )
+        return None
     
     for symbol in symbols:
 
@@ -169,15 +194,15 @@ def getKibotData( etfs     = [],
             df = df.merge( tmpDf,
                            how = 'outer',
                            on  = [ 'Date', 'Time' ] )
-
-    df = df[ [ 'Date', 'Time' ] + symbols ]
-    df = df.interpolate( method = 'linear' )
-    df = df.dropna()
-    df = df.reset_index( drop = True )
+            
+    if df.shape[0] > 0:
+        df = df[ [ 'Date', 'Time' ] + symbols ]
+        df = df.reset_index( drop = True )
 
     # Get a data frame of daily indexes
     
     initFlag = True
+    indDf    = pd.DataFrame()
     
     for symbol in indexes:
 
@@ -212,7 +237,7 @@ def getKibotData( etfs     = [],
                  'Volume' ]
     
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
-        tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
+        tmpDf = tmpDf.rename( columns = { 'Close' : symbol } )
         tmpDf = tmpDf[ [ 'Date', symbol ] ]
 
         if initFlag:
@@ -222,79 +247,47 @@ def getKibotData( etfs     = [],
             indDf = indDf.merge( tmpDf,
                                  how = 'outer',
                                  on  = [ 'Date' ] )
-            
-    indDf = indDf[ [ 'Date' ] + indexes ]
+    if len( indexes ) > 0:
+        indDf = indDf[ [ 'Date' ] + indexes ]
+
+        if len( symbols ) == 0:
+            df = indDf
     
     # Merge intraday and daily data frames
-    
-    tmpList = np.unique( list( df[ 'Date' ] ) )
-    tmpHash = defaultdict( lambda: '09:30' )
-    
-    for date in tmpList:
-        tmpDf = df[ df.Date == date ]
-        tmpDf = tmpDf.sort_values( [ 'Time' ],
-                                   ascending = [ True ] )
-        tmpHash[ date ] = np.min( tmpDf.Time )
 
-    tmpFunc = lambda x : tmpHash[ x ]
-
-    indDf[ 'Time' ] = indDf.Date.apply( tmpFunc )
-
-    df = df.merge( indDf,
-                   how = 'left',
-                   on  = [ 'Date', 'Time' ] )
+    if len( symbols ) > 0 and len( indexes ) > 0:
+        tmpList = np.unique( list( df[ 'Date' ] ) )
+        tmpHash = defaultdict( lambda: '16:00' )
     
-    df = df[ [ 'Date', 'Time' ] + symbols + indexes ]
+        for date in tmpList:
+            tmpDf = df[ df.Date == date ]
+            tmpDf = tmpDf.sort_values( [ 'Time' ],
+                                       ascending = [ True ] )
+            tmpHash[ date ] = np.max( tmpDf.Time )
+
+        tmpFunc = lambda x : tmpHash[ x ]
+
+        indDf[ 'Time' ] = indDf.Date.apply( tmpFunc )
+
+        df = df.merge( indDf,
+                       how = 'left',
+                       on  = [ 'Date', 'Time' ] )
+    
+        df = df[ [ 'Date', 'Time' ] + symbols + indexes ]
+
+    if len( symbols ) > 0:
+        df = combineDateTime( df )
+    elif len( indexes ) > 0:
+        df[ 'Date' ] = df[ 'Date' ].apply( pd.to_datetime )
+        
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )    
     df = df.interpolate( method = 'linear' )
     df = df.dropna()
     df = df.reset_index( drop = True )
-
-    # Combine and Date and Time columns
     
-    dates = np.array( df[ 'Date' ] )
-    times = np.array( df[ 'Time' ] )
-    nRows = df.shape[0]
-
-    assert len( dates ) == nRows, 'Inconsistent size of dates!'
-    assert len( times ) == nRows, 'Inconsistent size of times!'
-
-    logger.info( 'Formatting Date column...' )
-    
-    for i in range( nRows ):
-
-        tmpStr  = str( dates[i] )
-        tmpList = tmpStr.split( '/' )
-
-        assert len( tmpList ) == 3, 'Wrong date format!'
-        
-        year    = int( tmpList[2] )
-        month   = int( tmpList[0] )
-        day     = int( tmpList[1] )        
-        
-        tmpStr  = str( times[i] )
-        tmpList = tmpStr.split( ':' )
-
-        assert len( tmpList ) == 2, 'Wrong time format!'
-        
-        hour    = int( tmpList[0] )
-        minute  = int( tmpList[1] )
-        second  = 0
-
-        date = datetime.datetime( year,
-                                  month,
-                                  day,
-                                  hour,
-                                  minute,
-                                  second ).strftime( '%Y-%m-%d %H:%M:%S' )
-        df.iloc[ i,0 ] = date
-        
-    df = df[ [ 'Date' ] + symbols + indexes ]
-    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
-    df = df.reset_index( drop = True )
-
     logger.info( 'Getting %d symbols took %0.2f seconds!',
                  len( symbols + indexes ), 
                  time.time() - t0 )
-
-    return df
     
+    return df
+
