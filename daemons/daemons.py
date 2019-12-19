@@ -124,6 +124,11 @@ class MfdPrtBuilder( Daemon ):
         
         self.dfFile = None        
 
+        if self.timeZone != 'America/New_York':
+            self.logger.warning( 'Only America/New_York time zone is supported at this time!' )
+            self.logger.warning( 'Switching to America/New_York time zone!' )
+            self.timeZone = 'America/New_York'
+            
     def setDfFile( self, snapDate ):
 
         nDays   = self.nTrnDays + self.nOosDays
@@ -174,14 +179,8 @@ class MfdPrtBuilder( Daemon ):
 
         self.dfFile = filePath
 
-        try:
-            df = read_pickle( self.dfFile )
-        except Exception as e:
-            msgStr = e + \
-                '; Something is not right with the new data file %s!' %\
-                self.dfFile
-            self.logger.error( msgStr )        
-
+        self.checkDfSanity()
+        
     def getOldDf( self ):
 
         tmpList = []
@@ -210,6 +209,35 @@ class MfdPrtBuilder( Daemon ):
 
         return oldDf
     
+    def checkDfSanity( self ):
+
+        if not os.path.exists( self.dfFile ):
+            msgStr =' Urgent: The file %s does not exist! Stopping the daemon...' %\
+                self.dfFile
+            self.logger.error( msgStr )
+            self.stop()
+
+        try:
+            df = read_pickle( self.dfFile )
+        except Exception as e:
+            msgStr = e + \
+                '; Something is not right with the new data file %s!' %\
+                self.dfFile
+            self.logger.error( msgStr )
+
+        items = [ 'Date' ] +\
+            self.etfs +\
+            self.stocks +\
+            self.futures +\
+            self.indexes
+
+        for item in items:
+            if not item in df.columns:
+                msgStr =' Urgent: The file %s does not have a %s column! Stopping the daemon...' %\
+                    ( self.dfFile, item )
+                self.logger.error( msgStr )
+                self.stop()
+            
     def build( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
