@@ -41,7 +41,7 @@ velNames    = ETFs + futures + indexes
 
 pType = 'vel'
 
-modFileName = 'models/model.dill'
+modFileName = 'models/model_kibot.dill'
 
 factor = 4.0e-5
     
