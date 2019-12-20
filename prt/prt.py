@@ -4,12 +4,6 @@
 
 import sys
 import os
-
-sys.path.append( os.path.abspath( '../' ) )
-
-from mod.mfdMod import MfdMod
-from ode.odeGeo import OdeGeoConst 
-
 import dill
 import time
 import talib
@@ -21,6 +15,12 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.special import erf
 from scipy.optimize import minimize
+
+sys.path.append( os.path.abspath( '../' ) )
+
+from mod.mfdMod import MfdMod
+from ode.odeGeo import OdeGeoConst 
+from utl.utils import getLogger
 
 # ***********************************************************************
 # Some parameters
@@ -47,16 +47,25 @@ class MfdPrt:
                     vType        = 'vel',
                     fallBack     = 'macd',
                     optTol       = OPT_TOL,
+                    logFileName  = None,                    
                     verbose      = 1          ):
 
-        self.mfdMod    = dill.load( open( modFile, 'rb' ) ) 
-        self.ecoMfd    = self.mfdMod.ecoMfd
+        self.mfdMod       = dill.load( open( modFile, 'rb' ) ) 
+        self.ecoMfd       = self.mfdMod.ecoMfd
+        self.minProbLong  = minProbLong
+        self.minProbShort = minProbShort
+        self.fallBack     = fallBack
+        self.optTol       = optTol
+        self.logFileName  = logFileName
+        self.verbose      = verbose
+        self.logger       = getLogger( logFileName, verbose, 'prt' )        
         
         if vType == 'vel':
             self.vList = self.ecoMfd.velNames
         elif vType == 'var':
             self.vList = self.ecoMfd.varNames
         else:
+            self.logger.error( 'Unknown vType %s', vType )
             assert False, 'Unknown vType %s' % vType
 
         self.vType = vType
@@ -64,7 +73,9 @@ class MfdPrt:
         self.assets    = []
         for asset in assets:
             if asset not in self.vList:
-                print( 'Dropping', asset, '; not found in the model', modFile )
+                self.logger.warning( 'Dropping %s ; not found in the model %s',
+                                     asset,
+                                     modFile )
                 continue
 
             self.assets.append( asset )
@@ -72,21 +83,28 @@ class MfdPrt:
         self.nRetTimes   = nRetTimes
         self.nPrdTimes   = nPrdTimes
 
-        assert strategy in [ 'mad', 'gain', 'gain_mad', 'prob' ], \
-            'Strategy %s is not known!' % strategy
+        if strategy not in [ 'mad', 'gain', 'gain_mad', 'prob' ]:
+            self.logger.error( 'Strategy %s is not known!', strategy )
+            assert False, 'Strategy %s is not known!' % strategy
 
         self.strategy  = strategy
 
-        assert minProbLong > 0,  'minProbLong should be > 0!'
-        assert minProbLong < 1,  'minProbLong should be < 1!'
-        assert minProbShort > 0, 'minProbShort should be > 0!'
-        assert minProbShort < 1, 'minProbShort should be < 1!'
+        if minProbLong <= 0:
+            self.logger.error( 'minProbLong should be > 0!' )
+            assert False, 'minProbLong should be > 0!'
 
-        self.minProbLong  = minProbLong
-        self.minProbShort = minProbShort
-        self.fallBack     = fallBack
-        self.optTol       = optTol
-        self.verbose      = verbose
+        if minProbLong >= 1:
+            self.logger.error( 'minProbLong should be < 1!' )
+            assert False,  'minProbLong should be < 1!'
+
+        if minProbShort <= 0:
+            self.logger.error( 'minProbShort should be > 0!' )
+            assert False, 'minProbShort should be > 0!'
+
+        if minProbShort >= 1:
+            self.logger.error( 'minProbShort should be < 1!' )
+            assert False, 'minProbShort should be < 1!'
+
         self.retDf        = None
         self.prdSol       = None
         self.stdVec       = None
@@ -147,8 +165,7 @@ class MfdPrt:
         sFlag    = odeObj.solve()
 
         if not sFlag:
-            if self.verbose > 0:
-                print( 'Geodesic equation did not converge!' )
+            self.logger.error( 'Geodesic equation did not converge!' )
             return None
 
         prdSol   = odeObj.getSol()
@@ -162,8 +179,13 @@ class MfdPrt:
             for i in range( nPrdTimes ):
                 prdSol[m][i] = slope * prdSol[m][i] + intercept
 
-        assert prdSol.shape[0] == ecoMfd.nDims, 'Inconsistent prdSol size!'
-        assert prdSol.shape[1] > 0, 'Number of minutes should be positive!'
+        if prdSol.shape[0] != ecoMfd.nDims:
+            self.logger.error( 'Inconsistent prdSol size!' )
+            assert False, 'Inconsistent prdSol size!'
+
+        if prdSol.shape[1] <= 0:
+            self.logger.error( 'Number of minutes should be positive!' )
+            assert False, 'Number of minutes should be positive!'
         
         self.prdSol = prdSol
 
@@ -213,7 +235,9 @@ class MfdPrt:
         nPrdTimes = prdSol.shape[1]
         perfs     = ecoMfd.getOosTrendPerfs( self.vType )
 
-        assert nPrdTimes > 0, 'nPrdTimes should be positive!'
+        if nPrdTimes <= 0:
+            self.logger.error( 'nPrdTimes should be positive!' )
+            assert False, 'nPrdTimes should be positive!'
 
         self.trendHash = {}
 
@@ -294,15 +318,15 @@ class MfdPrt:
                               constraints = optCons,
                               options     = { 'maxiter' : MAX_ITERS } )
 
-        if self.verbose > 0:
-            print( results[ 'message' ] )
-            print( 'Optimization success:', results[ 'success' ] )
-            print( 'Number of function evals:', results[ 'nfev' ] )
+        self.logger.info( results[ 'message' ] )
+        self.logger.info( 'Optimization success:', results[ 'success' ] )
+        self.logger.info( 'Number of function evals:', results[ 'nfev' ] )
 
         weights   = results.x
 
-        assert len( weights ) == nAssets,\
-            'Inconsistent size of weights!'
+        if len( weights ) != nAssets:
+            self.logger.error( 'Inconsistent size of weights!' )
+            assert False, 'Inconsistent size of weights!'
 
         self.checkCons( optCons, weights )                   
             
@@ -313,12 +337,10 @@ class MfdPrt:
  
             prtHash[ asset ] = weights[i]
 
-        if self.verbose > 0:
-            print( 'Building portfolio took', 
-                   round( time.time() - t0, 2 ), 
-                   'seconds!' )
+        self.logger.info( 'Building portfolio took %0.2f seconds!', 
+                          round( time.time() - t0, 2 ) )
 
-            print( 'Sum of wts:', sum( abs( weights ) ) )
+        self.logger.info( 'Sum of wts:', sum( abs( weights ) ) )
 
         return prtHash
 
@@ -335,6 +357,7 @@ class MfdPrt:
         elif strategy == 'prob':
             optFunc = self.getProbFunc
         else:
+            self.logger.error( 'Strategy %s is not known!', strategy )
             assert False, 'Strategy %s is not known!' % strategy
 
         return optFunc
@@ -417,13 +440,17 @@ class MfdPrt:
             asset    = assets[assetId]
             curPrice = quoteHash[ asset ]
 
-            assert curPrice > 0, 'Price should be positive!'
+            if curPrice <= 0:
+                self.logger.error( 'Price should be positive!' )
+                assert False, 'Price should be positive!'
             
             for m in range( ecoMfd.nDims ):
                 if self.vList[m] == asset:
                     break
 
-            assert m < ecoMfd.nDims, 'Asset %s not found in the model!' % asset
+            if m >= ecoMfd.nDims:
+                self.logger.error( 'Asset %s not found in the model!', asset )
+                assert False, 'Asset %s not found in the model!' % asset
 
             prdPrice = np.mean( prdSol[m] )
 
@@ -469,8 +496,13 @@ class MfdPrt:
         val   /= tmpSum
         val    = 1.0 - val
 
-        assert val >= 0.0, 'Invalid value %f of probability!' % val
-        assert val <= 1.0, 'Invalid value %f of probability!' % val
+        if val < 0.0:
+            self.logger.error( 'Invalid value %f of probability!', val )
+            assert False, 'Invalid value %f of probability!' % val
+
+        if val > 1.0:
+            self.logger.error( 'Invalid value %f of probability!', val )
+            assert False, 'Invalid value %f of probability!' % val
 
         if abs( tmpSum - 1.0 ) < self.optTol:
             self.optFuncVals.append( val )
@@ -488,7 +520,9 @@ class MfdPrt:
         nTmp      = nTimes + nOosTimes - 1
         tmpVec    = np.empty( shape = ( nTmp ), dtype = 'd' )
 
-        assert m < nDims, 'm should be smaller than nDims!'
+        if m >= nDims:
+            self.logger.error( 'm should be smaller than nDims!' )
+            assert False, 'm should be smaller than nDims!'
 
         asset     = self.vList[m]
         tmp       = ecoMfd.deNormHash[ asset ]
@@ -541,18 +575,22 @@ class MfdPrt:
             conFunc = con[ 'fun' ]
             
             if con[ 'type' ] == 'eq':
-                assert abs( conFunc( wts ) ) < self.optTol, \
-                    'Equality constraint not satisfied!'
+                if abs( conFunc( wts ) ) > self.optTol:
+                    self.logger.error( 'Equality constraint not satisfied!' )
+                    assert False, 'Equality constraint not satisfied!'
             elif con[ 'type' ] == 'ineq':
-                assert conFunc( wts ) >= -self.optTol, \
-                    'Inequality constraint not satisfied!'
+                if conFunc( wts ) < -self.optTol:
+                    self.logger.error( 'Inequality constraint not satisfied!' )
+                    assert False, 'Inequality constraint not satisfied!'
             else:
+                self.logger.error( 'Unknown constraint type!' )
                 assert False, 'Unknown constraint type!'
 
         val = np.abs( np.sum( np.abs( wts ) ) - 1.0 )
 
-        assert val < self.optTol, \
-            'The weights dp not sum up to 1.0!' 
+        if val > self.optTol:
+            self.logger.error( 'The weights dp not sum up to 1.0!' )
+            assert False, 'The weights dp not sum up to 1.0!' 
 
         for i in range( nAssets ):
             asset = assets[i]
@@ -560,11 +598,14 @@ class MfdPrt:
             trend = trendHash[ asset ][0]
             val   = trend * wt
 
-            assert val >= -self.optTol, \
-                'The weight %0.4f for asset %s does not match predicted trend!' \
-                % ( wt, asset )
+            if val < -self.optTol:
+                self.logger.error( 'The weight %0.4f for asset %s does not match predicted trend!',
+                                   wt,
+                                   asset )
+                assert False, 'The weight %0.4f for asset %s does not match predicted trend!' \
+                    % ( wt, asset )
 
-        print( 'All constraints are satisfied!' )
+        self.logger.info( 'All constraints are satisfied!' )
 
     def pltIters( self ):
         plt.plot( self.optFuncVals, '-o' )

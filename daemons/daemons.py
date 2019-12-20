@@ -41,6 +41,7 @@ futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
 USR_LIST    = [ 'babak.emami@gmail.com' ]
+SCHED_FLAG  = False
 
 # ***********************************************************************
 # Class MfdPrtBuilder: Daemon to build portfolios using mfd, prt
@@ -67,7 +68,7 @@ class MfdPrtBuilder( Daemon ):
                     prtDir      = '/var/prt_weights',
                     datDir      = '/var/mfd_data',
                     timeZone    = 'America/New_York',
-                    schedTime   = '10:00',
+                    schedTime   = '20:00',
                     logFileName = '/var/log/mfd_prt_builder.log',
                     verbose     = 1         ):
 
@@ -81,7 +82,6 @@ class MfdPrtBuilder( Daemon ):
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
         self.nPrdDays    = nPrdDays
-        self.interval    = interval
         self.maxOptItrs  = maxOptItrs
         self.optTol      = optTol
         self.regCoef     = regCoef
@@ -128,12 +128,16 @@ class MfdPrtBuilder( Daemon ):
             self.logger.warning( 'Only America/New_York time zone is supported at this time!' )
             self.logger.warning( 'Switching to America/New_York time zone!' )
             self.timeZone = 'America/New_York'
+
+        self.logger.info( 'Daemon is initialized ...' )            
             
     def setDfFile( self, snapDate ):
 
+        self.logger.info( 'Getting data...' )
+        
         nDays   = self.nTrnDays + self.nOosDays
         maxDate = pd.to_datetime( snapDate )
-        minDate = maxdate - datetime.timedelta( days = nDays )
+        minDate = maxDate - datetime.timedelta( days = nDays )
 
         try:
             oldDf = self.getOldDf()
@@ -142,12 +146,16 @@ class MfdPrtBuilder( Daemon ):
             self.logger.warning( e )            
             self.logger.warning( 'Could not read the old dfFile!' )
 
+        self.logger.info( 'oldDf nRows = %d', oldDf.shape[0] )
         updFlag = False
-        
         if oldDf is not None:
-            
-            oldMinDate = min( oldDf.Date )
-            oldMaxDate = max( oldDf.Date )
+            self.logger.info( 'Yuppppp' )
+            oldMinDate = list( oldDf.Date )[0]
+            oldMaxDate = list( oldDf.Date )[-1]
+            oldMinDate = pd.to_datetime( oldMinDate )
+            oldMaxDate = pd.to_datetime( oldMaxDate )
+            self.logger.info( str(minDate) + ' ' + str(oldMinDate) )
+            self.logger.info( str(maxDate) + ' ' + str(oldMaxDate) )
             
             if minDate < oldMaxDate and \
                minDate > oldMinDate and \
@@ -159,6 +167,9 @@ class MfdPrtBuilder( Daemon ):
         else:
             nDays = self.nTrnDays + self.nOosDays
 
+        self.logger.info( 'Getting new data for last %d days...',
+                          nDays )
+        
         newDf = utl.getKibotData( etfs    = self.etfs,
                                   stocks  = self.stocks,
                                   futures = self.futures,
@@ -168,7 +179,7 @@ class MfdPrtBuilder( Daemon ):
         if updFlag:
             newDf = pd.concat( [ oldDf, newDf ] )
             
-        fileName = 'dfFile_' + str( snapDate )
+        fileName = 'dfFile_' + str( snapDate ) + '.pkl'
         filePath = os.path.join( self.datDir, fileName )
 
         try:
@@ -186,14 +197,20 @@ class MfdPrtBuilder( Daemon ):
         tmpList = []
         tmpHash = {}
         pattern = 'dfFile_\d+-\d+-\d+ \d+:\d+:\d+.pkl'
+
+        self.logger.info( 'Looking at the latest available data file...' )
         
         for fileName in os.listdir( self.datDir ):
 
-            if not re.search( pattern, item ):
+            if not re.search( pattern, fileName ):
                 continue
 
-            baseName = os.path.splitext( item )
+            self.logger.info( fileName )
+            
+            baseName = os.path.splitext( fileName )[0]
+
             date = baseName.split( '_' )[1]
+
             date = pd.to_datetime( date )
 
             tmpList.append( fileName )
@@ -203,8 +220,13 @@ class MfdPrtBuilder( Daemon ):
         if len( tmpList ) > 0:
             fileName = max( tmpList, key = lambda x : tmpHash[x] )
             filePath = os.path.join( self.datDir, fileName )
-            oldDf    = df.read_pickle( filePath )
+            
+            self.logger.info( 'Found old data file %s...' % filePath )
+
+            oldDf    = pd.read_pickle( filePath )
         else:
+            self.logger.info( 'No old data file found!' )
+            self.logger.info( 'Will build a data file from scrach...' )
             return None
 
         return oldDf
@@ -241,11 +263,14 @@ class MfdPrtBuilder( Daemon ):
     def build( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
-        
         snapDate = datetime.datetime.now()
+        snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
+        snapDate = pd.to_datetime( snapDate )
         
         if snapDate.isoweekday() in [ 6, 7 ]:
             return
+        
+        self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
 
         self.setDfFile( snapDate )
         
@@ -271,6 +296,7 @@ class MfdPrtBuilder( Daemon ):
                            optFTol      = self.optTol,
                            regCoef      = self.regCoef,
                            factor       = self.factor,
+                           logFileName  = self.logFileName,
                            verbose      = self.verbose      )
         
         sFlag = mfdMod.build()
@@ -303,6 +329,7 @@ class MfdPrtBuilder( Daemon ):
                          minProbShort = 0.5,
                          vType        = 'vel',
                          fallBack     = 'macd',
+                         logFileName  = self.logFileName,
                          verbose      = 1          )
 
         wtHash  = mfdPrt.getPortfolio()
@@ -317,12 +344,15 @@ class MfdPrtBuilder( Daemon ):
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
+        
+        if not SCHED_FLAG:
+            self.build()
+        else:
+            schedule.every().day.at( self.schedTime ).do( self.build )
 
-        schedule.every().day.at( self.schedTime ).do( self.build )
-
-        while True: 
-              schedule.run_pending() 
-              time.sleep( 60 )
+            while True: 
+                schedule.run_pending() 
+                time.sleep( 60 )
               
 # ***********************************************************************
 # Run daemon
