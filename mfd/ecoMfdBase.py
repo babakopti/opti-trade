@@ -563,19 +563,32 @@ class EcoMfdCBase:
 
         return tmpVal
 
-    def getOosTrendCnt( self, vType = 'vel' ): 
+    def getOosTrendCnt( self, varNames = None, vType = 'vel' ): 
 
         nDims = self.nDims
         perfs = self.getOosTrendPerfs( vType )
-        cnt   = 0
 
+        if vType == 'var':
+            names = self.varNames
+        else:
+            names = self.velNames
+            
+        cnt = 0            
         for varId in range( nDims ):
+            if varNames is not None and \
+               names[varId] not in varNames:
+                continue
             if perfs[varId]:
                 cnt += 1
 
         assert cnt <= nDims, 'Count cannot be more than nDims!' 
 
-        ratio = float( cnt ) / nDims
+        if varNames is None:
+            nItems = nDims
+        else:
+            nItems = len( varNames )
+            
+        ratio = float( cnt ) / nItems
                
         return ratio
 

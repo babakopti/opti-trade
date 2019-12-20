@@ -32,12 +32,12 @@ indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',
 ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
                 'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
 
-#ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-#                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+invETFs     = [ 'SQQQ', 'SH',  'DXD', 'MZZ', 'TWM', 'DUG', 'SSG',
+                'ERY',  'SKF', 'SDP', 'GLL', 'BIS', 'PST', 'TBT'  ]
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-velNames    = ETFs + futures + indexes
+velNames    = ETFs + invETFs + futures + indexes
 
 pType = 'vel'
 

@@ -31,8 +31,8 @@ indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',
 
 ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
                 'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-#ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-#                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+invETFs     = [ 'SQQQ', 'SH',  'DXD', 'MZZ', 'TWM', 'DUG', 'SSG',
+                'ERY',  'SKF', 'SDP', 'GLL', 'BIS', 'PST', 'TBT'  ]
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
@@ -42,7 +42,7 @@ nDays       = ( maxDate - minDate ).days
 # Get data and save to pickle file
 # ***********************************************************************
 
-df = utl.getKibotData( etfs    = ETFs,
+df = utl.getKibotData( etfs    = ETFs + invETFs,
                        futures = futures,
                        indexes = indexes,                                                                                
                        nDays   = nDays       )
