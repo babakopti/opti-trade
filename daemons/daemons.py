@@ -41,7 +41,7 @@ futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
 USR_LIST    = [ 'babak.emami@gmail.com' ]
-SCHED_FLAG  = False
+SCHED_FLAG  = True
 
 # ***********************************************************************
 # Class MfdPrtBuilder: Daemon to build portfolios using mfd, prt
@@ -58,6 +58,7 @@ class MfdPrtBuilder( Daemon ):
                     nTrnDays    = 720,
                     nOosDays    = 3,
                     nPrdDays    = 1,
+                    nMadDays    = 30,                    
                     maxOptItrs  = 300,
                     optTol      = 5.0e-2,
                     regCoef     = 1.0e-3,                    
@@ -82,6 +83,7 @@ class MfdPrtBuilder( Daemon ):
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
         self.nPrdDays    = nPrdDays
+        self.nMadDays    = nMadDays        
         self.maxOptItrs  = maxOptItrs
         self.optTol      = optTol
         self.regCoef     = regCoef
@@ -146,20 +148,17 @@ class MfdPrtBuilder( Daemon ):
             self.logger.warning( e )            
             self.logger.warning( 'Could not read the old dfFile!' )
 
-        self.logger.info( 'oldDf nRows = %d', oldDf.shape[0] )
         updFlag = False
         if oldDf is not None:
-            self.logger.info( 'Yuppppp' )
             oldMinDate = list( oldDf.Date )[0]
             oldMaxDate = list( oldDf.Date )[-1]
             oldMinDate = pd.to_datetime( oldMinDate )
             oldMaxDate = pd.to_datetime( oldMaxDate )
-            self.logger.info( str(minDate) + ' ' + str(oldMinDate) )
-            self.logger.info( str(maxDate) + ' ' + str(oldMaxDate) )
-            
+
             if minDate < oldMaxDate and \
-               minDate > oldMinDate and \
+               minDate >= oldMinDate and \
                maxDate > oldMaxDate:
+                self.logger.info( 'Updating the data file...' )
                 updFlag = True
                 
         if updFlag:
@@ -176,6 +175,8 @@ class MfdPrtBuilder( Daemon ):
                                   indexes = self.indexes,
                                   nDays   = nDays       )
 
+        self.logger.info( 'Done with getting new data!' )
+
         if updFlag:
             newDf = pd.concat( [ oldDf, newDf ] )
             
@@ -190,7 +191,11 @@ class MfdPrtBuilder( Daemon ):
 
         self.dfFile = filePath
 
-        self.checkDfSanity()
+        try:
+            self.checkDfSanity()
+        except Exception as e:
+            msgStr = e + '; Could not confirm the sanity of the dfFile!'
+            self.logger.error( msgStr )
         
     def getOldDf( self ):
 
@@ -205,8 +210,6 @@ class MfdPrtBuilder( Daemon ):
             if not re.search( pattern, fileName ):
                 continue
 
-            self.logger.info( fileName )
-            
             baseName = os.path.splitext( fileName )[0]
 
             date = baseName.split( '_' )[1]
@@ -233,6 +236,8 @@ class MfdPrtBuilder( Daemon ):
     
     def checkDfSanity( self ):
 
+        self.logger.info( 'Checking sanity of the new data file...' )
+        
         if not os.path.exists( self.dfFile ):
             msgStr =' Urgent: The file %s does not exist! Stopping the daemon...' %\
                 self.dfFile
@@ -240,7 +245,7 @@ class MfdPrtBuilder( Daemon ):
             self.stop()
 
         try:
-            df = read_pickle( self.dfFile )
+            df = pd.read_pickle( self.dfFile )
         except Exception as e:
             msgStr = e + \
                 '; Something is not right with the new data file %s!' %\
@@ -259,7 +264,9 @@ class MfdPrtBuilder( Daemon ):
                     ( self.dfFile, item )
                 self.logger.error( msgStr )
                 self.stop()
-            
+
+        self.logger.info( 'The new data file looks ok!' )
+        
     def build( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
@@ -273,7 +280,7 @@ class MfdPrtBuilder( Daemon ):
         self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
 
         self.setDfFile( snapDate )
-        
+
         maxOosDt = snapDate
         maxTrnDt = maxOosDt - datetime.timedelta( days = self.nOosDays )
         minTrnDt = maxTrnDt - datetime.timedelta( days = self.nTrnDays )
@@ -287,9 +294,9 @@ class MfdPrtBuilder( Daemon ):
         t0       = time.time()
 
         mfdMod   = MfdMod( dfFile       = self.dfFile,
-                           minTrnDate   = self.minTrnDt,
-                           maxTrnDate   = self.maxTrnDt,
-                           maxOosDate   = self.maxOosDt,
+                           minTrnDate   = minTrnDt,
+                           maxTrnDate   = maxTrnDt,
+                           maxOosDate   = maxOosDt,
                            velNames     = self.velNames,
                            maxOptItrs   = self.maxOptItrs,
                            optGTol      = self.optTol,
@@ -298,7 +305,7 @@ class MfdPrtBuilder( Daemon ):
                            factor       = self.factor,
                            logFileName  = self.logFileName,
                            verbose      = self.verbose      )
-        
+
         sFlag = mfdMod.build()
 
         if sFlag:
@@ -321,8 +328,8 @@ class MfdPrtBuilder( Daemon ):
         nPrdTimes = int( self.nPrdDays * 19 * 60 )
 
         mfdPrt = MfdPrt( modFile      = modFile,
-                         assets       = assets,
-                         nRetTimes    = 30,
+                         assets       = self.assets,
+                         nRetTimes    = self.nMadDays,
                          nPrdTimes    = nPrdTimes,
                          strategy     = 'mad',
                          minProbLong  = 0.5,
