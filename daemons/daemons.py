@@ -383,7 +383,8 @@ class MfdPrtBuilder( Daemon ):
 
         for asset in wtHash:
             msgStr += '%s : ' % asset
-            msgStr += '{:.2%}'.format( wtHash[ asset] ) 
+            msgStr += '{:.2%}'.format( wtHash[ asset] )
+            msgStr += '\n'
             
         self.logger.critical( msgStr )
 
