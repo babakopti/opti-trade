@@ -311,7 +311,7 @@ class MfdMod:
                               endBcFlag    = True,
                               atnFct       = self.atnFct,
                               mode         = self.mode,
-                              logFileName  = self.logFileName,                              
+                              logFileName  = None,                              
                               verbose      = self.verbose        )        
 
         sFlag = self.ecoMfd.setGammaVec()
@@ -434,7 +434,7 @@ class MfdMod:
                                  endBcFlag    = True,
                                  atnFct       = self.atnFct,
                                  mode         = self.mode,
-                                 logFileName  = self.logFileName,                                 
+                                 logFileName  = None,                                 
                                  verbose      = self.verbose        )
 
             ecoMfds.append( ecoMfd )
