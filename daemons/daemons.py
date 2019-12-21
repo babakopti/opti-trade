@@ -40,7 +40,7 @@ ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
-USR_LIST    = [ 'babak.emami@gmail.com' ]
+USR_LIST    = [ 'babak.emami@gmail.com', 'farzin.shakib@gmail.com' ]
 SCHED_FLAG  = True
 
 # ***********************************************************************
@@ -55,7 +55,7 @@ class MfdPrtBuilder( Daemon ):
                     stocks      = [],
                     futures     = futures,
                     indexes     = indexes,
-                    nTrnDays    = 720,
+                    nTrnDays    = 360,
                     nOosDays    = 3,
                     nPrdDays    = 1,
                     nMadDays    = 30,                    
@@ -69,7 +69,7 @@ class MfdPrtBuilder( Daemon ):
                     prtDir      = '/var/prt_weights',
                     datDir      = '/var/mfd_data',
                     timeZone    = 'America/New_York',
-                    schedTime   = '20:00',
+                    schedTime   = '22:00',
                     logFileName = '/var/log/mfd_prt_builder.log',
                     verbose     = 1         ):
 
@@ -156,26 +156,33 @@ class MfdPrtBuilder( Daemon ):
             oldMaxDate = pd.to_datetime( oldMaxDate )
 
             if minDate < oldMaxDate and \
-               minDate >= oldMinDate and \
+               minDate.strftime( '%Y-%m-%d' ) > oldMinDate.strftime( '%Y-%m-%d' ) and \
                maxDate > oldMaxDate:
                 self.logger.info( 'Updating the data file...' )
                 updFlag = True
+            else:
+                self.logger.info( 'Something does not look right about the old data...' )
+                self.logger.info( 'Not taking risk, will get all data from scratch...' )
                 
+        nDays = 0
         if updFlag:
             nDays = ( maxDate - oldMaxDate ).days
-        else:
+            
+        if ( not updFlag ) or nDays <= 0:
             nDays = self.nTrnDays + self.nOosDays
-
+        
         self.logger.info( 'Getting new data for last %d days...',
                           nDays )
-        
-        newDf = utl.getKibotData( etfs    = self.etfs,
-                                  stocks  = self.stocks,
-                                  futures = self.futures,
-                                  indexes = self.indexes,
-                                  nDays   = nDays       )
 
-        self.logger.info( 'Done with getting new data!' )
+        try:
+            newDf = utl.getKibotData( etfs    = self.etfs,
+                                      stocks  = self.stocks,
+                                      futures = self.futures,
+                                      indexes = self.indexes,
+                                      nDays   = nDays       )
+            self.logger.info( 'Done with getting new data!' )
+        except Exception as e:
+            self.logger.error( e )
 
         if updFlag:
             newDf = pd.concat( [ oldDf, newDf ] )
@@ -303,21 +310,29 @@ class MfdPrtBuilder( Daemon ):
                            optFTol      = self.optTol,
                            regCoef      = self.regCoef,
                            factor       = self.factor,
-                           logFileName  = self.logFileName,
+                           logFileName  = None,
                            verbose      = self.verbose      )
 
-        sFlag = mfdMod.build()
+        try:
+            sFlag = mfdMod.build()
+        except Exception as e:
+            msgStr = e + '; Model build was unsuccessful!'
+            self.logger.error( msgStr )
 
         if sFlag:
             self.logger.info( 'Building model took %0.2f seconds!',
                               ( time.time() - t0 ) )
         else:
-            self.logger.critical( 'Model build was unsuccessful!' )
+            self.logger.error( 'Model build was unsuccessful!' )
             self.logger.warning( 'Not building a portfolio based on this model!!' )
             return False
 
         mfdMod.save( modFile )
 
+        if not os.path.exists( modFile ):
+            self.logger.error( 'New model file is not written to disk!' )
+            return False
+            
         self.logger.info( 'Building portfolio for snapdate %s', str( snapDate ) )
 
         t0     = time.time()
@@ -336,17 +351,41 @@ class MfdPrtBuilder( Daemon ):
                          minProbShort = 0.5,
                          vType        = 'vel',
                          fallBack     = 'macd',
-                         logFileName  = self.logFileName,
+                         logFileName  = None,
                          verbose      = 1          )
 
-        wtHash  = mfdPrt.getPortfolio()
-
+        try:
+            wtHash = mfdPrt.getPortfolio()
+        except Exception as e:
+            msgStr = e + '; Portfolio build was unsuccessful!'
+            self.logger.error( msgStr )
+            
         pickle.dump( wtHash, open( prtFile, 'wb' ) )    
-    
+
+        if not os.path.exists( modFile ):
+            self.logger.error( 'New portfolio file is not written to disk!' )
+            return False
+        
         self.logger.info( 'Building portfolio took %0.2f seconds!',
                           ( time.time() - t0 ) )
 
+        try:
+            self.sendPrtAlert( wtHash )
+        except Exception as e:
+            msgStr = e + '; Portfolio alert was NOT sent!'
+            self.logger.error( msgStr )
+            
         return True
+
+    def sendPrtAlert( self, wtHash ):
+
+        msgStr = 'A new portfolio is generated:\n\n'
+
+        for asset in wtHash:
+            msgStr += '%s : ' % asset
+            msgStr += '{:.2%}'.format( wtHash[ asset] ) 
+            
+        self.logger.critical( msgStr )
 
     def run( self ):
 
