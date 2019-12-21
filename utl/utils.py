@@ -47,13 +47,15 @@ def getLogger( logFileName, verbose, pkgName = None ):
 # ***********************************************************************
 
 def getAlertHandler( alertLevel, subject = None, mailList = [] ):
+
+    USER_NAME = 'apikey'
+    API_KEY = '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'
     
-    mHd = SMTPHandler( mailhost    = ( 'smtp.gmail.com', 587 ),
+    mHd = SMTPHandler( mailhost    = ( 'smtp.sendgrid.net', 587 ),
                        fromaddr    = 'optilive.noreply@gmail.com',
                        toaddrs     = mailList,
                        subject     = subject,
-                       credentials = ('optilive.noreply@gmail.com',
-                                      'optilivenoreply'),
+                       credentials = ( USER_NAME, API_KEY ),
                        secure      = () )
     
     mHd.setLevel( alertLevel )
