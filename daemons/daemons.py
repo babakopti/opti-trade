@@ -51,6 +51,10 @@ else:
 
 USE_OLD_DATA = False
 
+NUM_DAYS_DATA = 2
+NUM_DAYS_MOD  = 30
+NUM_DAYS_PRT  = 730
+
 # ***********************************************************************
 # Class MfdPrtBuilder: Daemon to build portfolios using mfd, prt
 # ***********************************************************************
@@ -388,6 +392,24 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             msgStr = e + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
+
+        try:
+            self.clean( self, self.datDir, NUM_DAYS_DATA )
+        except Exception as e:
+            msgStr = e + '; Could not clean data directory!'
+            self.logger.warning( msgStr )
+
+        try:
+            self.clean( self, self.modDir, NUM_DAYS_MOD )
+        except Exception as e:
+            msgStr = e + '; Could not clean model directory!'
+            self.logger.warning( msgStr )
+
+        try:
+            self.clean( self, self.prtDir, NUM_DAYS_PRT )
+        except Exception as e:
+            msgStr = e + '; Could not clean portfolio directory!'
+            self.logger.warning( msgStr )             
             
         return True
 
@@ -410,9 +432,19 @@ class MfdPrtBuilder( Daemon ):
 
         tempFile.close()
         
-            
         self.logger.critical( msgStr )
 
+    def clean( self, fDir, nOldDays ):
+
+        currTime = time.time()
+        
+        for fileName in os.listdir( fDir ):
+            filePath = os.path.join( fDir, fileName )
+            fileTime = os.path.getmtime( filePath )
+
+            if fileTime < ( currTime - nOldDays * 86400 ):
+                os.remove( filePath )
+            
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
