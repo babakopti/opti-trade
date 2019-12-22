@@ -12,7 +12,15 @@ import os
 import time
 import atexit
 import signal
+import string
 
+# *****************************************************************************
+# EmailTemplate: Create a template
+# *****************************************************************************
+
+class EmailTemplate( string.Template ):
+    delimiter = '@'
+    
 # ***********************************************************************
 # Class Daemon: A generic daemon object
 # ***********************************************************************

@@ -18,9 +18,8 @@ from prt.prt import MfdPrt
 # Set assets
 # ***********************************************************************
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
-cryptos     = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
+ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
+                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
 
 # ***********************************************************************
 # Input
@@ -51,7 +50,7 @@ if nSamples is not None:
 totAssetVal = 1000000.0
 tradeFee    = 6.95
 nPrdDays    = 1
-nPrdTimes   = nPrdDays * 19 * 60
+nPrdTimes   = nPrdDays * 17 * 60
 
 # ***********************************************************************
 # Some utility functions
@@ -99,13 +98,12 @@ for item in modFiles:
         mfdPrt = MfdPrt( modFile      = modFilePath,
                          assets       = assets,
                          nPrdTimes    = nPrdTimes,
-                         totAssetVal  = totAssetVal, 
-                         tradeFee     = tradeFee,
+                         nRetTimes    = 30,
                          strategy     = 'mad',
                          minProbLong  = 0.5,
                          minProbShort = 0.5,
                          vType        = 'vel',
-                         fallBack     = 'zero',
+                         fallBack     = 'macd',
                          verbose      = 1          )
     except:
         continue
@@ -115,7 +113,7 @@ for item in modFiles:
     snapDate   = ecoMfd.maxOosDate
     endDate    = snapDate + datetime.timedelta( minutes = nPrdTimes )
     dfFile     = ecoMfd.dfFile
-    df         = pd.read_pickle( dfFile ) 
+    df         = pd.read_pickle( dfFile )
     tmpDf      = df[ df.Date >= snapDate ]
     tmpDf      = tmpDf[ tmpDf.Date <= endDate ]
     tmpDf      = tmpDf.sort_values( [ 'Date' ] )

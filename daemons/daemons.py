@@ -17,7 +17,7 @@ import pandas as pd
 
 from multiprocessing import Process, Pool
 
-from daemonBase import Daemon
+from daemonBase import Daemon, EmailTemplate
 
 sys.path.append( os.path.abspath( '../' ) )
 
@@ -33,15 +33,23 @@ from prt.prt import MfdPrt
 indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
                 'TYX',  'XAU'                      ] 
-
 ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
                 'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
 USR_LIST    = [ 'babak.emami@gmail.com', 'farzin.shakib@gmail.com' ]
-SCHED_FLAG  = True
+
+USR_EMAIL_TEMPLATE = 'templates/user_portfolio_email.txt'
+
+DEBUG_MODE = True
+
+if DEBUG_MODE:
+    SCHED_FLAG = False
+else:
+    SCHED_FLAG = True
+
+USE_OLD_DATA = False
 
 # ***********************************************************************
 # Class MfdPrtBuilder: Daemon to build portfolios using mfd, prt
@@ -140,14 +148,17 @@ class MfdPrtBuilder( Daemon ):
         nDays   = self.nTrnDays + self.nOosDays
         maxDate = pd.to_datetime( snapDate )
         minDate = maxDate - datetime.timedelta( days = nDays )
-
-        try:
-            oldDf = self.getOldDf()
-        except Exception as e:
+        
+        if USE_OLD_DATA:
+            try:
+                oldDf = self.getOldDf()
+            except Exception as e:
+                oldDf = None
+                self.logger.warning( e )            
+                self.logger.warning( 'Could not read the old dfFile!' )
+        else:
             oldDf = None
-            self.logger.warning( e )            
-            self.logger.warning( 'Could not read the old dfFile!' )
-
+        
         updFlag = False
         if oldDf is not None:
             oldMinDate = list( oldDf.Date )[0]
@@ -233,12 +244,14 @@ class MfdPrtBuilder( Daemon ):
             
             self.logger.info( 'Found old data file %s...' % filePath )
 
-            oldDf    = pd.read_pickle( filePath )
+            oldDf = pd.read_pickle( filePath )
         else:
             self.logger.info( 'No old data file found!' )
             self.logger.info( 'Will build a data file from scrach...' )
             return None
 
+        oldDf[ 'Date' ] = oldDf[ 'Date' ].apply( pd.to_datetime )
+        
         return oldDf
     
     def checkDfSanity( self ):
@@ -280,9 +293,10 @@ class MfdPrtBuilder( Daemon ):
         snapDate = datetime.datetime.now()
         snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
         snapDate = pd.to_datetime( snapDate )
-        
-        if snapDate.isoweekday() in [ 6, 7 ]:
-            return
+
+        if not DEBUG_MODE:
+            if snapDate.isoweekday() in [ 6 ]:
+                return
         
         self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
 
@@ -379,12 +393,23 @@ class MfdPrtBuilder( Daemon ):
 
     def sendPrtAlert( self, wtHash ):
 
-        msgStr = 'A new portfolio is generated:\n\n'
+        assets = list( wtHash.keys() )
+        percs  = []
+        
+        for asset in assets:
+            percs.append( str( 100.0 * wtHash ) + '%' )
 
-        for asset in wtHash:
-            msgStr += '%s : ' % asset
-            msgStr += '{:.2%}'.format( wtHash[ asset] )
-            msgStr += '\n'
+        df = pd.DataFrame( {  'Assets'     : assets,
+                              'Percentage' : percs   } )
+        
+        pars[ 'Portfolio' ] = str( df )
+            
+        tempFile = open( USR_EMAIL_TEMPLATE, 'r' )
+        tempStr  = tempFile.read()
+        msgStr   = EmailTemplate( tempStr ).substitute( pars )
+
+        tempFile.close()
+        
             
         self.logger.critical( msgStr )
 

@@ -34,7 +34,7 @@ class EcoMfdCBase:
                     varNames,
                     velNames,
                     dateName, 
-                    df,
+                    dfFile,
                     minTrnDate, 
                     maxTrnDate,
                     maxOosDate,
@@ -69,7 +69,7 @@ class EcoMfdCBase:
         self.varNames    = varNames
         self.velNames    = velNames
         self.dateName    = dateName
-        self.df          = df
+        self.dfFile      = dfFile
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
@@ -149,7 +149,7 @@ class EcoMfdCBase:
     def setDf( self ):
 
         t0             = time.time()
-        df             = self.df
+        dfFile         = self.dfFile
         dateName       = self.dateName
         nDims          = self.nDims
         varNames       = self.varNames
@@ -157,6 +157,14 @@ class EcoMfdCBase:
         minDt          = pd.to_datetime( self.minTrnDate )
         maxDt          = pd.to_datetime( self.maxTrnDate )
         maxOosDt       = pd.to_datetime( self.maxOosDate )
+        fileExt        = dfFile.split( '.' )[-1]
+
+        if fileExt == 'csv':
+            df = pd.read_csv( dfFile ) 
+        elif fileExt == 'pkl':
+            df = pd.read_pickle( dfFile ) 
+        else:
+            assert False, 'Unknown input file extension %s' % fileExt
 
         if self.mode == 'day':
             tmpFunc        = lambda x : pd.to_datetime( x ).date()
@@ -267,7 +275,16 @@ class EcoMfdCBase:
         dateName       = self.dateName
         varNames       = self.varNames
         trnDf          = self.trnDf
-        df             = self.df
+        dfFile         = self.dfFile
+        fileExt        = dfFile.split( '.' )[-1]
+
+        if fileExt == 'csv':
+            df = pd.read_csv( dfFile ) 
+        elif fileExt == 'pkl':
+            df = pd.read_pickle( dfFile ) 
+        else:
+            assert False, 'Unknown input file extension %s' % fileExt
+            
         df             = df[ [dateName] + varNames ]
         df[ dateName ] = pd.to_datetime( df[ dateName ] )
         df             = df.interpolate( method = 'linear' )
@@ -293,7 +310,7 @@ class EcoMfdCBase:
 
     def setGammaVec( self ):
 
-        self.logger.info( 'Running discrete adjoint optimization to set Christoffel symbols...' )
+        self.logger.info( 'Running continuous adjoint optimization to set Christoffel symbols...' )
 
         t0 = time.time()
 

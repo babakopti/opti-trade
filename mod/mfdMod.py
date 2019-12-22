@@ -51,15 +51,7 @@ class MfdMod:
                     logFileName  = None,                    
                     verbose      = 1          ):
 
-        fileExt = dfFile.split( '.' )[-1]
-
-        if fileExt == 'csv':
-            self.df = pd.read_csv( dfFile ) 
-        elif fileExt == 'pkl':
-            self.df = pd.read_pickle( dfFile ) 
-        else:
-            assert False, 'Unknown input file extension %s' % fileExt
-            
+        self.dfFile      = dfFile
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
@@ -293,7 +285,7 @@ class MfdMod:
         self.ecoMfd = EcoMfd( varNames     = self.varNames,
                               velNames     = self.velNames,
                               dateName     = 'Date', 
-                              df           = self.df,
+                              dfFile       = self.dfFile,
                               minTrnDate   = self.minTrnDate,
                               maxTrnDate   = self.maxTrnDate,
                               maxOosDate   = self.maxOosDate,
@@ -416,7 +408,7 @@ class MfdMod:
             ecoMfd     = EcoMfd( varNames     = self.varNames,
                                  velNames     = self.velNames,
                                  dateName     = 'Date', 
-                                 df           = self.df,
+                                 dfFile       = self.dfFile,
                                  minTrnDate   = self.minTrnDate,
                                  maxTrnDate   = maxTrnDate,
                                  maxOosDate   = maxOosDate,
