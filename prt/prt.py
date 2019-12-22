@@ -319,8 +319,9 @@ class MfdPrt:
                               options     = { 'maxiter' : MAX_ITERS } )
 
         self.logger.info( results[ 'message' ] )
-        self.logger.info( 'Optimization success:', results[ 'success' ] )
-        self.logger.info( 'Number of function evals:', results[ 'nfev' ] )
+        self.logger.info( 'Optimization success: %s',
+                          str( results[ 'success' ] ) )
+        self.logger.info( 'Number of function evals: %d', results[ 'nfev' ] )
 
         weights   = results.x
 
