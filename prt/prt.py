@@ -340,7 +340,7 @@ class MfdPrt:
         self.logger.info( 'Building portfolio took %0.2f seconds!', 
                           round( time.time() - t0, 2 ) )
 
-        self.logger.info( 'Sum of wts:', sum( abs( weights ) ) )
+        self.logger.info( 'Sum of wts: %0.4f', sum( abs( weights ) ) )
 
         return prtHash
 
