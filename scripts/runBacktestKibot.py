@@ -27,10 +27,10 @@ modFlag     = True
 dfFile      = 'data/dfFile_kibot.pkl'
 
 nTrnDays    = 365
-nOosDays    = 1
-nPrdDays    = 3
-bkBegDate   = pd.to_datetime( '2019-10-01 00:00:00' )
-bkEndDate   = pd.to_datetime( '2019-10-31 23:59:00' )
+nOosDays    = 3
+nPrdDays    = 1
+bkBegDate   = pd.to_datetime( '2018-01-01 00:00:00' )
+bkEndDate   = pd.to_datetime( '2018-12-31 23:59:00' )
 
 indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  

@@ -47,8 +47,6 @@ for item in os.listdir( modDir ):
 if nSamples is not None:
     modFiles = random.sample( modFiles, nSamples )
 
-totAssetVal = 1000000.0
-tradeFee    = 6.95
 nPrdDays    = 1
 nPrdTimes   = nPrdDays * 17 * 60
 
@@ -87,6 +85,8 @@ msdList   = []
 macdList  = []
 hybList   = []
 
+modFiles = sorted( modFiles )
+
 for item in modFiles:
 
     if item.split( '_' )[0] != 'model':
@@ -94,6 +94,8 @@ for item in modFiles:
     
     modFilePath = os.path.join( modDir, item )
 
+    print( 'Processing %s ...' % item )
+    
     try:
         mfdPrt = MfdPrt( modFile      = modFilePath,
                          assets       = assets,
@@ -103,7 +105,7 @@ for item in modFiles:
                          minProbLong  = 0.5,
                          minProbShort = 0.5,
                          vType        = 'vel',
-                         fallBack     = 'macd',
+                         fallBack     = 'zero',
                          verbose      = 1          )
     except:
         continue
@@ -125,7 +127,7 @@ for item in modFiles:
     tmpDfHistMsd  = tmpDfHistMsd[ tmpDfHistMsd.Date <= snapDate ]
     tmpDfHistMsd  = tmpDfHistMsd.sort_values( [ 'Date' ] )
 
-    tmpDate       = snapDate - datetime.timedelta( days = 360 )
+    tmpDate       = snapDate - datetime.timedelta( days = 30 )
     tmpDfHistMacd = df[ df.Date >= tmpDate ]
     tmpDfHistMacd = tmpDfHistMacd[ tmpDfHistMacd.Date <= snapDate ]
     tmpDfHistMacd = tmpDfHistMacd.sort_values( [ 'Date' ] )
