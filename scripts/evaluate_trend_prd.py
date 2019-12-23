@@ -215,7 +215,7 @@ sumDf = outDf.groupby( 'Date', as_index = False )[ 'MFD', 'MSDEV', 'MACD', 'Hybr
 
 sumDf.to_csv( sumFile, index = False )
 
-print( 'Mean success rate:', { 'MFD'    : sumDf.MFD.mean(),
-                               'MSDEV'  : sumDf.MSDEV.mean(),
-                               'MACD'   : sumDf.MACD.mean(), 
-                               'Hybrid' : sumDf.Hybrid.mean() } )
+methods = [ 'MFD', 'MSDEV', 'MACD', 'Hybrid' ]
+
+for method in methods:
+    print( method + ': ' + str( sumDf[ method ].mean() ) + ' +/- ' + str( sumDf[ method ].std() ) )
