@@ -188,7 +188,13 @@ def getKibotData( etfs     = [],
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
         tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
         tmpDf = tmpDf[ [ 'Date', 'Time', symbol ] ]
+        nRows = tmpDf.shape[0]
+        
+        logger.info( 'Got %d rows for %s!', nRows, symbol )
 
+        if nRows < 100:
+            logger.warning( resp.text )
+            
         if initFlag:
             df       = tmpDf
             initFlag = False
@@ -241,6 +247,9 @@ def getKibotData( etfs     = [],
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
         tmpDf = tmpDf.rename( columns = { 'Close' : symbol } )
         tmpDf = tmpDf[ [ 'Date', symbol ] ]
+        nRows = tmpDf.shape[0]
+        
+        logger.info( 'Got %d rows for %s!', nRows, symbol )
 
         if initFlag:
             indDf    = tmpDf
