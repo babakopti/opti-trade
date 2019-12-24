@@ -420,10 +420,11 @@ each security is based on the price trend as predicted by the manifold
 model.
 
 Let us us assume that we trade with a pool of $\tilde{n}$ assets with
-log returns $X_{i}(t)$, where $i = 1, ...,\tilde{n}$. Note that
-$X_{i}(t) = \log(\frac{P_{i}(t) - P_{i}(t-1)}{P_{i}(t-1)})$, where
-$P_{i}$ is price of asset $i$. The proposed trading algorithm is in
-fact solving the following constrained optimization problem,
+return of logs $X_{i}(t)$, where $i = 1, ...,\tilde{n}$. Note that
+$X_{i}(t) = \frac{\log(P_{i}(t))
+  -\log(P_{i}(t-1))}{\log(P_{i}(t-1))}$, where $P_{i}$ is price of
+asset $i$. The proposed trading algorithm is in fact solving the
+following constrained optimization problem,
 
 \begin{equation}\label{eqn:mad-optimization-problem}
 \min_{w_{i}} \frac{1}{\tilde{N}}\sum_{t=t_{curr}}^{t_{curr}-\tilde{N}+1}
