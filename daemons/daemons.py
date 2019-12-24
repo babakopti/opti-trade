@@ -419,11 +419,17 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             msgStr = e + '; Could not clean portfolio directory!'
             self.logger.warning( msgStr )             
+
+        try:
+            self.cleanBucket( self, NUM_DAYS_PRT )
+        except Exception as e:
+            msgStr = e + '; Could not clean portfolio bucket!'
+            self.logger.warning( msgStr )
             
         return True
 
     def savePrt( self, wtHash, prtFile ):
-
+        
         json.dump( wtHash, open( prtFile, 'w' ) )
         
         client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
@@ -466,6 +472,19 @@ class MfdPrtBuilder( Daemon ):
 
             if fileTime < ( currTime - nOldDays * 86400 ):
                 os.remove( filePath )
+
+    def cleanBucket( self, nOldDays ):
+
+        tzObj    = pytz.timezone( self.timeZone )
+        currTime = datetime.datetime.now( tzObj ) 
+        client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
+        bucket   = client.get_bucket( GOOGLE_BUCKET )        
+        
+        for blob in bucket.list_blobs():
+            fileTime = blob.time_created
+
+            if ( currTime - fileTime ).days > nOldDays:
+                blob.delete()
             
     def run( self ):
 
