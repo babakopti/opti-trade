@@ -5,8 +5,7 @@
 sudo apt-get install emacs
 sudo apt-get install python3-pip
 sudo pip3 install numpy pandas matplotlib scipy scikit-learn dill
-sudo pip3 install schedule
-sudo pip3 install requests
+sudo pip3 install requests, schedule, google-cloud-storage
 
 git config --global status.showUntrackedFiles no
 git config --global user.email "optilive.developer@gmail.com"

@@ -10,12 +10,14 @@ import pytz
 import dill
 import logging
 import pickle
+import json
 import schedule
 import re
 import numpy as np
 import pandas as pd
 
 from multiprocessing import Process, Pool
+from google.cloud import storage
 
 from daemonBase import Daemon, EmailTemplate
 
@@ -54,6 +56,9 @@ USE_OLD_DATA = False
 NUM_DAYS_DATA = 2
 NUM_DAYS_MOD  = 30
 NUM_DAYS_PRT  = 730
+
+GOOGLE_STORAGE_JSON = 'keyfiles/google_storage.json'
+GOOGLE_BUCKET = 'prt-storage'
 
 # ***********************************************************************
 # Class MfdPrtBuilder: Daemon to build portfolios using mfd, prt
@@ -312,7 +317,7 @@ class MfdPrtBuilder( Daemon ):
 
         tmpStr   = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )
         modFile  = self.modHead + tmpStr + '.dill'
-        prtFile  = self.prtHead + tmpStr + '.pkl'
+        prtFile  = self.prtHead + tmpStr + '.json'
         modFile  = os.path.join( self.modDir, modFile )
         prtFile  = os.path.join( self.prtDir, prtFile )
 
@@ -377,9 +382,13 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             msgStr = e + '; Portfolio build was unsuccessful!'
             self.logger.error( msgStr )
-            
-        pickle.dump( wtHash, open( prtFile, 'wb' ) )    
 
+        try:
+            self.savePrt( wtHash, prtFile )
+        except Exception as e:
+            msgStr = e + '; Could not save portfolio!'
+            self.logger.error( msgStr )
+            
         if not os.path.exists( modFile ):
             self.logger.error( 'New portfolio file is not written to disk!' )
             return False
@@ -412,6 +421,19 @@ class MfdPrtBuilder( Daemon ):
             self.logger.warning( msgStr )             
             
         return True
+
+    def savePrt( self, wtHash, prtFile ):
+
+        json.dump( wtHash, open( prtFile, 'w' ) )
+        
+        client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
+        bucket   = client.get_bucket( GOOGLE_BUCKET )
+        baseName = os.path.basename( prtFile )
+        blob     = bucket.blob( baseName )
+
+        with open( prtFile, 'r' ) as fHd:
+            tmpStr = str( json.load( fHd ) )
+            blob.upload_from_string( tmpStr )
 
     def sendPrtAlert( self, wtHash ):
 
