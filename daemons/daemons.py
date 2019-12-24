@@ -40,9 +40,9 @@ ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 DEV_LIST    = [ 'babak.emami@gmail.com' ]
-USR_LIST    = [ 'babak.emami@gmail.com', 'farzin.shakib@gmail.com' ]
+USR_LIST    = [ 'babak.emami@gmail.com' ]
 
-USR_EMAIL_TEMPLATE = 'templates/user_portfolio_email.txt'
+USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email.txt'
 
 DEBUG_MODE = False
 
@@ -453,24 +453,25 @@ class MfdPrtBuilder( Daemon ):
     def sendPrtAlert( self, wtHash ):
 
         assets = list( wtHash.keys() )
-        percs  = []
-        
-        for asset in assets:
-            percs.append( str( 100.0 * wtHash ) + '%' )
+        pars   = {}
+        tmpStr = ''
 
-        df = pd.DataFrame( {  'Assets'     : assets,
-                              'Percentage' : percs   } )
-        
-        pars[ 'Portfolio' ] = str( df )
-            
+        for asset in assets:
+            perc    = 100.0 * wtHash[ asset ]
+            tmpStr += '%10s: %0.2f %s\n\n' % ( asset, perc, '%' ) 
+
+        pars[ 'Portfolio' ] = tmpStr
+
         tempFile = open( USR_EMAIL_TEMPLATE, 'r' )
         tempStr  = tempFile.read()
         msgStr   = EmailTemplate( tempStr ).substitute( pars )
 
         tempFile.close()
-        
-        self.logger.critical( msgStr )
 
+        self.logger.critical( msgStr )
+        
+        self.logger.info( 'Portfolio results sent to email lists!' )
+        
     def clean( self, fDir, nOldDays ):
 
         currTime = time.time()
