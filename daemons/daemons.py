@@ -44,7 +44,7 @@ USR_LIST    = [ 'babak.emami@gmail.com', 'farzin.shakib@gmail.com' ]
 
 USR_EMAIL_TEMPLATE = 'templates/user_portfolio_email.txt'
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 if DEBUG_MODE:
     SCHED_FLAG = False
@@ -57,7 +57,7 @@ NUM_DAYS_DATA = 2
 NUM_DAYS_MOD  = 30
 NUM_DAYS_PRT  = 730
 
-GOOGLE_STORAGE_JSON = 'keyfiles/google_storage.json'
+GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
 GOOGLE_BUCKET = 'prt-storage'
 
 # ***********************************************************************
@@ -383,11 +383,7 @@ class MfdPrtBuilder( Daemon ):
             msgStr = e + '; Portfolio build was unsuccessful!'
             self.logger.error( msgStr )
 
-        try:
-            self.savePrt( wtHash, prtFile )
-        except Exception as e:
-            msgStr = e + '; Could not save portfolio!'
-            self.logger.error( msgStr )
+        self.savePrt( wtHash, prtFile )
             
         if not os.path.exists( modFile ):
             self.logger.error( 'New portfolio file is not written to disk!' )
@@ -429,18 +425,31 @@ class MfdPrtBuilder( Daemon ):
         return True
 
     def savePrt( self, wtHash, prtFile ):
-        
-        json.dump( wtHash, open( prtFile, 'w' ) )
-        
-        client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
-        bucket   = client.get_bucket( GOOGLE_BUCKET )
-        baseName = os.path.basename( prtFile )
-        blob     = bucket.blob( baseName )
 
-        with open( prtFile, 'r' ) as fHd:
-            tmpStr = str( json.load( fHd ) )
-            blob.upload_from_string( tmpStr )
+        try:
+            json.dump( wtHash, open( prtFile, 'w' ) )
+        except Exception as e:
+            self.logger.error( e )
 
+        if not os.path.exists( prtFile ):
+            self.logger.error( 'The portfolio file was not generated!' )
+
+        try:
+            client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
+            bucket   = client.get_bucket( GOOGLE_BUCKET )
+            baseName = os.path.basename( prtFile )
+            blob     = bucket.blob( baseName )
+            
+            with open( prtFile, 'r' ) as fHd:
+                tmpStr = str( json.load( fHd ) )
+                blob.upload_from_string( tmpStr )
+
+            self.logger.info( 'The portfolio file %s was saved to bucket!',
+                              baseName )
+
+        except Exception as e:
+            self.logger.error( e )
+            
     def sendPrtAlert( self, wtHash ):
 
         assets = list( wtHash.keys() )
