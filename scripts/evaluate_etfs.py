@@ -34,7 +34,7 @@ def getTrendMAD( df, symbol ):
     mad  = ( retDf - retDf.mean() ).abs().mean()
     mad  = float( mad )
 
-    mean = df[ symbol ].pct_change().dropna().mean()
+    mean = retDf.mean()#df[ symbol ].pct_change().dropna().mean()
     mean = float( mean )
     
     return mad, mean
