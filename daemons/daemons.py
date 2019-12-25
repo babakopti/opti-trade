@@ -86,7 +86,7 @@ class MfdPrtBuilder( Daemon ):
                     prtDir      = '/var/prt_weights',
                     datDir      = '/var/mfd_data',
                     timeZone    = 'America/New_York',
-                    schedTime   = '22:00',
+                    schedTime   = '04:00',
                     logFileName = '/var/log/mfd_prt_builder.log',
                     verbose     = 1         ):
 
@@ -398,29 +398,11 @@ class MfdPrtBuilder( Daemon ):
             msgStr = e + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
 
-        try:
-            self.clean( self, self.datDir, NUM_DAYS_DATA )
-        except Exception as e:
-            msgStr = e + '; Could not clean data directory!'
-            self.logger.warning( msgStr )
+        self.clean( self.datDir, NUM_DAYS_DATA )
+        self.clean( self.modDir, NUM_DAYS_MOD )
+        self.clean( self.prtDir, NUM_DAYS_PRT )
 
-        try:
-            self.clean( self, self.modDir, NUM_DAYS_MOD )
-        except Exception as e:
-            msgStr = e + '; Could not clean model directory!'
-            self.logger.warning( msgStr )
-
-        try:
-            self.clean( self, self.prtDir, NUM_DAYS_PRT )
-        except Exception as e:
-            msgStr = e + '; Could not clean portfolio directory!'
-            self.logger.warning( msgStr )             
-
-        try:
-            self.cleanBucket( self, NUM_DAYS_PRT )
-        except Exception as e:
-            msgStr = e + '; Could not clean portfolio bucket!'
-            self.logger.warning( msgStr )
+        self.cleanBucket( NUM_DAYS_PRT )
             
         return True
 
@@ -474,6 +456,10 @@ class MfdPrtBuilder( Daemon ):
         
     def clean( self, fDir, nOldDays ):
 
+        self.logger.info( 'Cleaning up %s of files more than %d days old...',
+                          fDir,
+                          nOldDays )
+        
         currTime = time.time()
         
         for fileName in os.listdir( fDir ):
@@ -481,20 +467,34 @@ class MfdPrtBuilder( Daemon ):
             fileTime = os.path.getmtime( filePath )
 
             if fileTime < ( currTime - nOldDays * 86400 ):
-                os.remove( filePath )
+                try:
+                    os.remove( filePath )
+                    self.logger.info( 'Deleted %s', filePath )
+                except Exception as e:
+                    self.logger.warning( e )
 
     def cleanBucket( self, nOldDays ):
 
+        self.logger.info( 'Cleaning up cloud storage of files more than %d days old...',
+                          nOldDays )
+        
         tzObj    = pytz.timezone( self.timeZone )
-        currTime = datetime.datetime.now( tzObj ) 
+        currTime = datetime.datetime.now( tzObj )
         client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
         bucket   = client.get_bucket( GOOGLE_BUCKET )        
-        
+
         for blob in bucket.list_blobs():
+
             fileTime = blob.time_created
 
             if ( currTime - fileTime ).days > nOldDays:
-                blob.delete()
+                try:
+                    blob.delete()
+                    self.logger.info( 'Deleted %s from bucket %s',
+                                      blob.name,
+                                      bucket.name )
+                except Exception as e:
+                    self.logger.warning(e)
             
     def run( self ):
 
