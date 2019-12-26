@@ -19,31 +19,39 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-dfFile  = 'data/dfFile_kibot.pkl'
+dfFile  = 'data/dfFile_futures_daily.pkl'
 
-minTrnDate  = pd.to_datetime( '2018-06-30 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2019-06-30 23:59:00' )
-maxOosDate  = pd.to_datetime( '2019-07-01 23:59:00' )
+minTrnDate  = pd.to_datetime( '2010-01-01 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2017-12-31 23:59:00' )
+maxOosDate  = pd.to_datetime( '2019-12-25 23:59:00' )
 
-indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'XAU'                      ] 
+indexes = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
+            'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
+            'TYX'                      ] 
 
-ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
+fuDf = pd.read_csv( 'data/Futures_kibot.txt', delimiter = '\t' )
 
-invETFs     = [ 'SQQQ', 'SH',  'DXD', 'MZZ', 'TWM', 'DUG', 'SSG',
-                'ERY',  'SKF', 'SDP', 'GLL', 'BIS', 'PST', 'TBT'  ]
+fuDf[ 'Continuous' ] = fuDf.Description.apply( lambda x : 'CONTINUOUS' in x )
 
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+fuDf = fuDf[ fuDf.Continuous == True ]
 
-velNames    = ETFs + futures + indexes
+fuDf = fuDf[ [ 'Base', 'StartDate', 'Description' ] ]
+
+fuDf[ 'StartDate' ] = fuDf[ 'StartDate' ].apply( pd.to_datetime )
+
+fuDf.reset_index( drop = True, inplace = True )
+
+fuDf[ fuDf.StartDate <= pd.to_datetime( '2010-01-01' ) ].shape
+
+futures = list( fuDf.Base )
+
+velNames    = futures + indexes
 
 pType = 'vel'
 
-modFileName = 'models/model_kibot.dill'
+modFileName = 'models/model_futures.dill'
 
-factor = 4.0e-5
+factor = 1.0e-5
     
 # ***********************************************************************
 # Build model
@@ -54,7 +62,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 200,
+                    maxOptItrs   = 50,
                     optGTol      = 5.0e-2,
                     optFTol      = 5.0e-2,
                     factor       = factor,
