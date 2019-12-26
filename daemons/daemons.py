@@ -364,10 +364,11 @@ class MfdPrtBuilder( Daemon ):
         endDt  = snapDate + datetime.timedelta( days = self.nPrdDays )
 
         nPrdTimes = int( self.nPrdDays * 19 * 60 )
+        nRetTimes = int( self.nMadDays * 19 * 60 )
 
         mfdPrt = MfdPrt( modFile      = modFile,
                          assets       = self.assets,
-                         nRetTimes    = self.nMadDays,
+                         nRetTimes    = nRetTimes,
                          nPrdTimes    = nPrdTimes,
                          strategy     = 'mad',
                          minProbLong  = 0.5,
