@@ -302,3 +302,114 @@ def getKibotData( etfs     = [],
     
     return df
 
+# ***********************************************************************
+# getDailyKibotData( ): Read daily data from kibot
+# ***********************************************************************
+
+def getDailyKibotData( etfs     = [],
+                       futures  = [],
+                       stocks   = [],
+                       indexes  = [],
+                       nDays    = 365,
+                       maxTries = 10,
+                       timeout  = 60,
+                       logger   = None   ):
+
+    t0       = time.time()
+    initFlag = True
+
+    # Set the logger object is None
+    
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    # Set a hash table of asset types
+    
+    typeHash = {}
+
+    for symbol in etfs:
+        typeHash[ symbol ] = 'ETFs'
+
+    for symbol in futures:
+        typeHash[ symbol ] = 'futures'
+
+    for symbol in stocks:
+        typeHash[ symbol ] = 'stocks'
+
+    for symbol in indexes:
+        typeHash[ symbol ] = 'indexes'        
+
+    # Get a data frae of intraday ETFs, stocks, and futures
+    
+    symbols = etfs + futures + stocks + indexes
+    df      = pd.DataFrame()
+
+    if len( symbols ) == 0:
+        logger.warning( 'No symbol is given!' )
+        return None
+    
+    for symbol in symbols:
+
+        logger.info( 'Reading symbol %s...' % symbol )
+
+        authFlag = getKibotAuth()
+            
+        if not authFlag:
+            logger.error( 'Authentication failed!' )
+            assert False, 'Authentication failed!'
+    
+        url  = 'http://api.kibot.com/?action=history'
+        url  = url + '&symbol=%s&interval=daily&period=%d&type=%s&regularsession=0' \
+            % ( symbol, nDays, typeHash[ symbol ] )
+
+        for itr in range( maxTries ):
+            try:
+                resp = requests.get( url, timeout = timeout )
+                break
+            except:
+                time.sleep( 5 )
+                continue
+
+        if not resp.ok:
+            logger.error( 'Query for %s failed!', symbol )
+            assert False, 'Query for %s failed!' % symbol
+    
+        cols = [ 'Date',
+                 'Open',
+                 'High',
+                 'Low',
+                 'Close',
+                 'Volume' ]
+    
+        tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
+        tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
+        tmpDf = tmpDf[ [ 'Date', symbol ] ]
+        nRows = tmpDf.shape[0]
+        
+        logger.info( 'Got %d rows for %s!', nRows, symbol )
+
+        if nRows < 100:
+            logger.warning( resp.text )
+            
+        if initFlag:
+            df       = tmpDf
+            initFlag = False
+        else:
+            df = df.merge( tmpDf,
+                           how = 'outer',
+                           on  = [ 'Date' ] )
+            
+    df = df[ [ 'Date' ] + symbols ]
+    df[ 'Date' ] = df[ 'Date' ].apply( pd.to_datetime )
+    
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )    
+    df = df.interpolate( method = 'linear' )
+    df = df.dropna()
+    df = df.reset_index( drop = True )
+    
+    logger.info( 'Getting %d symbols took %0.2f seconds!',
+                 len( symbols ), 
+                 time.time() - t0 )
+    
+    return df
+
