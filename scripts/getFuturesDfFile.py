@@ -43,7 +43,7 @@ fuDf.reset_index( drop = True, inplace = True )
 
 fuDf[ fuDf.StartDate <= pd.to_datetime( '2010-01-01' ) ].shape
 
-futures = list( fuDf.Base )
+futures = list( set( fuDf.Base ) - set( [ 'RTY', 'TN', 'BTC', 'SIR', 'SIL'  ] ) )
 
 nDays   = ( maxDate - minDate ).days
 

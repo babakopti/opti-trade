@@ -28,6 +28,7 @@ maxOosDate  = pd.to_datetime( '2019-12-25 23:59:00' )
 indexes = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
             'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
             'TYX'                      ] 
+#futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 fuDf = pd.read_csv( 'data/Futures_kibot.txt', delimiter = '\t' )
 
@@ -43,7 +44,7 @@ fuDf.reset_index( drop = True, inplace = True )
 
 fuDf[ fuDf.StartDate <= pd.to_datetime( '2010-01-01' ) ].shape
 
-futures = list( fuDf.Base )
+futures = list( set( fuDf.Base ) - set( [ 'RTY', 'TN', 'BTC', 'SIR', 'SIL'  ] ) )
 
 velNames    = futures + indexes
 
@@ -51,7 +52,7 @@ pType = 'vel'
 
 modFileName = 'models/model_futures.dill'
 
-factor = 1.0e-5
+factor = 4.0e-5
     
 # ***********************************************************************
 # Build model
@@ -62,7 +63,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 50,
+                    maxOptItrs   = 300,
                     optGTol      = 5.0e-2,
                     optFTol      = 5.0e-2,
                     factor       = factor,
