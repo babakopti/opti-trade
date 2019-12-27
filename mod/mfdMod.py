@@ -328,8 +328,8 @@ class MfdMod:
             bias = ecoMfd.getRelBias( m )
             biasVec.append( bias )
 
-        self.logger.info( 'Manifold merit    : %0.6f', ecoMfd.getMerit() )
-        self.logger.info( 'Manifold oos merit: %0.6f', ecoMfd.getOosMerit() )
+        self.logger.info( 'Manifold Error    : %0.6f', ecoMfd.getError() )
+        self.logger.info( 'Manifold oos Error: %0.6f', ecoMfd.getOosError() )
         self.logger.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
         self.logger.info( 'Manifold max bias: %0.6f', max( biasVec ) )            
 
