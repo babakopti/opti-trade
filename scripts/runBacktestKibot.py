@@ -100,11 +100,12 @@ def buildModPrt( snapDate ):
     endDt  = snapDate + datetime.timedelta( days = nPrdDays )
     nDays  = ( endDt - curDt ).days
 
-    nPrdTimes   = int( nDays * 17 * 60 )
-
+    nPrdTimes = int( nDays * 17 * 60 )
+    nRetTimes = int( 30 * 19 * 60 )
+    
     mfdPrt = MfdPrt( modFile      = modFilePath,
                      assets       = assets,
-                     nRetTimes    = 30,
+                     nRetTimes    = nRetTimes,
                      nPrdTimes    = nPrdTimes,
                      strategy     = 'mad',
                      minProbLong  = 0.5,
