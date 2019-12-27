@@ -116,6 +116,7 @@ def getKibotData( etfs     = [],
                   interval = 1,
                   maxTries = 10,
                   timeout  = 60,
+                  minRows  = 100,
                   logger   = None   ):
 
     t0       = time.time()
@@ -192,8 +193,12 @@ def getKibotData( etfs     = [],
         
         logger.info( 'Got %d rows for %s!', nRows, symbol )
 
-        if nRows < 100:
+        if nRows < minRows:
             logger.warning( resp.text )
+            logger.warning( 'Skipping %s as it has only %d rows!',
+                            symbols,
+                            nRows  )
+            continue
             
         if initFlag:
             df       = tmpDf
@@ -313,6 +318,7 @@ def getDailyKibotData( etfs     = [],
                        nDays    = 365,
                        maxTries = 10,
                        timeout  = 60,
+                       minRows  = 3,
                        logger   = None   ):
 
     t0       = time.time()
@@ -388,9 +394,13 @@ def getDailyKibotData( etfs     = [],
         
         logger.info( 'Got %d rows for %s!', nRows, symbol )
 
-        if nRows < 100:
+        if nRows < minRows:
             logger.warning( resp.text )
-            
+            logger.warning( 'Skipping %s as it has only %d rows!',
+                            symbols,
+                            nRows  )
+            continue
+
         if initFlag:
             df       = tmpDf
             initFlag = False
@@ -413,3 +423,79 @@ def getDailyKibotData( etfs     = [],
     
     return df
 
+# ***********************************************************************
+# getETFMadMeanKibot(): Get MAD and mean return of an ETF
+# ***********************************************************************
+
+def getETFMadMeanKibot( symbol,
+                        nDays    = 10,
+                        interval = 1,
+                        maxTries = 10,
+                        timeout  = 60,
+                        minRows  = 100,
+                        logger   = None   ):
+
+    df = getKibotData( etfs     = [ symbol ],
+                       nDays    = nDays,
+                       interval = interval,
+                       maxTries = maxTries,
+                       timeout  = timeout,
+                       minRows  = minRows,
+                       logger   = logger   )
+    
+    retDf = pd.DataFrame( { symbol: np.log( df[ symbol ] ).pct_change().dropna() } )
+    mad   = ( retDf - retDf.mean() ).abs().mean()
+    mean  = retDf.mean()
+    mad   = float( mad )
+    mean  = float( mean )
+    
+    return mad, mean
+
+# ***********************************************************************
+# selectETFs(): Select ETFs
+# ***********************************************************************
+
+def sortETFs( etfList,
+              nDays,
+              criterion = 'ratio',
+              minRows   = 10,
+              logger    = None    ):
+
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    if criterion not in [ 'mean', 'mad', 'ratio' ]:
+        logger.error( 'The criterion is mean, mad, or ratio! Got %s instead!',
+                      criterion )
+
+    madList   = []
+    meanList  = []
+    assetList = []
+    
+    for symbol in etfList:
+
+        try:
+            mad, mean = getETFMadMeanKibot( symbol,
+                                            nDays    = nDays,
+                                            interval = 1,
+                                            maxTries = 10,
+                                            timeout  = 60,
+                                            minRows  = minRows,
+                                            logger   = logger   )
+        except Exception as e:
+            logger.warning( e )
+            logger.warning( 'Skipping %s as could not get data!', symbol )
+
+        assetList.append( symbol )
+        madList.append( mad )
+        meanList.append( mean )
+
+    eDf = pd.DataFrame( { 'asset' : assetList,
+                          'mad'   : madList,
+                          'mean'  : meanList } )
+    
+    eDf[ 'ratio' ] = eDf[ 'mad' ] / eDf[ 'mean' ]
+
+    eDf.sort_values( criterion, ascending = False, inplace = True )
+
+    return eDf
