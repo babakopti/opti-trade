@@ -632,16 +632,22 @@ class EcoMfdCBase:
 
     def getRelBias( self, varId ):
 
-        actSol = self.actSol
+        t0 = time.time()
+        
         odeObj = self.getSol( self.GammaVec )
 
         if odeObj is None:
             return np.inf
 
-        sol    = odeObj.getSol()
-        y      = sol[varId]
-        yAct   = actSol[varId]
-        val    = np.mean( yAct - y ) / np.mean( yAct )
+        fct = np.mean( self.actSol[varId] )
+        
+        if fct != 0:
+            fct = 1.0 / fct
+            
+        val = np.mean( self.actSol[varId] - odeObj.sol[varId] ) * fct
+
+        self.logger.info( 'Calculating bias took %0.2f seconds', 
+                          time.time() - t0  )
 
         return val
 
@@ -740,9 +746,17 @@ class EcoMfdCBase:
                 
     def save( self, outModFile ):
 
+        self.logger.info( 'Saving the model to %s', 
+                          outModFile  )
+        
+        t0 = time.time()
+        
         with open( outModFile, 'wb' ) as fHd:
             dill.dump( self, fHd, pk.HIGHEST_PROTOCOL )
 
+        self.logger.info( 'Saving the model took %0.2f seconds', 
+                          time.time() - t0  )
+        
     def saveGamma( self, outGammaFile ):
 
         with open( outGammaFile, 'wb' ) as fHd:
