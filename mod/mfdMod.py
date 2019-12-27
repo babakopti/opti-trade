@@ -314,7 +314,7 @@ class MfdMod:
         return sFlag
 
     def save( self, outModFile ):
-
+        
         with open( outModFile, 'wb' ) as fHd:
             dill.dump( self, fHd, pk.HIGHEST_PROTOCOL )
 
