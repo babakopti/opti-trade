@@ -19,9 +19,11 @@ import utl.utils as utl
 # Some definitions
 # ***********************************************************************
 
+nEvalDays = 90
+
 ETF_LIST  = 'data/All_ETFs_Intraday.txt'
-MIN_DAYS  = 365   
-OUT_FILE  = 'mad_comparison.csv'
+MIN_DAYS  = 10
+OUT_FILE  = 'etf_mad_comparison.csv'
 
 # ***********************************************************************
 # Utility functions
@@ -66,8 +68,8 @@ for i in range( len( ETFs ) ):
     assert authFlag, 'Authorization not successful!'
 
     url  = 'http://api.kibot.com/?action=history'
-    url  = url + '&symbol=%s&interval=daily&period=2000&type=ETFs&regularsession=0' \
-        % symbol
+    url  = url + '&symbol=%s&interval=daily&period=%d&type=ETFs&regularsession=0' \
+        % ( symbol, nEvalDays )
 
     resp = requests.get( url, timeout = 20 )
 
@@ -109,8 +111,10 @@ outDf = pd.DataFrame( { 'Asset': etfList,
                         'Desc' : descList,
                         'Days' : dayList  } )
 
-outDf = outDf.sort_values( [ 'MAD', 'MEAN' ],
-                           ascending = [ True, False ] )
+outDf[ 'RATIO' ] = outDf[ 'MEAN' ] / outDf[ 'MAD' ]
+
+outDf = outDf.sort_values( 'RATIO',
+                           ascending = False )
 
 outDf.to_csv( OUT_FILE, index = False )
 
