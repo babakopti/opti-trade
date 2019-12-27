@@ -228,6 +228,7 @@ class MfdPrt:
     def setPrdTrends( self ):
 
         quoteHash = self.quoteHash
+        mfdMod    = self.mfdMod
         ecoMfd    = self.ecoMfd
         nDims     = ecoMfd.nDims
         prdSol    = self.prdSol
@@ -277,9 +278,12 @@ class MfdPrt:
             if self.fallBack is None:
                 self.trendHash[ asset ] = ( trend, prob )
             else:
-                if perfs[m]:
+                if perfs[m] and mfdMod.converged:
                     self.trendHash[ asset ] = ( trend, prob )
                 else:
+                    self.logger.warning( 'Falling back on %s for asset %s!',
+                                         self.fallBack,
+                                         asset )
                     if self.fallBack == 'sign_trick':
                         self.trendHash[ asset ] = ( -trend, 0.5 )
                     elif self.fallBack == 'macd':

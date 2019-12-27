@@ -346,9 +346,7 @@ class MfdPrtBuilder( Daemon ):
             self.logger.info( 'Building model took %0.2f seconds!',
                               ( time.time() - t0 ) )
         else:
-            self.logger.error( 'Model build was unsuccessful!' )
-            self.logger.warning( 'Not building a portfolio based on this model!!' )
-            return False
+            self.logger.error( 'The model did not converge!' )
 
         mfdMod.save( modFile )
 

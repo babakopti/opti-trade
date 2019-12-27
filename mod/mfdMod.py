@@ -69,6 +69,7 @@ class MfdMod:
         self.logFileName = logFileName
         self.verbose     = verbose
         self.logger      = getLogger( logFileName, verbose, 'mod' )
+        self.converged   = False
         
         if regCoef is None:
             self.regCoef    = 0.0
@@ -226,6 +227,7 @@ class MfdMod:
         self.echoMod()
         
         if not sFlag:
+            self.converged = sFlag
             return False
 
         if self.varFiltFlag:
@@ -236,6 +238,7 @@ class MfdMod:
                 self.echoMod()
 
                 if not sFlag:
+                    self.converged = sFlag
                     return False
 
         if self.optRegFlag:
@@ -245,12 +248,14 @@ class MfdMod:
             self.echoMod()
 
             if not sFlag:
+                self.converged = sFlag
                 return False
 
         if self.validFlag:
             sFlag = self.validate()
 
             if not sFlag:
+                self.converged = sFlag
                 return False
 
         ecoMfd = self.ecoMfd
@@ -276,8 +281,11 @@ class MfdMod:
             sFlag = False
 
         if not sFlag:
+            self.converged = sFlag
             return False
-
+        
+        self.converged = True
+        
         return True
 
     def setMfd( self ):
