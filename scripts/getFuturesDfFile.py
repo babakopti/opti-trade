@@ -43,9 +43,11 @@ indexes = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',
 
 # fuDf[ fuDf.StartDate <= pd.to_datetime( '2010-01-01' ) ].shape
 
-# futures = list( set( fuDf.Base ) - set( [ 'RTY', 'TN', 'BTC', 'SIR', 'SIL'  ] ) )
+#futures = list( set( fuDf.Base ) - set( [ 'RTY', 'TN', 'BTC', 'SIR', 'SIL'  ] ) )
 
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM', 'CL', 'NG',
+                'GC', 'SI', 'TY', 'FV', 'TU', 'C', 'HG', 'S', 'W', 'RB',
+                'BO', 'O' ]
 
 nDays   = ( maxDate - minDate ).days
 
