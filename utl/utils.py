@@ -444,10 +444,10 @@ def getETFMadMeanKibot( symbol,
                        logger   = logger   )
     
     retDf = pd.DataFrame( { symbol: np.log( df[ symbol ] ).pct_change().dropna() } )
-    mad   = ( retDf - retDf.mean() ).abs().mean()
     mean  = retDf.mean()
+    mad   = ( retDf - mean ).abs().mean()
+    mean  = float( mean )    
     mad   = float( mad )
-    mean  = float( mean )
     
     return mad, mean
 
@@ -457,16 +457,11 @@ def getETFMadMeanKibot( symbol,
 
 def sortETFs( etfList,
               nDays,
-              criterion = 'ratio',
               minRows   = 10,
               logger    = None    ):
 
     if logger is None:
         logger = getLogger( None, 1 )
-
-    if criterion not in [ 'mean', 'mad', 'ratio' ]:
-        logger.error( 'The criterion is mean, mad, or ratio! Got %s instead!',
-                      criterion )
 
     madList   = []
     meanList  = []
@@ -485,6 +480,7 @@ def sortETFs( etfList,
         except Exception as e:
             logger.warning( e )
             logger.warning( 'Skipping %s as could not get data!', symbol )
+            continue
 
         assetList.append( symbol )
         madList.append( mad )
@@ -494,8 +490,10 @@ def sortETFs( etfList,
                           'mad'   : madList,
                           'mean'  : meanList } )
     
-    eDf[ 'ratio' ] = eDf[ 'mad' ] / eDf[ 'mean' ]
+    eDf[ 'score' ] = abs( eDf[ 'mean' ] ) / eDf[ 'mad' ]
 
-    eDf.sort_values( criterion, ascending = False, inplace = True )
+    eDf.sort_values( 'score', ascending = False, inplace = True )
 
+    eDf.reset_index( drop = True, inplace = True )
+    
     return eDf
