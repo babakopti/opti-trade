@@ -427,21 +427,31 @@ def getDailyKibotData( etfs     = [],
 # getETFMadMeanKibot(): Get MAD and mean return of an ETF
 # ***********************************************************************
 
-def getETFMadMeanKibot( symbol,
-                        nDays    = 10,
-                        interval = 1,
-                        maxTries = 10,
-                        timeout  = 60,
-                        minRows  = 100,
-                        logger   = None   ):
+def getMadMeanKibot( symbol,
+                     sType    = 'ETF',
+                     nDays    = 10,
+                     interval = 1,
+                     maxTries = 10,
+                     timeout  = 60,
+                     minRows  = 100,
+                     logger   = None   ):
 
-    df = getKibotData( etfs     = [ symbol ],
-                       nDays    = nDays,
-                       interval = interval,
-                       maxTries = maxTries,
-                       timeout  = timeout,
-                       minRows  = minRows,
-                       logger   = logger   )
+    if sType == 'ETF':
+        df = getKibotData( etfs     = [ symbol ],
+                           nDays    = nDays,
+                           interval = interval,
+                           maxTries = maxTries,
+                           timeout  = timeout,
+                           minRows  = minRows,
+                           logger   = logger   )
+    elif sType == 'futures':
+        df = getKibotData( futures  = [ symbol ],
+                           nDays    = nDays,
+                           interval = interval,
+                           maxTries = maxTries,
+                           timeout  = timeout,
+                           minRows  = minRows,
+                           logger   = logger   )
     
     retDf = pd.DataFrame( { symbol: np.log( df[ symbol ] ).pct_change().dropna() } )
     mean  = retDf.mean()
@@ -455,10 +465,11 @@ def getETFMadMeanKibot( symbol,
 # selectETFs(): Select ETFs
 # ***********************************************************************
 
-def sortETFs( etfList,
-              nDays,
-              minRows   = 10,
-              logger    = None    ):
+def sortAssets( symbols,
+                nDays,
+                sType     = 'ETF',
+                minRows   = 10,
+                logger    = None    ):
 
     if logger is None:
         logger = getLogger( None, 1 )
@@ -467,16 +478,17 @@ def sortETFs( etfList,
     meanList  = []
     assetList = []
     
-    for symbol in etfList:
+    for symbol in symbols:
 
         try:
-            mad, mean = getETFMadMeanKibot( symbol,
-                                            nDays    = nDays,
-                                            interval = 1,
-                                            maxTries = 10,
-                                            timeout  = 60,
-                                            minRows  = minRows,
-                                            logger   = logger   )
+            mad, mean = getMadMeanKibot( symbol,
+                                         sType    = sType,
+                                         nDays    = nDays,
+                                         interval = 1,
+                                         maxTries = 10,
+                                         timeout  = 60,
+                                         minRows  = minRows,
+                                         logger   = logger   )
         except Exception as e:
             logger.warning( e )
             logger.warning( 'Skipping %s as could not get data!', symbol )
