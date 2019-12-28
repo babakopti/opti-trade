@@ -86,7 +86,6 @@ def buildModPrt( snapDate ):
         else:
             print( 'Warning: Model build was unsuccessful!' )
             print( 'Warning: Not building a portfolio based on this model!!' )
-            return False
 
         mfdMod.save( modFilePath )
     else:

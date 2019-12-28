@@ -27,7 +27,7 @@ from utl.utils import getLogger
 # ***********************************************************************
 
 ODE_TOL   = 1.0e-2
-OPT_TOL   = 1.0e-8
+OPT_TOL   = 1.0e-6
 MAX_ITERS = 10000
 
 # ***********************************************************************
@@ -278,7 +278,7 @@ class MfdPrt:
             if self.fallBack is None:
                 self.trendHash[ asset ] = ( trend, prob )
             else:
-                if perfs[m] and mfdMod.converged:
+                if perfs[m]: #and mfdMod.converged:
                     self.trendHash[ asset ] = ( trend, prob )
                 else:
                     self.logger.warning( 'Falling back on %s for asset %s!',
