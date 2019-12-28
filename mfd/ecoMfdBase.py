@@ -646,8 +646,8 @@ class EcoMfdCBase:
             
         val = np.mean( self.actSol[varId] - odeObj.sol[varId] ) * fct
 
-        self.logger.info( 'Calculating bias took %0.2f seconds', 
-                          time.time() - t0  )
+        self.logger.debug( 'Calculating bias took %0.2f seconds', 
+                           time.time() - t0  )
 
         return val
 
