@@ -509,3 +509,157 @@ def sortAssets( symbols,
     eDf.reset_index( drop = True, inplace = True )
     
     return eDf
+
+# ***********************************************************************
+# calcPrtReturns: Calculate portfolio returns over a period
+# ***********************************************************************
+
+def calcPrtReturns( prtWtsHash,
+                    dfFile,
+                    initTotVal,
+                    shortFlag = True,
+                    invHash   = None,
+                    minDate   = None,
+                    maxDate   = None   ):
+
+    # Get all dates in portfolio
+    
+    dates = list( prtWtsHash.keys() )
+    dates = sorted( dates )
+
+    # Set min and max dates
+    
+    if minDate is None:
+        minDate = pd.to_datetime( dates[0] )
+    else:
+        minDate = pd.to_datetime( minDate )
+
+    if maxDate is None:
+        maxDate = pd.to_datetime( dates[-1] )
+    else:
+        maxDate = pd.to_datetime( maxDate )
+
+    # Set the assets
+    
+    assets = []
+    for date in dates:
+        assets += list( prtWtsHash[ date ].keys() )
+
+    assets = list( set( assets ) )
+
+    # Check inverse asset hash if applicable
+
+    if not shortFlag:
+        for asset in assets:
+            assert asset in invHash.keys(), \
+                '%s not found in invHash' % asset
+
+    # Read, check and clean price data frame
+    
+    dataDf = pd.read_pickle( dfFile )
+
+    for asset in assets:
+        assert asset in dataDf.columns, \
+            'Symbol %s not found in %s' % ( asset, dfFile )
+
+    if not shortFlag:
+        invAssets = list( invHash.values() )
+        for asset in invAssets:
+            assert asset in dataDf.columns, \
+                'Symbol %s not found in %s' % ( asset, dfFile )
+    
+    dataDf = dataDf[ [ 'Date' ] + assets ]
+
+    dataDf[ 'Date' ] = dataDf[ 'Date' ].apply( pd.to_datetime )
+    
+    dataDf.sort_values( 'Date', inplace = True )
+    dataDf.drop_duplicates( inplace = True )
+    dataDf.dropna( inplace = True )
+    dataDf.reset_index( drop = True, inplace = True  )
+
+    assert minDate >= min( dataDf.Date ), \
+        'min date in data frame should be >= minDate!'
+
+    assert maxDate < max( dataDf.Date ), \
+        'max date in data frame should be < maxDate!'    
+
+    # Loop through portfolio dates and calculate values
+    
+    nDates     = len( dates )
+    begTotVal  = initTotVal
+    begDates   = []
+    begTotVals = []
+    
+    for itr in range( nDates ):
+
+        if pd.to_datetime( dates[itr] ) < minDate:
+            continue
+
+        if pd.to_datetime( dates[itr] ) > maxDate:
+            continue
+
+        begDate = pd.to_datetime( dates[itr] )
+
+        begDates.append( begDate )
+        begTotVals.append( begTotVal )
+
+        if itr < nDates - 1:
+            endDate = pd.to_datetime( dates[itr+1] )
+        elif itr == nDates - 1:
+            tmp1    = pd.to_datetime( dates[nDates-1] )
+            tmp2    = pd.to_datetime( dates[nDates-2] )
+            nDays   = ( tmp1 - tmp2 ).days
+            endDate = begDate + datetime.timedelta( days = nDays )
+
+        tmpDf = dataDf[ dataDf.Date >= begDate ]
+        tmpDf = tmpDf[ tmpDf.Date <= endDate ]
+    
+        if tmpDf.shape[0] == 0:
+            print( 'Skipping date', date )
+            continue
+
+        tmpDf.sort_values( 'Date', inplace = True )
+
+        wtHash = defaultdict( float )
+
+        for asset in prtWtsHash[ dates[itr] ]:
+            wtHash[ asset ] = prtWtsHash[ dates[itr] ][ asset ]
+
+        tmp1 = 0.0
+        tmp2 = 0.0
+        for asset in assets:
+
+            wt = wtHash[ asset ]
+
+            if wt == 0:
+                continue
+            elif wt > 0 or shortFlag:
+                begPrice = list( tmpDf[ asset ] )[0]
+                endPrice = list( tmpDf[ asset ] )[-1]
+                qty      = int( wt * begTotVal / begPrice )
+            elif wt < 0 and not shortFlag:
+                invAsset = invHash[ asset ]
+                begPrice = list( tmpDf[ invAsset ] )[0]
+                endPrice = list( tmpDf[ invAsset ] )[-1]
+                qty      = int( abs( wt ) * begTotVal / begPrice )
+        
+            tmp1 += qty * begPrice
+            tmp2 += qty * endPrice
+        
+        cash = begTotVal - tmp1
+
+        assert cash >= 0, \
+            'Cash should be non-negative! Date %s' % str( begDate )
+
+        endTotVal = tmp2 + cash
+
+        # Update begTotVal for next item in loop
+    
+        begTotVal = endTotVal
+
+    retDf = pd.DataFrame( { 'Date'  : begDates,
+                            'Value' : begTotVals } )
+
+    retDf[ 'Return' ] = retDf[ 'Value' ].pct_change()
+
+    return retDf
