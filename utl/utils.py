@@ -108,16 +108,18 @@ def combineDateTime( df ):
 # getKibotData( ): Read data from kibot
 # ***********************************************************************
 
-def getKibotData( etfs     = [],
-                  futures  = [],
-                  stocks   = [],
-                  indexes  = [],
-                  nDays    = 365,
-                  interval = 1,
-                  maxTries = 10,
-                  timeout  = 60,
-                  minRows  = 100,
-                  logger   = None   ):
+def getKibotData( etfs        = [],
+                  futures     = [],
+                  stocks      = [],
+                  indexes     = [],
+                  nDays       = 365,
+                  interval    = 1,
+                  maxTries    = 10,
+                  timeout     = 60,
+                  smoothCount = 1000,
+                  smoothConf  = 10,
+                  minRows     = 100,
+                  logger      = None   ):
 
     t0       = time.time()
     initFlag = True
@@ -189,7 +191,31 @@ def getKibotData( etfs     = [],
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
         tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
         tmpDf = tmpDf[ [ 'Date', 'Time', symbol ] ]
-        nRows = tmpDf.shape[0]
+
+        # Remove anomalies
+        
+        logger.info( 'Checking %s for anomalies...', symbol )
+        
+        tmpDf[ 'smooth' ] = tmpDf[ symbol ].rolling( smoothCount, 
+                                                     win_type = 'blackman',
+                                                     center   = True ).mean()
+        tmpDf[ 'smooth' ] = tmpDf[ 'smooth' ].fillna( tmpDf[ symbol ] )
+        tmpDf[ 'smooth' ] = tmpDf[ symbol ] - tmpDf[ 'smooth' ]
+        
+        tmpStd  = tmpDf[ 'smooth' ].std()
+        tmpMean = tmpDf[ 'smooth' ].mean()
+        
+        tmpDf[ 'smooth' ] = ( tmpDf[ 'smooth' ] - tmpMean ).abs()
+        tmpDf[ 'smooth' ] = smoothConf * tmpStd - tmpDf[ 'smooth' ]
+
+        nAnoms = tmpDf[ tmpDf.smooth < 0 ].shape[0]
+        tmpDf  = tmpDf[ tmpDf.smooth >= 0 ]
+        nRows  = tmpDf.shape[0]
+
+        if nAnoms > 0:
+            logger.info( 'Removed %d anomalies for %s!', nAnoms, symbol )
+        elif nAnoms == 0:
+            logger.info( 'No anomalies found for %s!', symbol )
         
         logger.info( 'Got %d rows for %s!', nRows, symbol )
 
