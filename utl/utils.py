@@ -553,18 +553,6 @@ def calcPrtReturns( prtWtsHash,
     dates = list( prtWtsHash.keys() )
     dates = sorted( dates )
 
-    # Set min and max dates
-    
-    if minDate is None:
-        minDate = pd.to_datetime( dates[0] )
-    else:
-        minDate = pd.to_datetime( minDate )
-
-    if maxDate is None:
-        maxDate = pd.to_datetime( dates[-1] )
-    else:
-        maxDate = pd.to_datetime( maxDate )
-
     # Set the assets
     
     assets = []
@@ -603,11 +591,20 @@ def calcPrtReturns( prtWtsHash,
     dataDf.dropna( inplace = True )
     dataDf.reset_index( drop = True, inplace = True  )
 
-    assert minDate >= min( dataDf.Date ), \
-        'min date in data frame should be >= minDate!'
 
-    assert maxDate < max( dataDf.Date ), \
-        'max date in data frame should be < maxDate!'    
+        # Set min and max dates
+    
+    if minDate is None:
+        minDate = max( pd.to_datetime( dates[0] ),
+                       dataDf.Date.min() )
+    else:
+        minDate = pd.to_datetime( minDate )
+
+    if maxDate is None:
+        maxDate = min( pd.to_datetime( dates[-1] ),
+                       dataDf.Date.max() )
+    else:
+        maxDate = pd.to_datetime( maxDate )
 
     # Loop through portfolio dates and calculate values
     
@@ -687,5 +684,7 @@ def calcPrtReturns( prtWtsHash,
                             'Value' : begTotVals } )
 
     retDf[ 'Return' ] = retDf[ 'Value' ].pct_change()
+    retDf[ 'Return' ] = retDf[ 'Return' ].fillna( 0 )
+    retDf[ 'Change' ] = ( retDf[ 'Value' ] / initTotVal ) - 1.0
 
     return retDf
