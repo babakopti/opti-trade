@@ -238,7 +238,9 @@ class EcoMfdCBase:
 
             if varVel in trmFuncDict.keys():
                 trmFunc      = trmFuncDict[ varVel ]
-                df[ varVel ] = trmFunc( df[ varVel ] )
+                df[ 'TMP' ]  = trmFunc( df[ varVel ] )
+                df[ 'TMP' ]  = df[ 'TMP' ].fillna( df[ varVel ] )
+                df[ varVel ] = df[ 'TMP' ]
 
             fct          = self.factor
             velMax       = np.max(  df[ varVel ] )
