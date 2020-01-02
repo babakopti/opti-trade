@@ -32,17 +32,68 @@ from prt.prt import MfdPrt
 # Set some parameters 
 # ***********************************************************************
 
-indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'XAU'                      ] 
-ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+ETF_HASH = {  'TQQQ' : 'SQQQ',
+              'SPY'  : 'SH',
+              'DDM'  : 'DXD',
+              'MVV'  : 'MZZ',
+              'UWM'  : 'TWM',
+              'SAA'  : 'SDD',
+              'UYM'  : 'SMN',
+              'UGE'  : 'SZK',
+              'UCC'  : 'SCC',
+              'FINU' : 'FINZ',
+              'RXL'  : 'RXD',
+              'UXI'  : 'SIJ',
+              'URE'  : 'SRS',
+              'ROM'  : 'REW',
+              'UJB'  : 'SJB',
+              'AGQ'  : 'ZSL',     
+              'DIG'  : 'DUG',
+              'USD'  : 'SSG',
+              'ERX'  : 'ERY',
+              'UYG'  : 'SKF',
+              'UCO'  : 'SCO',
+              'BOIL' : 'KOLD',
+              'UPW'  : 'SDP',
+              'UGL'  : 'GLL',
+              'BIB'  : 'BIS',
+              'UST'  : 'PST',
+              'UBT'  : 'TBT' }
 
-DEV_LIST    = [ 'babak.emami@gmail.com' ]
-USR_LIST    = [ 'babak.emami@gmail.com' ]
+INDEXES  = []
+STOCKS   = []
+
+ETFs     = list( ETF_HASH.keys() )
+
+FUTURES  = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+
+MAX_NUM_ASSETS = 5
+NUM_ASSET_EVAL_DAYS = 30
+
+NUM_TRN_DAYS  = 360
+NUM_OOS_DAYS  = 3
+NUM_PRD_DAYS  = 1
+NUM_MAD_DAYS  = 30                    
+MAX_OPT_ITRS  = 500
+OPT_TOL       = 5.0e-2
+REG_COEF      = 1.0e-3                    
+FACTOR        = 4.0e-05
+MOD_HEAD      = 'mfd_model_'
+PRT_HEAD      = 'prt_weights_'                    
+MOD_DIR       = '/var/mfd_models'
+PRT_DIR       = '/var/prt_weights'
+DAT_DIR       = '/var/mfd_data'
+TIME_ZONE     = 'America/New_York'
+SCHED_TIME    = '04:00'
+LOG_FILE_NAME = '/var/log/mfd_prt_builder.log'
+VERBOSE       = 1
+
+PID_FILE      = '/var/run/mfd_prt_builder.pid'
 
 USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email.txt'
+
+DEV_LIST = [ 'babak.emami@gmail.com' ]
+USR_LIST = [ 'babak.emami@gmail.com' ]
 
 DEBUG_MODE = False
 
@@ -69,34 +120,38 @@ class MfdPrtBuilder( Daemon ):
     def __init__(   self,
                     assets      = ETFs,
                     etfs        = ETFs,
-                    stocks      = [],
-                    futures     = futures,
-                    indexes     = indexes,
-                    nTrnDays    = 360,
-                    nOosDays    = 3,
-                    nPrdDays    = 1,
-                    nMadDays    = 30,                    
-                    maxOptItrs  = 300,
-                    optTol      = 5.0e-2,
-                    regCoef     = 1.0e-3,                    
-                    factor      = 4.0e-05,
-                    modHead     = 'mfd_model_',
-                    prtHead     = 'prt_weights_',                    
-                    modDir      = '/var/mfd_models',
-                    prtDir      = '/var/prt_weights',
-                    datDir      = '/var/mfd_data',
-                    timeZone    = 'America/New_York',
-                    schedTime   = '04:00',
-                    logFileName = '/var/log/mfd_prt_builder.log',
-                    verbose     = 1         ):
+                    stocks      = STOCKS,
+                    futures     = FUTURES,
+                    indexes     = INDEXES,
+                    maxAssets   = MAX_NUM_ASSETS,
+                    nEvalDays   = NUM_ASSET_EVAL_DAYS,
+                    nTrnDays    = NUM_TRN_DAYS,
+                    nOosDays    = NUM_OOS_DAYS,
+                    nPrdDays    = NUM_PRD_DAYS,
+                    nMadDays    = NUM_MAD_DAYS,                    
+                    maxOptItrs  = MAX_OPT_ITRS,
+                    optTol      = OPT_TOL,
+                    regCoef     = REG_COEF,                    
+                    factor      = FACTOR,
+                    modHead     = MOD_HEAD,
+                    prtHead     = PRT_HEAD,
+                    modDir      = MOD_DIR,
+                    prtDir      = PRT_DIR,
+                    datDir      = DAT_DIR,
+                    timeZone    = TIME_ZONE,
+                    schedTime   = SCHED_TIME,
+                    logFileName = LOG_FILE_NAME,
+                    verbose     = VERBOSE         ):
 
-        Daemon.__init__( self, '/var/run/mfd_prt_builder.pid' )
+        Daemon.__init__( self, PID_FILE )
 
         self.assets      = assets
         self.etfs        = etfs
         self.stocks      = stocks
         self.futures     = futures
         self.indexes     = indexes
+        self.maxAssets   = maxAssets
+        self.nEvalDays   = nEvalDays
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
         self.nPrdDays    = nPrdDays
@@ -118,6 +173,9 @@ class MfdPrtBuilder( Daemon ):
         
         assert set( assets ).issubset( set( self.velNames ) ), \
             'Assets should be a subset of velNames!'
+
+        assert self.maxAssets <= len( self.assets ), \
+            'maxAssets should be <= number of assets in the pool!'
 
         if not os.path.exists( self.modDir ):
             os.makedirs( self.modDir )
@@ -364,8 +422,17 @@ class MfdPrtBuilder( Daemon ):
         nPrdTimes = int( self.nPrdDays * 19 * 60 )
         nRetTimes = int( self.nMadDays * 19 * 60 )
 
+        if self.maxAssets is None:
+            assets = self.assets
+        else:
+            try:
+                eDf = utl.sortAssets( self.etfs, self.nEvalDays )
+                assets = list( eDf.asset )[:self.maxAssets]
+            except Exception as e:
+                self.logger.error( e )
+
         mfdPrt = MfdPrt( modFile      = modFile,
-                         assets       = self.assets,
+                         assets       = assets,
                          nRetTimes    = nRetTimes,
                          nPrdTimes    = nPrdTimes,
                          strategy     = 'mad',
