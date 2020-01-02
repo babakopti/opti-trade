@@ -6,6 +6,7 @@ import os, sys, dill
 import datetime
 import random
 import talib
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -18,14 +19,16 @@ from prt.prt import MfdPrt
 # Set assets
 # ***********************************************************************
 
-ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
+allETFs     = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM',  'SAA',
+                'UYM',  'UGE', 'UCC', 'FINU', 'RXL', 'UXI',
+                'URE',  'ROM', 'UJB', 'AGQ',  'DIG', 'USD',
+                'ERX',  'UYG', 'UCO', 'BOIL', 'UPW', 'UGL',
+                'BIB', 'UST', 'UBT'  ]
 
 # ***********************************************************************
 # Input
 # ***********************************************************************
 
-assets      = ETFs
 nSamples    = None
 modDir      = 'models'
 outFile     = 'trend_prd_success.csv'
@@ -94,6 +97,13 @@ for item in modFiles:
     
     modFilePath = os.path.join( modDir, item )
 
+    tmpName     = 'weights_' + item.split( '_' )[1]
+    tmpName     = tmpName.split( '.' )[0] + '.pkl'
+    wtsFilePath = os.path.join( modDir, tmpName )
+    prtWtsHash  = pickle.load( open( wtsFilePath, 'rb' ) )    
+    dateStr     = list( prtWtsHash.keys() )[0]
+    assets      = list( prtWtsHash[ dateStr ].keys() )
+    
     print( 'Processing %s ...' % item )
     
     try:
