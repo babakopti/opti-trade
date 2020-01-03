@@ -47,6 +47,7 @@ class MfdPrt:
                     vType        = 'vel',
                     fallBack     = 'macd',
                     optTol       = OPT_TOL,
+                    minAbsWt     = 1.0e-4,
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -56,6 +57,7 @@ class MfdPrt:
         self.minProbShort = minProbShort
         self.fallBack     = fallBack
         self.optTol       = optTol
+        self.minAbsWt     = minAbsWt
         self.logFileName  = logFileName
         self.verbose      = verbose
         self.logger       = getLogger( logFileName, verbose, 'prt' )        
@@ -336,11 +338,26 @@ class MfdPrt:
         self.checkCons( optCons, weights )                   
             
         prtHash = {}
-        totVal  = 0.0
+        fct     = 0.0
         for i in range( nAssets ):
-            asset    = assets[i]
- 
-            prtHash[ asset ] = weights[i]
+            asset = assets[i]
+            wt    = weights[i]
+
+            if abs( wt ) < self.minAbsWt:
+                continue
+
+            fct += abs( wt )
+            
+            prtHash[ asset ] = wt
+
+        if fct > 0:
+            fct = 1.0 / fct
+        elif fct < 0:
+            self.logger.error( 'Internal error: fct should be non-negative!' )
+            sys.exit()
+            
+        for asset in prtHash:
+            prtHash[ asset ] = fct * prtHash[ asset ]
 
         self.logger.info( 'Building portfolio took %0.2f seconds!', 
                           round( time.time() - t0, 2 ) )
