@@ -25,8 +25,10 @@ def getLogger( logFileName, verbose, pkgName = None ):
                     1 : logging.INFO,
                     2 : logging.DEBUG }
         
-    logger      = logging.getLogger( pkgName )
-        
+    logger = logging.getLogger( pkgName )
+
+    logger.handlers = []
+    
     logger.setLevel( verboseHash[ verbose ] )
         
     if logFileName is None:
