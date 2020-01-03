@@ -20,39 +20,57 @@ from mod.mfdMod import MfdMod
 # Set some parameters and read data
 # ***********************************************************************
 
-dfFile    = 'data/dfFile_kibot.pkl'
+dfFile    = 'data/dfFile_kibot_all.pkl'
 
-minDate  = pd.to_datetime( '2015-01-01 00:00:00' )
-maxDate  = pd.to_datetime( '2019-12-17 23:59:00' )
+nDays     = 3000
 
-indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'XAU'                      ] 
+futures   = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-invETFs     = [ 'SQQQ', 'SH',  'DXD', 'MZZ', 'TWM', 'DUG', 'SSG',
-                'ERY',  'SKF', 'SDP', 'GLL', 'BIS', 'PST', 'TBT'  ]
+invHash   = { 'TQQQ' : 'SQQQ',
+              'SPY'  : 'SH',
+              'DDM'  : 'DXD',
+              'MVV'  : 'MZZ',
+              'UWM'  : 'TWM',
+              'SAA'  : 'SDD',
+              'UYM'  : 'SMN',
+              'UGE'  : 'SZK',
+              'UCC'  : 'SCC',
+              'FINU' : 'FINZ',
+              'RXL'  : 'RXD',
+              'UXI'  : 'SIJ',
+              'URE'  : 'SRS',
+              'ROM'  : 'REW',
+              'UJB'  : 'SJB',
+              'AGQ'  : 'ZSL',     
+              'DIG'  : 'DUG',
+              'USD'  : 'SSG',
+              'ERX'  : 'ERY',
+              'UYG'  : 'SKF',
+              'UCO'  : 'SCO',
+              'BOIL' : 'KOLD',
+              'UPW'  : 'SDP',
+              'UGL'  : 'GLL',
+              'BIB'  : 'BIS',
+              'UST'  : 'PST',
+              'UBT'  : 'TBT' }
 
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
-
-nDays       = ( maxDate - minDate ).days
+allETFs     = list( invHash.keys() ) + list( invHash.values() )
 
 # ***********************************************************************
 # Get data and save to pickle file
 # ***********************************************************************
 
-df = utl.getKibotData( etfs    = ETFs + invETFs,
+df = utl.getKibotData( etfs    = allETFs,
                        futures = futures,
-                       indexes = indexes,                                                                                
+                       indexes = [],
                        nDays   = nDays       )
 
-for item in df.columns:
-    if item == 'Date':
-        continue
-    plt.plot( df[ item ] )
-    plt.ylabel( item )
-    plt.show()
+# for item in df.columns:
+#     if item == 'Date':
+#         continue
+#     plt.plot( df[ item ] )
+#     plt.ylabel( item )
+#     plt.show()
 
 #df = df[ df.Date >= minDate ]
 #df = df[ df.Date <= maxDate ]
