@@ -493,10 +493,14 @@ def getMadMeanKibot( symbol,
 
 def sortAssets( symbols,
                 nDays,
+                criterion = 'abs_sharpe',
                 sType     = 'ETF',
                 minRows   = 10,
                 logger    = None    ):
 
+    assert criterion in [ 'abs_sharpe', 'abs_mean', 'mad' ], \
+        'Unkown criterion %s!' % criterion
+    
     if logger is None:
         logger = getLogger( None, 1 )
 
@@ -527,10 +531,20 @@ def sortAssets( symbols,
     eDf = pd.DataFrame( { 'asset' : assetList,
                           'mad'   : madList,
                           'mean'  : meanList } )
-    
-    eDf[ 'score' ] = abs( eDf[ 'mean' ] ) / eDf[ 'mad' ]
 
-    eDf.sort_values( 'score', ascending = False, inplace = True )
+    if criterion == 'abs_sharpe':
+        eDf[ 'score' ] = abs( eDf[ 'mean' ] ) / eDf[ 'mad' ]
+        ascending      = False
+    elif criterion == 'abs_mean':
+        eDf[ 'score' ] = abs( eDf[ 'mean' ] ) 
+        ascending      = False
+    elif criterion == 'mad':
+        eDf[ 'score' ] = eDf[ 'mad' ] 
+        ascending      = True
+    else:
+        assert False, 'Unkown criterion %s!' % criterion
+
+    eDf.sort_values( 'score', ascending = ascending, inplace = True )
 
     eDf.reset_index( drop = True, inplace = True )
     
@@ -545,6 +559,7 @@ def calcPrtReturns( prtWtsHash,
                     initTotVal,
                     shortFlag = True,
                     invHash   = None,
+                    minAbsWt  = 1.0e-5,
                     minDate   = None,
                     maxDate   = None   ):
 
@@ -581,9 +596,12 @@ def calcPrtReturns( prtWtsHash,
         for asset in invAssets:
             assert asset in dataDf.columns, \
                 'Symbol %s not found in %s' % ( asset, dfFile )
-    
-    dataDf = dataDf[ [ 'Date' ] + assets ]
 
+    if not shortFlag:
+        dataDf = dataDf[ [ 'Date' ] + assets + invAssets ]
+    else:
+        dataDf = dataDf[ [ 'Date' ] + assets ]
+        
     dataDf[ 'Date' ] = dataDf[ 'Date' ].apply( pd.to_datetime )
     
     dataDf.sort_values( 'Date', inplace = True )
@@ -591,8 +609,7 @@ def calcPrtReturns( prtWtsHash,
     dataDf.dropna( inplace = True )
     dataDf.reset_index( drop = True, inplace = True  )
 
-
-        # Set min and max dates
+    # Set min and max dates
     
     if minDate is None:
         minDate = max( pd.to_datetime( dates[0] ),
@@ -612,6 +629,7 @@ def calcPrtReturns( prtWtsHash,
     begTotVal  = initTotVal
     begDates   = []
     begTotVals = []
+    usedAssets = []
     
     for itr in range( nDates ):
 
@@ -645,9 +663,15 @@ def calcPrtReturns( prtWtsHash,
 
         wtHash = defaultdict( float )
 
+        tmpStr = ''
         for asset in prtWtsHash[ dates[itr] ]:
-            wtHash[ asset ] = prtWtsHash[ dates[itr] ][ asset ]
+            weight          = prtWtsHash[ dates[itr] ][ asset ]
+            wtHash[ asset ] = weight
+            if abs( weight ) > minAbsWt:
+                tmpStr += asset + ' '
 
+        usedAssets.append( tmpStr )
+                
         tmp1 = 0.0
         tmp2 = 0.0
         for asset in assets:
@@ -680,11 +704,14 @@ def calcPrtReturns( prtWtsHash,
     
         begTotVal = endTotVal
 
-    retDf = pd.DataFrame( { 'Date'  : begDates,
-                            'Value' : begTotVals } )
+    retDf = pd.DataFrame( { 'Date'   : begDates,
+                            'Value'  : begTotVals,
+                            'Assets' : usedAssets } )
 
     retDf[ 'Return' ] = retDf[ 'Value' ].pct_change()
     retDf[ 'Return' ] = retDf[ 'Return' ].fillna( 0 )
     retDf[ 'Change' ] = ( retDf[ 'Value' ] / initTotVal ) - 1.0
 
+    retDf = retDf[ [ 'Date', 'Value', 'Change', 'Return', 'Assets' ] ]
+    
     return retDf
