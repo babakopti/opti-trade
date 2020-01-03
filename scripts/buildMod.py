@@ -28,43 +28,33 @@ piDir       = '/Users/babak/workarea/data/pitrading_data'
 if mode == 'day':
     dfFile  = 'data/dfFile_daily.pkl'
 else:
-    dfFile  = 'data/dfFile_2017plus.pkl'
+    dfFile  = 'data/dfFile_kibot_2016plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2017-03-01 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2018-03-01 09:00:00' )
-maxOosDate  = pd.to_datetime( '2018-03-04 23:59:00' )
+minTrnDate  = pd.to_datetime( '2018-01-23 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2019-01-18 09:00:00' )
+maxOosDate  = pd.to_datetime( '2019-01-21 09:00:00' )
 
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
+indices     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
+                'TYX',  'XAU'                      ] 
+
+oldETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+                'SMH', 'XLF', 'EWJ'          ]
+ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
+                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
+
+ETFs        = ETFs + oldETFs
+ETFs        = list( set( ETFs ) )
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+allETFs     = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM',  'SAA',
+                'UYM',  'UGE', 'UCC', 'FINU', 'RXL', 'UXI',
+                'URE',  'ROM', 'UJB', 'AGQ',  'DIG', 'USD',
+                'ERX',  'UYG', 'UCO', 'BOIL', 'UPW', 'UGL',
+                'BIB', 'UST', 'UBT'  ]
 
-allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
-                'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
-                'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
-                'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
-                'TZA', 'FAS'                               ]
-
-stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
-                'CSCO', 'KO',  'XOM',  'GS',  'HD',  'INTC',
-                'IBM', 'JNJ',  'JPM',  'MCD', 'MRK', 'MSFT', 
-                'NKE', 'PFE',  'PG',   'TRV', 'UTX', 'UNH', 
-                'VZ',  'WMT',  'WBA', 'DIS'                ]
-
-forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
-                'GBPUSD', 'EURUSD', 'AUDUSD'               ]
-
-velNames    = ETFs + indices + futures 
-
-selParams   = { 'inVelNames' : ETFs,
-                'maxNumVars' : 20,
-                'minImprov'  : 0.005,
-                'strategy'   : 'forward' }
-selParams = None
+velNames    = allETFs + futures 
 
 if diffFlag:
     nDims = len( velNames )
@@ -104,14 +94,12 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 200,
+                    maxOptItrs   = 300,
                     optGTol      = 5.0e-2,
                     optFTol      = 5.0e-2,
                     factor       = factor,
                     regCoef      = 1.0e-3,
-                    mode         = mode,
-                    selParams    = selParams,
-                    atnFct       = 0.999,
+                    smoothCount  = None,
                     verbose      = 1          )
 
 validFlag = mfdMod.build()
