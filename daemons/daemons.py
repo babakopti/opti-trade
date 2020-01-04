@@ -95,7 +95,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 if DEBUG_MODE:
     SCHED_FLAG = False
@@ -257,7 +257,8 @@ class MfdPrtBuilder( Daemon ):
                                       stocks  = self.stocks,
                                       futures = self.futures,
                                       indexes = self.indexes,
-                                      nDays   = nDays       )
+                                      nDays   = nDays,
+                                      logger  = self.logger  )
             self.logger.info( 'Done with getting new data!' )
         except Exception as e:
             self.logger.error( e )
@@ -426,11 +427,13 @@ class MfdPrtBuilder( Daemon ):
             assets = self.assets
         else:
             try:
-                eDf = utl.sortAssets( self.etfs, self.nEvalDays )
+                eDf = utl.sortAssets( symbols = self.etfs,
+                                      nDays   = self.nEvalDays,
+                                      logger  = self.logger     )
                 assets = list( eDf.asset )[:self.maxAssets]
             except Exception as e:
                 self.logger.error( e )
-
+        
         mfdPrt = MfdPrt( modFile      = modFile,
                          assets       = assets,
                          nRetTimes    = nRetTimes,
