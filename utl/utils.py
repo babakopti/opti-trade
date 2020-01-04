@@ -8,6 +8,7 @@ import time
 import datetime
 import requests
 import logging
+import dill
 import numpy as np
 import pandas as pd
 
@@ -717,3 +718,112 @@ def calcPrtReturns( prtWtsHash,
     retDf = retDf[ [ 'Date', 'Value', 'Change', 'Return', 'Assets' ] ]
     
     return retDf
+
+# ***********************************************************************
+# evalTrendPerf: Evaluate a model / portfolio trend prd performance
+# ***********************************************************************
+
+def evalTrendPerf(  modFile,
+                    wtHash,
+                    nPrdDays = 1,                    
+                    sType    = 'ETF',
+                    interval = 1,
+                    maxTries = 10,
+                    timeout  = 60,
+                    minRows  = 100,
+                    logger   = None   ):
+
+    ecoMfd  = dill.load( open( modFile, 'rb' ) ).ecoMfd
+    assets  = list( wtHash.keys() )
+    nAssets = len( assets )
+    
+    assert nAssets > 0, 'No asssets found!'
+    
+    assert set( assets ).isSubset( ecoMfd.velNames ), \
+        'assets should be in the model!'
+    
+    begDate = pd.to_datetime( ecoMfd.maxOosDate )
+    endDate = begDate + datetime.timedelta( days = nPrdDays )
+    nowDate = datetime.datetime.now() 
+    nDays   = ( nowDate - begDate ).days + 1
+    
+    if sType == 'ETF':
+        df = getKibotData( etfs     = assets,
+                           nDays    = nDays,
+                           interval = interval,
+                           maxTries = maxTries,
+                           timeout  = timeout,
+                           minRows  = minRows,
+                           logger   = logger   )
+    elif sType == 'futures':
+        df = getKibotData( futures  = assets,
+                           nDays    = nDays,
+                           interval = interval,
+                           maxTries = maxTries,
+                           timeout  = timeout,
+                           minRows  = minRows,
+                           logger   = logger   )
+
+    df = df[ ( df.Date >= begDate ) & ( df.Date <= endDate ) ]
+
+    assert df.shape[0] > 0, 'Data frame came out empty!' 
+    
+    Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
+    bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
+    nPrdTimes = df.shape[0]
+
+    for m in range( ecoMfd.nDims ):
+        bcVec[m]  = ecoMfd.actOosSol[m][-1] 
+
+    odeObj   = OdeGeoConst( Gamma    = Gamma,
+                            bcVec    = bcVec,
+                            bcTime   = 0.0,
+                            timeInc  = 1.0,
+                            nSteps   = nPrdTimes - 1,
+                            intgType = 'LSODA',
+                            tol      = 1.0e-2,
+                            verbose  = 1          )
+
+    sFlag    = odeObj.solve()
+
+    assert sFlag, 'Geodesic equation did not converge!'
+
+    prdSol   = odeObj.getSol()
+
+    mfdCnt = 0
+    prtCnt = 0
+    for asset in assets:
+
+        for varId in range( ecoMfd.nDims ):
+            if ecoMfd.velNames[varId] == asset:
+                break
+
+        assert varId < ecoMfd.nDims, 'Internal error!'
+        
+        actVec   = np.array( df[ asset ] )
+        actTrend = np.mean( actVec ) - actVec[0]
+        mfdTrend = np.mean( prdSol[varId] ) - prdSol[varId][0]
+        prtTrend = wtHash[ asset ]
+
+        if mfdTrend * actTrend > 0:
+            mfdCnt += 1
+
+        if prtTrend * actTrend > 0:
+            prtCnt += 1
+
+    if nAssets > 0:
+        mfdCnt /= nAssets
+        prtCnt /= nAssets
+
+    mfdCnt = round( 100.0 * mfdCnt, 2 )
+    prtCnt = round( 100.0 * prtCnt, 2 )
+    mfdCnt = str( mfdCnt ) + ' %' 
+    prtCnt = str( prtCnt ) + ' %'
+        
+    outDf  = pd.DataFrame( { 'beg_date' : [ begDate ],
+                             'end_date' : [ endDate ],
+                             'mfd_cnt'  : [ mfdCnt ],
+                             'prt_cnt'  : [ prtCnt ]  } )
+                            
+    return outDf
+    
