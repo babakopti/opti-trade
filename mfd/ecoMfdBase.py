@@ -25,6 +25,12 @@ sys.path.append( os.path.abspath( '../' ) )
 from utl.utils import getLogger
 
 # ***********************************************************************
+# Some parameters
+# ***********************************************************************
+
+SET_VAR_OFFSET = False
+
+# ***********************************************************************
 # Class EcoMfdCBase: Base economic manifold ; continues adjoint
 # ***********************************************************************
 
@@ -197,7 +203,7 @@ class EcoMfdCBase:
         if self.pcaFlag:
             df       = self.setPcaVars( df )
 
-        dates      = list( df[ dateName ] )
+        dates      = np.array( df[ dateName ] )
         nRows      = df.shape[0]
         trnCnt     = 0
         for rowId in range( nRows ):
@@ -272,6 +278,9 @@ class EcoMfdCBase:
 
     def setVarOffsets( self ):
 
+        if not SET_VAR_OFFSET:
+            return
+        
         nDims          = self.nDims
         nTimes         = self.nTimes
         dateName       = self.dateName
