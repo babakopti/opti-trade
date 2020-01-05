@@ -104,9 +104,9 @@ else:
 
 USE_OLD_DATA = False
 
-NUM_DAYS_DATA = 2
-NUM_DAYS_MOD  = 30
-NUM_DAYS_PRT  = 730
+NUM_DAYS_DATA_CLEAN = 2
+NUM_DAYS_MOD_CLEAN  = 30
+NUM_DAYS_PRT_CLEAN  = 730
 
 GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
 GOOGLE_BUCKET = 'prt-storage'
@@ -467,11 +467,11 @@ class MfdPrtBuilder( Daemon ):
             msgStr = e + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
 
-        self.clean( self.datDir, NUM_DAYS_DATA )
-        self.clean( self.modDir, NUM_DAYS_MOD )
-        self.clean( self.prtDir, NUM_DAYS_PRT )
+        self.clean( self.datDir, NUM_DAYS_DATA_CLEAN )
+        self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
+        self.clean( self.prtDir, NUM_DAYS_PRT_CLEAN  )
 
-        self.cleanBucket( NUM_DAYS_PRT )
+        self.cleanBucket( NUM_DAYS_PRT_CLEAN )
             
         return True
 
@@ -522,7 +522,7 @@ class MfdPrtBuilder( Daemon ):
         self.logger.critical( msgStr )
         
         self.logger.info( 'Portfolio results sent to email lists!' )
-        
+
     def clean( self, fDir, nOldDays ):
 
         self.logger.info( 'Cleaning up %s of files more than %d days old...',
@@ -564,16 +564,61 @@ class MfdPrtBuilder( Daemon ):
                                       bucket.name )
                 except Exception as e:
                     self.logger.warning(e)
+
+    def sendPerformance( self ):
+
+        try:
+            pattern  = self.modHead + '\d+-\d+-\d+ \d+:\d+:\d+.dill'        
+            modFiles = []
+        
+            for fileName in os.listdir( self.modDir ):
+
+                if not re.search( pattern, fileName ):
+                    continue
+            
+                modFiles.append( fileName )
+
+            perfDf = pd.DataFrame()
+        
+            for modName in modFiles: 
+            
+                baseName = os.path.splitext( modName )[0]
+                dateStr  = baseName.replace( self.modHead, '' )
+                prtName   = self.prtHead + dateStr + '.pkl'
+                modFile  = os.path.join( self.modDir, modName )            
+                prtFile  = os.path.join( self.prtDir, prtName )
+
+                if not os.path.exists( prtFile ):
+                    continue
+                
+                prtHash  = pickle.load( open( prtFile, 'rb' ) )
+                wtHash   = list( prtHash.values() )[0]
+            
+                tmpDf    = utl.evalMfdPrtPerf( modFile   = modFile,
+                                               wtHash    = wtHash,
+                                               shortFlag = False,
+                                               invHash   = ETF_HASH   )
+            
+                perfDf   = pd.concat( [ perfDf, tmpDf ] )
+
+            perfDf = perfDf.sort_values( 'snapDate', ascending = False ) 
+            
+            self.logger.error( str( perfDf ) )
+
+        except Exception as e:
+            self.logger.error( e )
             
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
         
         if not SCHED_FLAG:
+            self.sendPerformance()            
             self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
-
+            schedule.every().friday.do( self.sendPerformance )
+            
             while True: 
                 schedule.run_pending() 
                 time.sleep( 60 )

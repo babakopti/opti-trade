@@ -16,6 +16,10 @@ from logging.handlers import SMTPHandler
 from io import StringIO
 from collections import defaultdict
 
+sys.path.append( os.path.abspath( '../' ) )
+
+from ode.odeGeo import OdeGeoConst 
+
 # ***********************************************************************
 # getLogger(): Get a logger object
 # ***********************************************************************
@@ -554,17 +558,17 @@ def sortAssets( symbols,
     return eDf
 
 # ***********************************************************************
-# calcPrtReturns: Calculate portfolio returns over a period
+# calcBacktestReturns: Calculate portfolio returns over a period
 # ***********************************************************************
 
-def calcPrtReturns( prtWtsHash,
-                    dfFile,
-                    initTotVal,
-                    shortFlag = True,
-                    invHash   = None,
-                    minAbsWt  = 1.0e-5,
-                    minDate   = None,
-                    maxDate   = None   ):
+def calcBacktestReturns( prtWtsHash,
+                         dfFile,
+                         initTotVal,
+                         shortFlag = True,
+                         invHash   = None,
+                         minAbsWt  = 1.0e-4,
+                         minDate   = None,
+                         maxDate   = None   ):
 
     # Get all dates in portfolio
     
@@ -595,7 +599,10 @@ def calcPrtReturns( prtWtsHash,
             'Symbol %s not found in %s' % ( asset, dfFile )
 
     if not shortFlag:
-        invAssets = list( invHash.values() )
+        invAssets = []
+        for asset in assets:
+            invAssets.append( invHash[ asset ] )
+
         for asset in invAssets:
             assert asset in dataDf.columns, \
                 'Symbol %s not found in %s' % ( asset, dfFile )
@@ -720,35 +727,72 @@ def calcPrtReturns( prtWtsHash,
     return retDf
 
 # ***********************************************************************
-# evalTrendPerf: Evaluate a model / portfolio trend prd performance
+# evalPrtPerf: Evaluate a model / portfolio performance
 # ***********************************************************************
 
-def evalTrendPerf(  modFile,
+def evalMfdPrtPerf( modFile,
                     wtHash,
-                    nPrdDays = 1,                    
-                    sType    = 'ETF',
-                    interval = 1,
-                    maxTries = 10,
-                    timeout  = 60,
-                    minRows  = 100,
-                    logger   = None   ):
+                    begTotVal = 1.0e+6,                  
+                    nPrdDays  = 1,
+                    sType     = 'ETF',
+                    shortFlag = True,
+                    invHash   = None,
+                    minAbsWt  = 1.0e-4,
+                    interval  = 1,
+                    maxTries  = 10,
+                    timeout   = 60,
+                    minRows   = 100,
+                    logger    = None   ):
 
+    # Some checks
+
+    assert begTotVal > 0, 'begTotVal should be positive!'
+
+    assert sType in [ 'ETF', 'futures' ], \
+        'Unkown sType %s!' % sType
+
+    if not shortFlag:
+        assert invHash is not None, \
+            'invHash should be set when shortFlag is False!'
+        
+    # Process modFile and wtHash to get some info
+    
     ecoMfd  = dill.load( open( modFile, 'rb' ) ).ecoMfd
     assets  = list( wtHash.keys() )
     nAssets = len( assets )
     
     assert nAssets > 0, 'No asssets found!'
     
-    assert set( assets ).isSubset( ecoMfd.velNames ), \
+    assert set( assets ).issubset( ecoMfd.velNames ), \
         'assets should be in the model!'
-    
+
     begDate = pd.to_datetime( ecoMfd.maxOosDate )
     endDate = begDate + datetime.timedelta( days = nPrdDays )
+
+    # Inverse stuff
+
+    if not shortFlag:
+        for asset in assets:
+            assert asset in invHash.keys(), \
+                '%s not found in invHash' % asset
+    
+    if not shortFlag:
+        invAssets = []
+        for asset in assets:
+            invAssets.append( invHash[ asset ] )
+
+    # Get data
+
     nowDate = datetime.datetime.now() 
-    nDays   = ( nowDate - begDate ).days + 1
+    nDays   = ( nowDate - begDate ).days + 30
+
+    if shortFlag:
+        tmpAssets = assets
+    else:
+        tmpAssets = assets + invAssets
     
     if sType == 'ETF':
-        df = getKibotData( etfs     = assets,
+        df = getKibotData( etfs     = tmpAssets,
                            nDays    = nDays,
                            interval = interval,
                            maxTries = maxTries,
@@ -756,7 +800,7 @@ def evalTrendPerf(  modFile,
                            minRows  = minRows,
                            logger   = logger   )
     elif sType == 'futures':
-        df = getKibotData( futures  = assets,
+        df = getKibotData( futures  = tmpAssets,
                            nDays    = nDays,
                            interval = interval,
                            maxTries = maxTries,
@@ -767,9 +811,11 @@ def evalTrendPerf(  modFile,
     df = df[ ( df.Date >= begDate ) & ( df.Date <= endDate ) ]
 
     assert df.shape[0] > 0, 'Data frame came out empty!' 
+
+    # Evaluate mfd model and mfd prt performance
     
     Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
-    bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
+    bcVec     = np.zeros( shape = ( ecoMfd.nDims ), dtype = 'd' )
     nPrdTimes = df.shape[0]
 
     for m in range( ecoMfd.nDims ):
@@ -815,15 +861,57 @@ def evalTrendPerf(  modFile,
         mfdCnt /= nAssets
         prtCnt /= nAssets
 
-    mfdCnt = round( 100.0 * mfdCnt, 2 )
-    prtCnt = round( 100.0 * prtCnt, 2 )
-    mfdCnt = str( mfdCnt ) + ' %' 
-    prtCnt = str( prtCnt ) + ' %'
-        
-    outDf  = pd.DataFrame( { 'beg_date' : [ begDate ],
-                             'end_date' : [ endDate ],
-                             'mfd_cnt'  : [ mfdCnt ],
-                             'prt_cnt'  : [ prtCnt ]  } )
-                            
-    return outDf
+    # Get list of assets as a string for output
     
+    assetsStr = ''
+    for asset in wtHash:
+        if abs( wtHash[ asset ] ) > minAbsWt:
+            assetsStr += asset + ' '
+
+    # Get returns
+    
+    tmp1 = 0.0
+    tmp2 = 0.0
+    for asset in assets:
+
+        wt = wtHash[ asset ]
+
+        if wt == 0:
+            continue
+        elif wt > 0 or shortFlag:
+            begPrice = list( df[ asset ] )[0]
+            endPrice = list( df[ asset ] )[-1]
+            qty      = int( wt * begTotVal / begPrice )
+        elif wt < 0 and not shortFlag:
+            invAsset = invHash[ asset ]
+            begPrice = list( df[ invAsset ] )[0]
+            endPrice = list( df[ invAsset ] )[-1]
+            qty      = int( abs( wt ) * begTotVal / begPrice )
+        
+        tmp1 += qty * begPrice
+        tmp2 += qty * endPrice
+        
+    cash = begTotVal - tmp1
+
+    assert cash >= 0, \
+        'Cash should be non-negative! Date %s' % str( begDate )
+
+    endTotVal = tmp2 + cash
+
+    fct = begTotVal
+
+    if fct > 0:
+        fct = 1.0 / fct
+
+    retVal = fct * ( endTotVal - begTotVal )
+
+    # Create data frame
+    
+    outDf  = pd.DataFrame( { 'snapDate' : [ begDate ],
+                             'nPrdDays' : [ nPrdDays ],
+                             'mfdCnt'   : [ mfdCnt ],
+                             'prtCnt'   : [ prtCnt ],
+                             'Return'   : [ retVal ],
+                             'Assets'   : [ assetsStr ]  } )
+                             
+    return outDf
