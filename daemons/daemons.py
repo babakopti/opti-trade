@@ -95,7 +95,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 if DEBUG_MODE:
     SCHED_FLAG = False
@@ -567,40 +567,42 @@ class MfdPrtBuilder( Daemon ):
 
     def sendPerformance( self ):
 
+        self.logger.info( 'Processing and sending portfolio performance data...' )
+        
         try:
-            pattern  = self.modHead + '\d+-\d+-\d+ \d+:\d+:\d+.dill'        
+            pattern  = self.modHead + '\d+-\d+-\d+_\d+:\d+:\d+.dill'        
             modFiles = []
         
             for fileName in os.listdir( self.modDir ):
-
+                
                 if not re.search( pattern, fileName ):
                     continue
             
                 modFiles.append( fileName )
 
             perfDf = pd.DataFrame()
-        
+
             for modName in modFiles: 
             
                 baseName = os.path.splitext( modName )[0]
                 dateStr  = baseName.replace( self.modHead, '' )
-                prtName   = self.prtHead + dateStr + '.pkl'
+                prtName   = self.prtHead + dateStr + '.json'
                 modFile  = os.path.join( self.modDir, modName )            
                 prtFile  = os.path.join( self.prtDir, prtName )
 
                 if not os.path.exists( prtFile ):
                     continue
-                
-                prtHash  = pickle.load( open( prtFile, 'rb' ) )
-                wtHash   = list( prtHash.values() )[0]
-            
+
+                with open( prtFile, 'r' ) as fHd:
+                    wtHash  = json.load( fHd )
+                    
                 tmpDf    = utl.evalMfdPrtPerf( modFile   = modFile,
                                                wtHash    = wtHash,
                                                shortFlag = False,
                                                invHash   = ETF_HASH   )
-            
+                self.logger.info( str( tmpDf ) )                
                 perfDf   = pd.concat( [ perfDf, tmpDf ] )
-
+                
             perfDf = perfDf.sort_values( 'snapDate', ascending = False ) 
             
             self.logger.error( str( perfDf ) )
@@ -614,7 +616,7 @@ class MfdPrtBuilder( Daemon ):
         
         if not SCHED_FLAG:
             self.sendPerformance()            
-            self.build()
+            #self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
             schedule.every().friday.do( self.sendPerformance )
