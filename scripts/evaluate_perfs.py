@@ -112,12 +112,15 @@ for modName in modFiles:
             wtHash = list( pickle.load( fHd ).values() )[0]
     
     print( 'Processing %s ...' % modName )
-    
-    tmpDf = utl.evalMfdPrtPerf( modFile   = modFile,
-                                 wtHash    = wtHash,
-                                 shortFlag = False,
-                                 invHash   = ETF_HASH   )
 
+    try:
+        tmpDf = utl.evalMfdPrtPerf( modFile   = modFile,
+                                    wtHash    = wtHash,
+                                    shortFlag = False,
+                                    invHash   = ETF_HASH   )
+    except:
+        print( 'Skipping %s...' % modName )
+        
     outDf = pd.concat( [ outDf, tmpDf ] )
 
 outDf.to_csv( outFile, index = False )
