@@ -784,8 +784,9 @@ def evalMfdPrtPerf( modFile,
     # Get data
 
     nowDate = datetime.datetime.now() 
-    nDays   = ( nowDate - begDate ).days + 30
-
+    nDays   = ( nowDate - begDate ).days + 1
+    nDays   = int( 1.3 * nDays )
+    
     if shortFlag:
         tmpAssets = assets
     else:

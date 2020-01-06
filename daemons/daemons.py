@@ -95,7 +95,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 if DEBUG_MODE:
     SCHED_FLAG = False
@@ -595,13 +595,18 @@ class MfdPrtBuilder( Daemon ):
 
                 with open( prtFile, 'r' ) as fHd:
                     wtHash  = json.load( fHd )
-                    
-                tmpDf    = utl.evalMfdPrtPerf( modFile   = modFile,
-                                               wtHash    = wtHash,
-                                               shortFlag = False,
-                                               invHash   = ETF_HASH   )
-                self.logger.info( str( tmpDf ) )                
-                perfDf   = pd.concat( [ perfDf, tmpDf ] )
+
+                try:
+                    tmpDf  = utl.evalMfdPrtPerf( modFile   = modFile,
+                                                 wtHash    = wtHash,
+                                                 shortFlag = False,
+                                                 invHash   = ETF_HASH,
+                                                 logger    = self.logger   )
+                except Exception as err:
+                    self.logger.error( err )
+                    pass
+                
+                perfDf = pd.concat( [ perfDf, tmpDf ] )
                 
             perfDf = perfDf.sort_values( 'snapDate', ascending = False ) 
             
@@ -616,7 +621,7 @@ class MfdPrtBuilder( Daemon ):
         
         if not SCHED_FLAG:
             self.sendPerformance()            
-            #self.build()
+            self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
             schedule.every().friday.do( self.sendPerformance )
