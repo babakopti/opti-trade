@@ -21,8 +21,6 @@ prtFile     = 'p_5sortETF_kibot.txt'
 dfFile      = 'data/dfFile_kibot_2016plus.pkl'
 base        = 'SPY'
 initTotVal  = 1000000.0
-minDate     = None
-maxDate     = None
 
 invHash = {   'TQQQ' : 'SQQQ',
               'SPY'  : 'SH',
@@ -62,32 +60,26 @@ prtWtsHash = ast.literal_eval( open( prtFile, 'r' ).read() )
 # Get actual open prices
 # ***********************************************************************
 
-retDf1 = utl.calcPrtReturns( prtWtsHash = prtWtsHash,
-                             dfFile     = dfFile,
-                             initTotVal = initTotVal,
-                             shortFlag  = False,
-                             invHash    = invHash,
-                             minDate    = minDate,
-                             maxDate    = maxDate      )
+retDf1 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
+                                  dfFile     = dfFile,
+                                  initTotVal = initTotVal,
+                                  shortFlag  = False,
+                                  invHash    = invHash   )
 
-retDf2 = utl.calcPrtReturns( prtWtsHash = prtWtsHash,
-                             dfFile     = dfFile,
-                             initTotVal = initTotVal,
-                             shortFlag  = True,
-                             minDate    = minDate,
-                             maxDate    = maxDate      )
+retDf2 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
+                                  dfFile     = dfFile,
+                                  initTotVal = initTotVal,
+                                  shortFlag  = True      )
 
 baseHash = {}
 
 for date in prtWtsHash:
     baseHash[ date ] = { base : 1.0 }
 
-retDf3 = utl.calcPrtReturns( prtWtsHash = baseHash,
-                             dfFile     = dfFile,
-                             initTotVal = initTotVal,
-                             shortFlag  = True,
-                             minDate    = minDate,
-                             maxDate    = maxDate      )
+retDf3 = utl.calcBacktestReturns( prtWtsHash = baseHash,
+                                  dfFile     = dfFile,
+                                  initTotVal = initTotVal,
+                                  shortFlag  = True       )
 
 # ***********************************************************************
 # Plot
