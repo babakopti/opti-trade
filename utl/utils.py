@@ -635,11 +635,13 @@ def calcBacktestReturns( prtWtsHash,
 
     # Loop through portfolio dates and calculate values
     
-    nDates     = len( dates )
-    begTotVal  = initTotVal
-    begDates   = []
-    begTotVals = []
-    usedAssets = []
+    nDates       = len( dates )
+    begTotVal    = initTotVal
+    begDates     = []
+    begTotVals   = []
+    endTotVals   = []
+    usedAssets   = []
+    trendMatches = []
     
     for itr in range( nDates ):
 
@@ -684,6 +686,8 @@ def calcBacktestReturns( prtWtsHash,
                 
         tmp1 = 0.0
         tmp2 = 0.0
+        cnt  = 0
+        trendMatch = 0
         for asset in assets:
 
             wt = wtHash[ asset ]
@@ -702,7 +706,15 @@ def calcBacktestReturns( prtWtsHash,
         
             tmp1 += qty * begPrice
             tmp2 += qty * endPrice
-        
+
+            actVec   = np.array( tmpDf[ asset ] )
+            actTrend = actVec[-1] - actVec[0]
+            prtTrend = wtHash[ asset ]
+
+            cnt += 1
+            if prtTrend * actTrend > 0:
+                trendMatch += 1
+            
         cash = begTotVal - tmp1
 
         assert cash >= 0, \
@@ -710,19 +722,36 @@ def calcBacktestReturns( prtWtsHash,
 
         endTotVal = tmp2 + cash
 
+        endTotVals.append( endTotVal )
+
         # Update begTotVal for next item in loop
     
         begTotVal = endTotVal
 
+        # Add trend match to list
+
+        if cnt > 0:
+            trendMatch /= cnt
+
+        trendMatches.append( trendMatch )
+
     retDf = pd.DataFrame( { 'Date'   : begDates,
-                            'Value'  : begTotVals,
+                            'BegVal' : begTotVals,
+                            'EndVal' : endTotVals,
+                            'Match'  : trendMatches,
                             'Assets' : usedAssets } )
 
-    retDf[ 'Return' ] = retDf[ 'Value' ].pct_change()
+    retDf[ 'Return' ] = ( retDf.EndVal - retDf.BegVal ) / retDf.BegVal
     retDf[ 'Return' ] = retDf[ 'Return' ].fillna( 0 )
-    retDf[ 'Change' ] = ( retDf[ 'Value' ] / initTotVal ) - 1.0
+    retDf[ 'TotRet' ] = ( retDf.EndVal - initTotVal ) / initTotVal
 
-    retDf = retDf[ [ 'Date', 'Value', 'Change', 'Return', 'Assets' ] ]
+    retDf = retDf[ [ 'Date',
+                     'BegVal',
+                     'EndVal',
+                     'Return',
+                     'TotRet',                     
+                     'Match',
+                     'Assets' ] ]
     
     return retDf
 

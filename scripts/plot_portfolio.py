@@ -85,9 +85,9 @@ retDf3 = utl.calcBacktestReturns( prtWtsHash = baseHash,
 # Plot
 # ***********************************************************************
 
-plt.plot( retDf1.Date, retDf1.Value, 'b',
-          retDf2.Date, retDf2.Value, 'g',
-          retDf3.Date, retDf3.Value, 'r'  )
+plt.plot( retDf1.Date, retDf1.EndVal, 'b',
+          retDf2.Date, retDf2.EndVal, 'g',
+          retDf3.Date, retDf3.EndVal, 'r'  )
 plt.xlabel( 'Date' )
 plt.ylabel( 'Value ($)' )
 plt.legend( [ 'Inverse ETFs', 'Short Sell', base ] )
