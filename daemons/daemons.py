@@ -16,7 +16,6 @@ import re
 import numpy as np
 import pandas as pd
 
-from multiprocessing import Process, Pool
 from google.cloud import storage
 
 from daemonBase import Daemon, EmailTemplate
@@ -408,6 +407,7 @@ class MfdPrtBuilder( Daemon ):
                               ( time.time() - t0 ) )
         else:
             self.logger.error( 'The model did not converge!' )
+            return False
 
         mfdMod.save( modFile )
 
@@ -456,7 +456,7 @@ class MfdPrtBuilder( Daemon ):
 
         self.savePrt( wtHash, prtFile )
             
-        if not os.path.exists( modFile ):
+        if not os.path.exists( prtFile ):
             self.logger.error( 'New portfolio file is not written to disk!' )
             return False
         
