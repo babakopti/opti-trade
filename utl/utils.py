@@ -125,7 +125,7 @@ def getKibotData( etfs        = [],
                   timeout     = 60,
                   smoothCount = 1000,
                   smoothConf  = 10,
-                  minRows     = 100,
+                  minRows     = 2,
                   logger      = None   ):
 
     t0       = time.time()
@@ -229,7 +229,7 @@ def getKibotData( etfs        = [],
         if nRows < minRows:
             logger.warning( resp.text )
             logger.warning( 'Skipping %s as it has only %d rows!',
-                            symbols,
+                            symbol,
                             nRows  )
             continue
             
@@ -351,7 +351,7 @@ def getDailyKibotData( etfs     = [],
                        nDays    = 365,
                        maxTries = 10,
                        timeout  = 60,
-                       minRows  = 3,
+                       minRows  = 2,
                        logger   = None   ):
 
     t0       = time.time()
@@ -466,7 +466,7 @@ def getMadMeanKibot( symbol,
                      interval = 1,
                      maxTries = 10,
                      timeout  = 60,
-                     minRows  = 100,
+                     minRows  = 2,
                      logger   = None   ):
 
     if sType == 'ETF':
@@ -502,7 +502,7 @@ def sortAssets( symbols,
                 nDays,
                 criterion = 'abs_sharpe',
                 sType     = 'ETF',
-                minRows   = 10,
+                minRows   = 2,
                 logger    = None    ):
 
     assert criterion in [ 'abs_sharpe', 'abs_mean', 'mad' ], \
@@ -770,7 +770,7 @@ def evalMfdPrtPerf( modFile,
                     interval  = 1,
                     maxTries  = 10,
                     timeout   = 60,
-                    minRows   = 100,
+                    minRows   = 2,
                     logger    = None   ):
 
     # Some checks
@@ -814,7 +814,7 @@ def evalMfdPrtPerf( modFile,
 
     nowDate = datetime.datetime.now() 
     nDays   = ( nowDate - begDate ).days + 1
-    nDays   = int( 1.3 * nDays )
+    nDays   = int( 1.3 * nDays ) + 90
     
     if shortFlag:
         tmpAssets = assets
@@ -943,5 +943,20 @@ def evalMfdPrtPerf( modFile,
                              'prtCnt'   : [ prtCnt ],
                              'Return'   : [ retVal ],
                              'Assets'   : [ assetsStr ]  } )
-                             
+
+    outDf[ 'snapDate' ] = outDf.snapDate.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+
+    percFunc = lambda x : str( round( 100.0 * x, 2 ) ) + '%'
+    
+    outDf[ 'Return' ] = outDf.Return.apply( percFunc )
+    outDf[ 'prtCnt' ] = outDf.prtCnt.apply( percFunc )
+    outDf[ 'mfdCnt' ] = outDf.mfdCnt.apply( percFunc )
+    
+    outDf  = outDf[ [ 'snapDate',
+                      'nPrdDays',
+                      'Return',
+                      'prtCnt',
+                      'mfdCnt',
+                      'Assets' ] ]
+    
     return outDf

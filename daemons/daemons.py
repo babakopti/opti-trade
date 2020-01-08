@@ -570,6 +570,8 @@ class MfdPrtBuilder( Daemon ):
     def sendPerformance( self ):
 
         self.logger.info( 'Processing and sending portfolio performance data...' )
+
+        perfDf = pd.DataFrame()
         
         try:
             pattern  = self.modHead + '\d+-\d+-\d+_\d+:\d+:\d+.dill'        
@@ -594,8 +596,6 @@ class MfdPrtBuilder( Daemon ):
                                reverse = True   )
 
             modFiles = modFiles[:MAX_PERFORMANCE_DAYS]
-            
-            perfDf = pd.DataFrame()
 
             for modName in modFiles: 
             
@@ -617,27 +617,34 @@ class MfdPrtBuilder( Daemon ):
                                                  shortFlag = False,
                                                  invHash   = ETF_HASH,
                                                  logger    = self.logger   )
+                    
+                    perfDf = pd.concat( [ perfDf, tmpDf ] )
+                    
                 except Exception as err:
                     self.logger.error( err )
                     pass
-                
-                perfDf = pd.concat( [ perfDf, tmpDf ] )
-                
+
+            perfDf = perfDf.reset_index( drop = True )
             perfDf = perfDf.sort_values( 'snapDate', ascending = False ) 
             
-            self.logger.error( str( perfDf ) )
-
         except Exception as e:
             self.logger.error( e )
-            
+
+        msgStr = '\nHere is a performance summary:\n\n' + \
+                 perfDf.to_string()
+        
+        self.logger.error( msgStr )
+    
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
         
         if not SCHED_FLAG:
+            self.sendPerformance()
             self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
+            schedule.every().friday.do( self.sendPerformance )
             
             while True: 
                 schedule.run_pending() 
