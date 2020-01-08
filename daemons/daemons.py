@@ -95,6 +95,8 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
+MAX_PERFORMANCE_DAYS = 7
+
 DEBUG_MODE = False
 
 if DEBUG_MODE:
@@ -572,14 +574,27 @@ class MfdPrtBuilder( Daemon ):
         try:
             pattern  = self.modHead + '\d+-\d+-\d+_\d+:\d+:\d+.dill'        
             modFiles = []
-        
+            rankHash = {}
             for fileName in os.listdir( self.modDir ):
                 
                 if not re.search( pattern, fileName ):
                     continue
-            
+
+                baseName = os.path.splitext( fileName )[0]
+                dateStr  = baseName.replace( self.modHead, '' )
+                tmp      = ' '.join( dateStr.split( '_' ) )
+                date     = pd.to_datetime( tmp )
+
+                rankHash[ fileName ] = date
+                
                 modFiles.append( fileName )
 
+            modFiles = sorted( modFiles,
+                               key     = lambda x : rankHash[x],
+                               reverse = True   )
+
+            modFiles = modFiles[:MAX_PERFORMANCE_DAYS]
+            
             perfDf = pd.DataFrame()
 
             for modName in modFiles: 
@@ -620,11 +635,9 @@ class MfdPrtBuilder( Daemon ):
         os.environ[ 'TZ' ] = self.timeZone
         
         if not SCHED_FLAG:
-            self.sendPerformance()            
             self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
-            schedule.every().friday.do( self.sendPerformance )
             
             while True: 
                 schedule.run_pending() 
