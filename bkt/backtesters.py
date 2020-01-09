@@ -244,7 +244,7 @@ class MfdPrtBacktester():
         pattern = self.prtHead + '\d+-\d+-\d+_\d+:\d+:\d+.pkl'        
         wtHash  = {}
 
-        for fileName in os.lisdir( self.prtDir ):
+        for fileName in os.listdir( self.prtDir ):
 
             if not re.search( pattern, fileName ):
                 continue
