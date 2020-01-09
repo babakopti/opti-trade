@@ -102,7 +102,7 @@ class MfdPrtBacktester():
 
         if SEND_ALERTS:
             devAlertHd = utl.getAlertHandler( alertLevel = logging.CRITICAL,
-                                              subject    = 'A error happened with backtesting!',
+                                              subject    = 'Regarding the Mfd/Prt backtest!',
                                               mailList   = DEV_LIST )
             self.logger.addHandler( devAlertHd )
         
@@ -127,6 +127,8 @@ class MfdPrtBacktester():
         pool.join()
 
         self.combine()
+
+        self.logger.critical( 'Backtest is done successfully!' )
         
     def build( self, snapDate ):
 
