@@ -23,10 +23,18 @@ from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
 
 # ***********************************************************************
+# Set some parameters 
+# ***********************************************************************
+
+SEND_ALERTS = True
+
+DEV_LIST = [ 'babak.emami@gmail.com' ]
+
+# ***********************************************************************
 # Class MfdPrtBacktester: General backtester for mfd / prt
 # ***********************************************************************
 
-class MfdPrtBacktester( Daemon ):
+class MfdPrtBacktester():
 
     def __init__(   self,
                     velNames,
@@ -34,6 +42,7 @@ class MfdPrtBacktester( Daemon ):
                     dfFile,
                     bktBegDate,
                     bktEndDate,
+                    sType       = 'ETF',
                     maxAssets   = 5,
                     nEvalDays   = 30,
                     nTrnDays    = 360,
@@ -44,7 +53,7 @@ class MfdPrtBacktester( Daemon ):
                     optTol      = 5.0e-2,
                     regCoef     = 5.0e-3,
                     factor      = 4.0e-05,
-                    outBktFile  = 'portfolio.txt',
+                    outBktFile  = 'portfolio.json',
                     modFlag     = True,
                     modHead     = 'model_',
                     prtHead     = 'weights_',
@@ -71,6 +80,7 @@ class MfdPrtBacktester( Daemon ):
         self.dfFile      = dfFile
         self.bktBegDate  = pd.to_datetime( bktBegDate )
         self.bktEndDate  = pd.to_datetime( bktEndDate )
+        self.sType       = sType
         self.nEvalDays   = nEvalDays
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
@@ -90,6 +100,12 @@ class MfdPrtBacktester( Daemon ):
         self.verbose     = verbose
         self.logger      = utl.getLogger( logFileName, verbose )
 
+        if SEND_ALERTS:
+            devAlertHd = utl.getAlertHandler( alertLevel = logging.CRITICAL,
+                                              subject    = 'A error happened with backtesting!',
+                                              mailList   = DEV_LIST )
+            self.logger.addHandler( devAlertHd )
+        
     def backtest( self ):
 
         snapDate = self.bktBegDate
@@ -151,13 +167,13 @@ class MfdPrtBacktester( Daemon ):
                 sFlag = mfdMod.build()
             except Exception as e:
                 msgStr = e + '; Model build was unsuccessful!'
-                self.logger.error( msgStr )
+                self.logger.critical( msgStr )
 
             if sFlag:
                 self.logger.info( 'Building model took %0.2f seconds!',
                                   ( time.time() - t0 ) )
             else:
-                self.logger.error( 'The model did not converge!' )
+                self.logger.critical( 'The model did not converge!' )
                 return False
 
             mfdMod.save( modFile )
@@ -166,7 +182,7 @@ class MfdPrtBacktester( Daemon ):
             mfdMod = dill.load( open( modFile, 'rb' ) )
 
         if not os.path.exists( modFile ):
-            self.logger.error( 'New model file is not written to disk!' )
+            self.logger.critical( 'New model file is not written to disk!' )
             return False
             
         self.logger.info( 'Building portfolio for snapdate %s', str( snapDate ) )
@@ -185,10 +201,11 @@ class MfdPrtBacktester( Daemon ):
             try:
                 eDf = utl.sortAssets( symbols = self.assets,
                                       nDays   = self.nEvalDays,
+                                      sType   = self.sType,
                                       logger  = self.logger     )
                 assets = list( eDf.asset )[:self.maxAssets]
             except Exception as e:
-                self.logger.error( e )
+                self.logger.critical( e )
         
         mfdPrt = MfdPrt( modFile      = modFile,
                          assets       = assets,
@@ -207,12 +224,12 @@ class MfdPrtBacktester( Daemon ):
             wtHash[ dateKey ] = mfdPrt.getPortfolio()
         except Exception as e:
             msgStr = e + '; Portfolio build was unsuccessful!'
-            self.logger.error( msgStr )
+            self.logger.critical( msgStr )
 
         pickle.dump( wtHash, open( prtFile, 'wb' ) )    
             
         if not os.path.exists( prtFile ):
-            self.logger.error( 'New portfolio file is not written to disk!' )
+            self.logger.critical( 'New portfolio file is not written to disk!' )
             return False
         
         self.logger.info( 'Building portfolio took %0.2f seconds!',
@@ -236,3 +253,4 @@ class MfdPrtBacktester( Daemon ):
             wtHash[ dateStr ] = tmpHash[ dateStr ]
             
         json.dump( wtHash, open( self.outBktFile, 'w' ) )
+
