@@ -85,7 +85,7 @@ class MfdPrt:
         self.nRetTimes   = nRetTimes
         self.nPrdTimes   = nPrdTimes
 
-        if strategy not in [ 'mad', 'gain', 'gain_mad', 'prob' ]:
+        if strategy not in [ 'mad', 'gain', 'gain_mad', 'prob', 'equal' ]:
             self.logger.error( 'Strategy %s is not known!', strategy )
             assert False, 'Strategy %s is not known!' % strategy
 
@@ -301,9 +301,82 @@ class MfdPrt:
 
     def getPortfolio( self ):
 
+        if self.strategy == 'equal':
+            return self.getPortfolioEq()
+        else:
+            return self.getPortfolioOpt()
+
+    def getPortfolioEq( self ):
+
         t0           = time.time()
         strategy     = self.strategy
-        ecoMfd       = self.ecoMfd
+        assets       = self.assets
+        minProbLong  = self.minProbLong 
+        minProbShort = self.minProbShort
+        nAssets      = len( assets )
+        trendHash    = self.trendHash
+
+        assert strategy == 'equal', 'Internal error!'
+        
+        assert nAssets > 0,\
+            'Number of assets should be positive!'
+        
+        weights = np.empty( shape = ( nAssets ), dtype = 'd' )
+
+        for i in range( nAssets ):
+            asset = assets[i]
+            trend = trendHash[ asset ][0]
+            prob  = trendHash[ asset ][1]
+
+            if trend > 0 and prob >= minProbLong:
+                weights[i] = 1.0
+            elif trend < 0 and prob >= minProbShort:
+                weights[i] = -1.0
+            else:
+                weights[i] = 0.0
+            
+        sumWt = np.sum( abs( weights ) )
+
+        sumInv = sumWt
+
+        if sumInv > 0:
+            sumInv = 1.0 / sumInv
+
+        weights = sumInv * weights 
+                
+        prtHash = {}
+        fct     = 0.0
+        for i in range( nAssets ):
+            asset = assets[i]
+            wt    = weights[i]
+
+            if abs( wt ) < self.minAbsWt:
+                continue
+
+            fct += abs( wt )
+            
+            prtHash[ asset ] = wt
+
+        if fct > 0:
+            fct = 1.0 / fct
+        elif fct < 0:
+            self.logger.error( 'Internal error: fct should be non-negative!' )
+            sys.exit()
+            
+        for asset in prtHash:
+            prtHash[ asset ] = fct * prtHash[ asset ]
+
+        self.logger.info( 'Building portfolio took %0.2f seconds!', 
+                          round( time.time() - t0, 2 ) )
+
+        self.logger.info( 'Sum of wts: %0.4f', sum( abs( weights ) ) )
+
+        return prtHash
+    
+    def getPortfolioOpt( self ):
+
+        t0           = time.time()
+        strategy     = self.strategy
         assets       = self.assets
         quoteHash    = self.quoteHash
         minProbLong  = self.minProbLong 
@@ -364,7 +437,7 @@ class MfdPrt:
 
         self.logger.info( 'Sum of wts: %0.4f', sum( abs( weights ) ) )
 
-        return prtHash
+        return prtHash    
 
     def getOptFunc( self ):
 
