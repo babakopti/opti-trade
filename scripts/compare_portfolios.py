@@ -17,13 +17,19 @@ import utl.utils as utl
 # Input
 # ***********************************************************************
 
-prtFiles    = [ 'p_5sortETF_kibot.txt', 'portfolio_sort_10.txt' ]
-legends     = [ '5 ETFs', '10 ETFs' ] 
+prtFiles    = [ 'portfolios/sorted_ETFs_portfolio.txt',
+                'portfolios/sorted_ETFs_portfolio_10.txt',
+                'portfolios/portfolio_sort_5_equal.txt',
+                'portfolios/portfolio_sort_10_equal.txt' ]
+legends     = [ '5 sorted ETFs, abs_sharpe, mad prt strategy',
+                '10 sorted ETFs, abs_sharpe, mad prt strategy',
+                '5 sorted ETFs, abs_sharpe, equal prt strategy',
+                '10 sorted ETFs, abs_sharpe, equal prt strategy' ]
+                
 dfFile      = 'data/dfFile_kibot_2016plus.pkl'
 initTotVal  = 1000000.0
 
-minDate     = '2017-01-01'
-maxDate     = '2018-11-13'
+outFile     = 'analysis-results/compare_sorted_ETFs_sharpe_5_vs_10.csv'
 
 invHash = {   'TQQQ' : 'SQQQ',
               'SPY'  : 'SH',
@@ -53,6 +59,21 @@ invHash = {   'TQQQ' : 'SQQQ',
               'UST'  : 'PST',
               'UBT'  : 'TBT' }
 
+# ***********************************************************************
+# Get min and max dates
+# ***********************************************************************
+
+minDates = []
+maxDates = []
+for prtFile in prtFiles:
+    prtWtsHash = ast.literal_eval( open( prtFile, 'r' ).read() )
+    
+    minDates.append( min( prtWtsHash.keys() ) )
+    maxDates.append( max( prtWtsHash.keys() ) )
+
+minDate = max( minDates )
+maxDate = min( maxDates )
+    
 # ***********************************************************************
 # Read portfolios and plot
 # ***********************************************************************
@@ -88,3 +109,5 @@ compDf = pd.DataFrame( { 'prtFile'  : prtFiles,
                          'std dev.' : stdList,
                          'ratio'    : ratioList } )
 print( compDf )
+
+compDf.to_csv( outFile, index = False )
