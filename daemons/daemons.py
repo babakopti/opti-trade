@@ -33,7 +33,6 @@ from prt.prt import MfdPrt
 # Set some parameters 
 # ***********************************************************************
 
-
 INDEXES  = []
 STOCKS   = []
 
@@ -361,9 +360,11 @@ class MfdPrtBuilder( Daemon ):
                                                  logger    = self.logger   )
                     
                     perfDf = pd.concat( [ perfDf, tmpDf ] )
+
+                    time.sleep( 1 )
                     
                 except Exception as err:
-                    self.logger.error( err )
+                    self.logger.warning( err )
                     pass
 
             perfDf = perfDf.reset_index( drop = True )

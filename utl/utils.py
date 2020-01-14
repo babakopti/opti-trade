@@ -840,7 +840,9 @@ def evalMfdPrtPerf( modFile,
 
     df = df[ ( df.Date >= begDate ) & ( df.Date <= endDate ) ]
 
-    assert df.shape[0] > 0, 'Data frame came out empty!' 
+    assert df.shape[0] > 0, \
+        'Data frame came out empty! nDays = %d; %s to %s' \
+        % ( nDays, str( begDate ), str( endDate ) ) 
 
     # Evaluate mfd model and mfd prt performance
     
