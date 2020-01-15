@@ -68,7 +68,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
-MAX_PERFORMANCE_DAYS = 7
+MAX_PERFORMANCE_DAYS = 30
 
 DEBUG_MODE = False
 
@@ -308,7 +308,7 @@ class MfdPrtBuilder( Daemon ):
             
         return True
     
-    def getPerformance( self ):
+    def getPerformance( self, nPerfDays = 1 ):
 
         self.logger.info( 'Processing and sending portfolio performance data...' )
 
@@ -336,8 +336,8 @@ class MfdPrtBuilder( Daemon ):
                                key     = lambda x : rankHash[x],
                                reverse = True   )
 
-            modFiles = modFiles[:MAX_PERFORMANCE_DAYS]
-
+            cnt = 0
+            
             for modName in modFiles: 
             
                 baseName = os.path.splitext( modName )[0]
@@ -360,6 +360,11 @@ class MfdPrtBuilder( Daemon ):
                                                  logger    = self.logger   )
                     
                     perfDf = pd.concat( [ perfDf, tmpDf ] )
+
+                    cnt += 1
+
+                    if cnt >= nPerfDays:
+                        break
 
                     time.sleep( 1 )
                     
@@ -632,14 +637,24 @@ class MfdPrtBuilder( Daemon ):
                 except Exception as e:
                     self.logger.warning(e)
 
+    def sendReport( self ):
+
+        perfDf = self.getPerformance( nPerfDays = MAX_PERFORMANCE_DAYS )
+
+        tmpStr = perfDf.to_string().replace( '\n', '\n\n' )
+
+        self.logger.error( tmpStr )
+        
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
         
         if not SCHED_FLAG:
+            self.sendReport()
             self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
+            schedule.every().friday.do( self.sendReport )
             
             while True: 
                 schedule.run_pending() 
