@@ -577,7 +577,7 @@ class MfdPrtBuilder( Daemon ):
 
         for asset in assets:
             perc    = 100.0 * wtHash[ asset ]
-            tmpStr += '%10s: %0.2f %s\n\n' % ( asset, perc, '%' ) 
+            tmpStr += '\n %10s: %0.2f %s\n' % ( asset, perc, '%' ) 
 
         pars[ 'Portfolio' ] = tmpStr
         pars[ 'snapDate'  ] = perfHash[ 'snapDate' ]
@@ -641,7 +641,7 @@ class MfdPrtBuilder( Daemon ):
 
         perfDf = self.getPerformance( nPerfDays = MAX_PERFORMANCE_DAYS )
 
-        tmpStr = perfDf.to_string().replace( '\n', '\n\n' )
+        tmpStr = perfDf.to_string( col_space = 20 ).replace( '\n', '\n\n' )
 
         self.logger.error( tmpStr )
         
