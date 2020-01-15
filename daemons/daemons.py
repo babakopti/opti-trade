@@ -194,8 +194,8 @@ class MfdPrtBuilder( Daemon ):
         snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
         snapDate = pd.to_datetime( snapDate )
 
-        if False and not DEBUG_MODE:
-            if snapDate.isoweekday() in [ 6 ]:
+        if not DEBUG_MODE:
+            if snapDate.isoweekday() in [ 6, 7 ]:
                 return
         
         self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
