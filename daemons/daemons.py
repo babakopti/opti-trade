@@ -41,7 +41,7 @@ ETFs     = list( ETF_HASH.keys() )
 FUTURES  = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 MAX_NUM_ASSETS = 5
-NUM_ASSET_EVAL_DAYS = 30
+NUM_ASSET_EVAL_DAYS = 60
 
 NUM_TRN_DAYS  = 360
 NUM_OOS_DAYS  = 3
@@ -641,7 +641,9 @@ class MfdPrtBuilder( Daemon ):
 
         perfDf = self.getPerformance( nPerfDays = MAX_PERFORMANCE_DAYS )
 
-        tmpStr = perfDf.to_string( col_space = 20 ).replace( '\n', '\n\n' )
+        tmpStr = perfDf.to_string( col_space = 25,
+                                   index     = False,
+                                   justify   = 'center' ).replace( '\n', '\n\n' )
 
         self.logger.error( tmpStr )
         
