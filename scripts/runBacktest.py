@@ -8,12 +8,15 @@ import time
 import datetime
 import dill
 import pickle
+import logging
 import numpy as np
 import pandas as pd
 
 from multiprocessing import Process, Pool
 
 sys.path.append( os.path.abspath( '../' ) )
+
+import utl.utils as utl
 
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt 
@@ -28,30 +31,40 @@ modFlag     = True
 if diffFlag:
     dfFile  = 'data/dfFile_2017plus_diff.pkl'
 else:
-    dfFile  = 'data/dfFile_2017plus.pkl'
+    dfFile  = 'data/dfFile_kibot_2017plus.pkl'
 
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2018-01-01 00:00:00' )
-bkEndDate   = pd.to_datetime( '2018-12-31 23:59:00' )
+bkBegDate   = pd.to_datetime( '2019-04-20 09:00:00' )
+bkEndDate   = pd.to_datetime( '2019-12-28 09:00:00' )
 
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
+# indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
+#                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
+#                 'TYX',  'HUI', 'XAU'                       ] 
+# indices     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
+#                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
+#                 'TYX',  'XAU'                      ]
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+# ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+#                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
+#ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
+#                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
+# allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
+#                 'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
+#                 'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
+#                 'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
+#                 'TZA', 'FAS'                               ]
 
-allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
-                'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
-                'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
-                'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
-                'TZA', 'FAS'                               ]
+allETFs     = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM',  'SAA',
+                'UYM',  'UGE', 'UCC', 'FINU', 'RXL', 'UXI',
+                'URE',  'ROM', 'UJB', 'AGQ',  'DIG', 'USD',
+                'ERX',  'UYG', 'UCO', 'BOIL', 'UPW', 'UGL',
+                'BIB', 'UST', 'UBT'  ]
 
-velNames    = indices + ETFs + futures
+velNames    = allETFs + futures
 
 if diffFlag:
     nDims = len( velNames )
@@ -65,7 +78,7 @@ else:
     factor = 4.0e-05
     vType  = 'vel'
 
-assets      = ETFs
+#assets      = ETFs
 
 # ***********************************************************************
 # Utility functions
@@ -84,16 +97,19 @@ def buildModPrt( snapDate ):
 
         t0     = time.time()
 
+        logging.shutdown()
+        
         mfdMod = MfdMod( dfFile       = dfFile,
                          minTrnDate   = minTrnDt,
                          maxTrnDate   = maxTrnDt,
                          maxOosDate   = maxOosDt,
                          velNames     = velNames,
-                         maxOptItrs   = 50,
+                         maxOptItrs   = 500,
                          optGTol      = 5.0e-2,
                          optFTol      = 5.0e-2,
-                         regCoef      = 1.0e-3,
+                         regCoef      = 5.0e-3,
                          factor       = factor,
+                         logFileName  = None,
                          verbose      = 1          )
         
         sFlag = mfdMod.build()
@@ -117,11 +133,22 @@ def buildModPrt( snapDate ):
     endDt  = snapDate + datetime.timedelta( days = nPrdDays )
     nDays  = ( endDt - curDt ).days
 
-    nPrdTimes   = int( nDays * 19 * 60 )
+    nPrdTimes = int( nDays * 19 * 60 )
+    nRetTimes = int( 30 * 17 * 60 )  
 
+    assets = []
+
+    eDf = utl.sortAssets( allETFs, 30 )
+    assets = list( eDf.asset )[:5]
+    
+    # perfs  = mfdMod.ecoMfd.getOosTrendPerfs( 'vel' )
+    # for i in range( mfdMod.ecoMfd.nDims ):
+    #     if mfdMod.ecoMfd.velNames[i] in allETFs and perfs[i]:
+    #         assets.append( mfdMod.ecoMfd.velNames[i] )
+    
     mfdPrt = MfdPrt( modFile      = modFilePath,
                      assets       = assets,
-                     nRetTimes    = 360,
+                     nRetTimes    = nRetTimes,
                      nPrdTimes    = nPrdTimes,
                      strategy     = 'mad',
                      minProbLong  = 0.5,

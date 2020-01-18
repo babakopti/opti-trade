@@ -16,7 +16,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from multiprocessing import Process, Pool
+from collections import defaultdict
 from google.cloud import storage
 
 from daemonBase import Daemon, EmailTemplate
@@ -25,6 +25,7 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
+from dat.assets import ETF_HASH
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
 
@@ -32,17 +33,42 @@ from prt.prt import MfdPrt
 # Set some parameters 
 # ***********************************************************************
 
-indexes     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'XAU'                      ] 
-ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+INDEXES  = []
+STOCKS   = []
 
-DEV_LIST    = [ 'babak.emami@gmail.com' ]
-USR_LIST    = [ 'babak.emami@gmail.com' ]
+ETFs     = list( ETF_HASH.keys() )
+
+FUTURES  = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+
+MAX_NUM_ASSETS = 5
+NUM_ASSET_EVAL_DAYS = 60
+
+NUM_TRN_DAYS  = 360
+NUM_OOS_DAYS  = 3
+NUM_PRD_DAYS  = 1
+NUM_MAD_DAYS  = 30                    
+MAX_OPT_ITRS  = 500
+OPT_TOL       = 5.0e-2
+REG_COEF      = 5.0e-3                    
+FACTOR        = 4.0e-05
+MOD_HEAD      = 'mfd_model_'
+PRT_HEAD      = 'prt_weights_'                    
+MOD_DIR       = '/var/mfd_models'
+PRT_DIR       = '/var/prt_weights'
+DAT_DIR       = '/var/mfd_data'
+TIME_ZONE     = 'America/New_York'
+SCHED_TIME    = '04:00'
+LOG_FILE_NAME = '/var/log/mfd_prt_builder.log'
+VERBOSE       = 1
+
+PID_FILE      = '/var/run/mfd_prt_builder.pid'
 
 USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email.txt'
+
+DEV_LIST = [ 'babak.emami@gmail.com' ]
+USR_LIST = [ 'babak.emami@gmail.com' ]
+
+MAX_PERFORMANCE_DAYS = 30
 
 DEBUG_MODE = False
 
@@ -53,9 +79,9 @@ else:
 
 USE_OLD_DATA = False
 
-NUM_DAYS_DATA = 2
-NUM_DAYS_MOD  = 30
-NUM_DAYS_PRT  = 730
+NUM_DAYS_DATA_CLEAN = 2
+NUM_DAYS_MOD_CLEAN  = 30
+NUM_DAYS_PRT_CLEAN  = 730
 
 GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
 GOOGLE_BUCKET = 'prt-storage'
@@ -69,34 +95,38 @@ class MfdPrtBuilder( Daemon ):
     def __init__(   self,
                     assets      = ETFs,
                     etfs        = ETFs,
-                    stocks      = [],
-                    futures     = futures,
-                    indexes     = indexes,
-                    nTrnDays    = 360,
-                    nOosDays    = 3,
-                    nPrdDays    = 1,
-                    nMadDays    = 30,                    
-                    maxOptItrs  = 300,
-                    optTol      = 5.0e-2,
-                    regCoef     = 1.0e-3,                    
-                    factor      = 4.0e-05,
-                    modHead     = 'mfd_model_',
-                    prtHead     = 'prt_weights_',                    
-                    modDir      = '/var/mfd_models',
-                    prtDir      = '/var/prt_weights',
-                    datDir      = '/var/mfd_data',
-                    timeZone    = 'America/New_York',
-                    schedTime   = '04:00',
-                    logFileName = '/var/log/mfd_prt_builder.log',
-                    verbose     = 1         ):
+                    stocks      = STOCKS,
+                    futures     = FUTURES,
+                    indexes     = INDEXES,
+                    maxAssets   = MAX_NUM_ASSETS,
+                    nEvalDays   = NUM_ASSET_EVAL_DAYS,
+                    nTrnDays    = NUM_TRN_DAYS,
+                    nOosDays    = NUM_OOS_DAYS,
+                    nPrdDays    = NUM_PRD_DAYS,
+                    nMadDays    = NUM_MAD_DAYS,                    
+                    maxOptItrs  = MAX_OPT_ITRS,
+                    optTol      = OPT_TOL,
+                    regCoef     = REG_COEF,                    
+                    factor      = FACTOR,
+                    modHead     = MOD_HEAD,
+                    prtHead     = PRT_HEAD,
+                    modDir      = MOD_DIR,
+                    prtDir      = PRT_DIR,
+                    datDir      = DAT_DIR,
+                    timeZone    = TIME_ZONE,
+                    schedTime   = SCHED_TIME,
+                    logFileName = LOG_FILE_NAME,
+                    verbose     = VERBOSE         ):
 
-        Daemon.__init__( self, '/var/run/mfd_prt_builder.pid' )
+        Daemon.__init__( self, PID_FILE )
 
         self.assets      = assets
         self.etfs        = etfs
         self.stocks      = stocks
         self.futures     = futures
         self.indexes     = indexes
+        self.maxAssets   = maxAssets
+        self.nEvalDays   = nEvalDays
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
         self.nPrdDays    = nPrdDays
@@ -118,6 +148,9 @@ class MfdPrtBuilder( Daemon ):
         
         assert set( assets ).issubset( set( self.velNames ) ), \
             'Assets should be a subset of velNames!'
+
+        assert self.maxAssets <= len( self.assets ), \
+            'maxAssets should be <= number of assets in the pool!'
 
         if not os.path.exists( self.modDir ):
             os.makedirs( self.modDir )
@@ -150,6 +183,219 @@ class MfdPrtBuilder( Daemon ):
 
         self.logger.info( 'Daemon is initialized ...' )            
             
+    def build( self ):
+
+        os.environ[ 'TZ' ] = self.timeZone
+
+        perfDf   = self.getPerformance()
+        perfHash = self.getLastPerfHash( perfDf )
+        
+        snapDate = datetime.datetime.now()
+        snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
+        snapDate = pd.to_datetime( snapDate )
+
+        if not DEBUG_MODE:
+            if snapDate.isoweekday() in [ 6, 7 ]:
+                return
+        
+        self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
+
+        self.setDfFile( snapDate )
+
+        maxOosDt = snapDate
+        maxTrnDt = maxOosDt - datetime.timedelta( days = self.nOosDays )
+        minTrnDt = maxTrnDt - datetime.timedelta( days = self.nTrnDays )
+
+        tmpStr   = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )
+        modFile  = self.modHead + tmpStr + '.dill'
+        prtFile  = self.prtHead + tmpStr + '.json'
+        modFile  = os.path.join( self.modDir, modFile )
+        prtFile  = os.path.join( self.prtDir, prtFile )
+
+        t0       = time.time()
+
+        mfdMod   = MfdMod( dfFile       = self.dfFile,
+                           minTrnDate   = minTrnDt,
+                           maxTrnDate   = maxTrnDt,
+                           maxOosDate   = maxOosDt,
+                           velNames     = self.velNames,
+                           maxOptItrs   = self.maxOptItrs,
+                           optGTol      = self.optTol,
+                           optFTol      = self.optTol,
+                           regCoef      = self.regCoef,
+                           factor       = self.factor,
+                           logFileName  = None,
+                           verbose      = self.verbose      )
+
+        try:
+            sFlag = mfdMod.build()
+        except Exception as e:
+            msgStr = e + '; Model build was unsuccessful!'
+            self.logger.error( msgStr )
+
+        if sFlag:
+            self.logger.info( 'Building model took %0.2f seconds!',
+                              ( time.time() - t0 ) )
+        else:
+            self.logger.error( 'The model did not converge!' )
+            return False
+
+        mfdMod.save( modFile )
+
+        if not os.path.exists( modFile ):
+            self.logger.error( 'New model file is not written to disk!' )
+            return False
+            
+        self.logger.info( 'Building portfolio for snapdate %s', str( snapDate ) )
+
+        t0     = time.time()
+        wtHash = {}
+        curDt  = snapDate
+        endDt  = snapDate + datetime.timedelta( days = self.nPrdDays )
+
+        nPrdTimes = int( self.nPrdDays * 19 * 60 )
+        nRetTimes = int( self.nMadDays * 19 * 60 )
+
+        if self.maxAssets is None:
+            assets = self.assets
+        else:
+            try:
+                eDf = utl.sortAssets( symbols = self.etfs,
+                                      nDays   = self.nEvalDays,
+                                      logger  = self.logger     )
+                assets = list( eDf.asset )[:self.maxAssets]
+            except Exception as e:
+                self.logger.error( e )
+        
+        mfdPrt = MfdPrt( modFile      = modFile,
+                         assets       = assets,
+                         nRetTimes    = nRetTimes,
+                         nPrdTimes    = nPrdTimes,
+                         strategy     = 'mad',
+                         minProbLong  = 0.5,
+                         minProbShort = 0.5,
+                         vType        = 'vel',
+                         fallBack     = 'macd',
+                         logFileName  = None,
+                         verbose      = 1          )
+
+        try:
+            wtHash = mfdPrt.getPortfolio()
+        except Exception as e:
+            msgStr = e + '; Portfolio build was unsuccessful!'
+            self.logger.error( msgStr )
+
+        self.savePrt( wtHash, prtFile )
+            
+        if not os.path.exists( prtFile ):
+            self.logger.error( 'New portfolio file is not written to disk!' )
+            return False
+        
+        self.logger.info( 'Building portfolio took %0.2f seconds!',
+                          ( time.time() - t0 ) )
+
+        try:
+            self.sendPrtAlert( wtHash, perfHash )
+        except Exception as e:
+            msgStr = e + '; Portfolio alert was NOT sent!'
+            self.logger.error( msgStr )
+
+        self.clean( self.datDir, NUM_DAYS_DATA_CLEAN )
+        self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
+        self.clean( self.prtDir, NUM_DAYS_PRT_CLEAN  )
+
+        self.cleanBucket( NUM_DAYS_PRT_CLEAN )
+            
+        return True
+    
+    def getPerformance( self, nPerfDays = 1 ):
+
+        self.logger.info( 'Processing and sending portfolio performance data...' )
+
+        perfDf = pd.DataFrame()
+        
+        try:
+            pattern  = self.modHead + '\d+-\d+-\d+_\d+:\d+:\d+.dill'        
+            modFiles = []
+            rankHash = {}
+            for fileName in os.listdir( self.modDir ):
+                
+                if not re.search( pattern, fileName ):
+                    continue
+
+                baseName = os.path.splitext( fileName )[0]
+                dateStr  = baseName.replace( self.modHead, '' )
+                tmp      = ' '.join( dateStr.split( '_' ) )
+                date     = pd.to_datetime( tmp )
+
+                rankHash[ fileName ] = date
+                
+                modFiles.append( fileName )
+
+            modFiles = sorted( modFiles,
+                               key     = lambda x : rankHash[x],
+                               reverse = True   )
+
+            cnt = 0
+            
+            for modName in modFiles: 
+            
+                baseName = os.path.splitext( modName )[0]
+                dateStr  = baseName.replace( self.modHead, '' )
+                prtName   = self.prtHead + dateStr + '.json'
+                modFile  = os.path.join( self.modDir, modName )            
+                prtFile  = os.path.join( self.prtDir, prtName )
+
+                if not os.path.exists( prtFile ):
+                    continue
+
+                with open( prtFile, 'r' ) as fHd:
+                    wtHash  = json.load( fHd )
+
+                try:
+                    tmpDf  = utl.evalMfdPrtPerf( modFile   = modFile,
+                                                 wtHash    = wtHash,
+                                                 shortFlag = False,
+                                                 invHash   = ETF_HASH,
+                                                 logger    = self.logger   )
+                    
+                    perfDf = pd.concat( [ perfDf, tmpDf ] )
+
+                    cnt += 1
+
+                    if cnt >= nPerfDays:
+                        break
+
+                    time.sleep( 1 )
+                    
+                except Exception as err:
+                    self.logger.warning( err )
+                    pass
+
+            perfDf = perfDf.reset_index( drop = True )
+            perfDf = perfDf.sort_values( 'snapDate', ascending = False ) 
+            
+        except Exception as e:
+            self.logger.error( e )
+
+        return perfDf
+
+    def getLastPerfHash( self, perfDf ):
+
+        perfHash = defaultdict( int )
+        perfDf   = perfDf.reset_index( drop = True )
+        perfDf   = perfDf.sort_values( 'snapDate', ascending = False ) 
+
+        try:
+            perfHash[ 'snapDate' ] = list( perfDf.snapDate )[0]
+            perfHash[ 'nPrdDays' ] = list( perfDf.nPrdDays )[0]
+            perfHash[ 'prtCnt'   ] = list( perfDf.prtCnt   )[0]
+            perfHash[ 'Return'   ] = list( perfDf.Return   )[0]
+        except Exception as e:
+            self.logger.warning( e )
+
+        return perfHash
+
     def setDfFile( self, snapDate ):
 
         self.logger.info( 'Getting data...' )
@@ -199,7 +445,8 @@ class MfdPrtBuilder( Daemon ):
                                       stocks  = self.stocks,
                                       futures = self.futures,
                                       indexes = self.indexes,
-                                      nDays   = nDays       )
+                                      nDays   = nDays,
+                                      logger  = self.logger  )
             self.logger.info( 'Done with getting new data!' )
         except Exception as e:
             self.logger.error( e )
@@ -296,115 +543,6 @@ class MfdPrtBuilder( Daemon ):
 
         self.logger.info( 'The new data file looks ok!' )
         
-    def build( self ):
-
-        os.environ[ 'TZ' ] = self.timeZone
-        snapDate = datetime.datetime.now()
-        snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
-        snapDate = pd.to_datetime( snapDate )
-
-        if not DEBUG_MODE:
-            if snapDate.isoweekday() in [ 6 ]:
-                return
-        
-        self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
-
-        self.setDfFile( snapDate )
-
-        maxOosDt = snapDate
-        maxTrnDt = maxOosDt - datetime.timedelta( days = self.nOosDays )
-        minTrnDt = maxTrnDt - datetime.timedelta( days = self.nTrnDays )
-
-        tmpStr   = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )
-        modFile  = self.modHead + tmpStr + '.dill'
-        prtFile  = self.prtHead + tmpStr + '.json'
-        modFile  = os.path.join( self.modDir, modFile )
-        prtFile  = os.path.join( self.prtDir, prtFile )
-
-        t0       = time.time()
-
-        mfdMod   = MfdMod( dfFile       = self.dfFile,
-                           minTrnDate   = minTrnDt,
-                           maxTrnDate   = maxTrnDt,
-                           maxOosDate   = maxOosDt,
-                           velNames     = self.velNames,
-                           maxOptItrs   = self.maxOptItrs,
-                           optGTol      = self.optTol,
-                           optFTol      = self.optTol,
-                           regCoef      = self.regCoef,
-                           factor       = self.factor,
-                           logFileName  = None,
-                           verbose      = self.verbose      )
-
-        try:
-            sFlag = mfdMod.build()
-        except Exception as e:
-            msgStr = e + '; Model build was unsuccessful!'
-            self.logger.error( msgStr )
-
-        if sFlag:
-            self.logger.info( 'Building model took %0.2f seconds!',
-                              ( time.time() - t0 ) )
-        else:
-            self.logger.error( 'The model did not converge!' )
-
-        mfdMod.save( modFile )
-
-        if not os.path.exists( modFile ):
-            self.logger.error( 'New model file is not written to disk!' )
-            return False
-            
-        self.logger.info( 'Building portfolio for snapdate %s', str( snapDate ) )
-
-        t0     = time.time()
-        wtHash = {}
-        curDt  = snapDate
-        endDt  = snapDate + datetime.timedelta( days = self.nPrdDays )
-
-        nPrdTimes = int( self.nPrdDays * 19 * 60 )
-        nRetTimes = int( self.nMadDays * 19 * 60 )
-
-        mfdPrt = MfdPrt( modFile      = modFile,
-                         assets       = self.assets,
-                         nRetTimes    = nRetTimes,
-                         nPrdTimes    = nPrdTimes,
-                         strategy     = 'mad',
-                         minProbLong  = 0.5,
-                         minProbShort = 0.5,
-                         vType        = 'vel',
-                         fallBack     = 'macd',
-                         logFileName  = None,
-                         verbose      = 1          )
-
-        try:
-            wtHash = mfdPrt.getPortfolio()
-        except Exception as e:
-            msgStr = e + '; Portfolio build was unsuccessful!'
-            self.logger.error( msgStr )
-
-        self.savePrt( wtHash, prtFile )
-            
-        if not os.path.exists( modFile ):
-            self.logger.error( 'New portfolio file is not written to disk!' )
-            return False
-        
-        self.logger.info( 'Building portfolio took %0.2f seconds!',
-                          ( time.time() - t0 ) )
-
-        try:
-            self.sendPrtAlert( wtHash )
-        except Exception as e:
-            msgStr = e + '; Portfolio alert was NOT sent!'
-            self.logger.error( msgStr )
-
-        self.clean( self.datDir, NUM_DAYS_DATA )
-        self.clean( self.modDir, NUM_DAYS_MOD )
-        self.clean( self.prtDir, NUM_DAYS_PRT )
-
-        self.cleanBucket( NUM_DAYS_PRT )
-            
-        return True
-
     def savePrt( self, wtHash, prtFile ):
 
         try:
@@ -431,7 +569,7 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             self.logger.error( e )
             
-    def sendPrtAlert( self, wtHash ):
+    def sendPrtAlert( self, wtHash, perfHash ):
 
         assets = list( wtHash.keys() )
         pars   = {}
@@ -439,9 +577,13 @@ class MfdPrtBuilder( Daemon ):
 
         for asset in assets:
             perc    = 100.0 * wtHash[ asset ]
-            tmpStr += '%10s: %0.2f %s\n\n' % ( asset, perc, '%' ) 
+            tmpStr += '\n %10s: %0.2f %s\n' % ( asset, perc, '%' ) 
 
         pars[ 'Portfolio' ] = tmpStr
+        pars[ 'snapDate'  ] = perfHash[ 'snapDate' ]
+        pars[ 'nPrdDays'  ] = perfHash[ 'nPrdDays' ]
+        pars[ 'prtCnt'    ] = perfHash[ 'prtCnt'   ]
+        pars[ 'Return'    ] = perfHash[ 'Return'   ]
 
         tempFile = open( USR_EMAIL_TEMPLATE, 'r' )
         tempStr  = tempFile.read()
@@ -452,7 +594,7 @@ class MfdPrtBuilder( Daemon ):
         self.logger.critical( msgStr )
         
         self.logger.info( 'Portfolio results sent to email lists!' )
-        
+
     def clean( self, fDir, nOldDays ):
 
         self.logger.info( 'Cleaning up %s of files more than %d days old...',
@@ -494,16 +636,28 @@ class MfdPrtBuilder( Daemon ):
                                       bucket.name )
                 except Exception as e:
                     self.logger.warning(e)
-            
+
+    def sendReport( self ):
+
+        perfDf = self.getPerformance( nPerfDays = MAX_PERFORMANCE_DAYS )
+
+        tmpStr = perfDf.to_string( col_space = 25,
+                                   index     = False,
+                                   justify   = 'center' ).replace( '\n', '\n\n' )
+
+        self.logger.error( tmpStr )
+        
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
         
         if not SCHED_FLAG:
+            self.sendReport()
             self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
-
+            schedule.every().friday.do( self.sendReport )
+            
             while True: 
                 schedule.run_pending() 
                 time.sleep( 60 )
