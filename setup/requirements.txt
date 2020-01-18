@@ -1,0 +1,10 @@
+numpy
+pandas
+matplotlib
+scipy
+scikit-learn
+dill
+requests
+schedule
+google-cloud-storage
+ta-lib
