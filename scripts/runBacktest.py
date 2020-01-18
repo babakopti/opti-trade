@@ -31,13 +31,13 @@ modFlag     = True
 if diffFlag:
     dfFile  = 'data/dfFile_2017plus_diff.pkl'
 else:
-    dfFile  = 'data/dfFile_kibot_2017plus.pkl'
+    dfFile  = 'data/dfFile_kibot_2016plus.pkl'
 
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2019-04-20 09:00:00' )
-bkEndDate   = pd.to_datetime( '2019-12-28 09:00:00' )
+bkBegDate   = pd.to_datetime( '2018-10-26 09:00:00' )
+bkEndDate   = pd.to_datetime( '2018-12-31 09:00:00' )
 
 # indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
 #                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -138,7 +138,7 @@ def buildModPrt( snapDate ):
 
     assets = []
 
-    eDf = utl.sortAssets( allETFs, 30 )
+    eDf = utl.sortAssets( allETFs, 90 )
     assets = list( eDf.asset )[:5]
     
     # perfs  = mfdMod.ecoMfd.getOosTrendPerfs( 'vel' )

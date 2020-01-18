@@ -17,19 +17,17 @@ import utl.utils as utl
 # Input
 # ***********************************************************************
 
-prtFiles    = [ 'portfolios/sorted_ETFs_portfolio.txt',
-                'portfolios/sorted_ETFs_portfolio_10.txt',
-                'portfolios/portfolio_sort_5_equal.txt',
-                'portfolios/portfolio_sort_10_equal.txt' ]
-legends     = [ '5 sorted ETFs, abs_sharpe, mad prt strategy',
-                '10 sorted ETFs, abs_sharpe, mad prt strategy',
-                '5 sorted ETFs, abs_sharpe, equal prt strategy',
-                '10 sorted ETFs, abs_sharpe, equal prt strategy' ]
-                
+prtFiles    = [ 'portfolios/sorted_ETFs_portfolio_30_eval_days.txt',
+                'portfolios/sorted_ETFs_portfolio_60_eval_days.txt',
+                'portfolios/sorted_ETFs_portfolio_90_eval_days.txt' ]
+legends     = [ '5 sorted ETFs, abs_sharpe, 30 eval. days',
+                '5 sorted ETFs, abs_sharpe, 60 eval. days',
+                '5 sorted ETFs, abs_sharpe, 90 eval. days' ]
+
 dfFile      = 'data/dfFile_kibot_2016plus.pkl'
 initTotVal  = 1000000.0
 
-outFile     = 'analysis-results/compare_sorted_ETFs_sharpe_5_vs_10.csv'
+outFile     = 'analysis-results/compare_sorted_ETFs_sharpe_eval_days.csv'
 
 invHash = {   'TQQQ' : 'SQQQ',
               'SPY'  : 'SH',
