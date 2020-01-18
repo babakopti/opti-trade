@@ -11,16 +11,18 @@ import pandas as pd
 import scipy
 import matplotlib.pyplot as plt
 
+from sklearn.linear_model import LinearRegression
+
 sys.path.append( os.path.abspath( '../' ) )
 
-from sklearn.linear_model import LinearRegression
+import utl.utils as utl
 from mod.mfdMod import MfdMod
 
 # ***********************************************************************
 # Get model and process
 # ***********************************************************************
 
-modFile  = 'model.dill'
+modFile  = 'models/mfd_model_2020-01-16_04:00:42.dill'
 
 t0       = time.time()
 print( 'Reading model file...' )
@@ -34,6 +36,10 @@ t0       = time.time()
 print( 'Getting Gamma...' )
 
 ecoMfd   = mfdMod.ecoMfd
+
+ecoMfd.logFileName = None
+ecoMfd.logger = utl.getLogger( None, 1 )
+
 nDims    = ecoMfd.nDims
 nTimes   = ecoMfd.nTimes
 nSteps   = ecoMfd.nSteps
@@ -78,6 +84,28 @@ for tsId in range( nTimes - 1 ):
 t = round( time.time()-t0, 1 )
 
 print( 'Calculating residuals took', t, 'seconds!' )
+
+# ***********************************************************************
+# Plot f(s) = residual[m] / y[m]
+# ***********************************************************************
+
+y = np.empty( shape = ( nDims, nTimes ), dtype = 'd' )
+
+for tsId in range( nTimes ):
+    for m in range( nDims ):
+        y[m][tsId] = res[m][tsId] / actSol[m][tsId]
+
+legends = []
+for m in range( 5 ): 
+    plt.plot( times[-1000:], y[m][-1000:] )
+    legends.append( velNames[m] )
+    
+plt.xlabel( 'Time' )
+plt.ylabel( 'f(s)' )
+plt.legend( legends ) 
+plt.show()
+
+sys.exit()
 
 # ***********************************************************************
 # Try to fit the source term (ODE residual)
