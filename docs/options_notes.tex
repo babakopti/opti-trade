@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{natbib}
+\renewcommand{\refname}{References}
+\usepackage{url}
+
+\title{A Proposed Strategy for Options Trading}
+
+\author{Babak Emami}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{An Options Trading Stategy}\label{section:options_trading}
+
+Here we propose a strategy for trading of options contracts, based on
+the differential geometric forecast model.
+
+When a trader buys a call or put option, the cost includes the option
+price and a commission fee. Note that options are often contracts
+consisting of 100 units of the underlying security. 
+
+Let us assume that $t_{s}$ is the current time. There is a profit on
+exercising a call option at time $t_{e} > t_{s}$ when,
+
+\begin{equation}\label{eqn:call-option-condition}
+y^{i}(t_{e}) > s_{e}^{i} + ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
+\end{equation}
+
+where $y^{i}(t)$ is the price of the underlying security at time $t$,
+$s^{e}_{i}$ is the strike price of the options, $\pi^{i}$ is price of
+the options (per unit in options contract), $C$ is the commision per
+unit in the options contract, and $\xi$ is the risk free interest rate
+per unit of time; note that $i \in [1,\tilde{n}] \cap \mathbb{N}$. For
+simplicity of notation, we define $\eta^{C}(t_{e}) \equiv s_{e}^{i} +
+( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )$.
+
+Similaryly, a put option is profitable when,
+
+\begin{equation}\label{eqn:put-option-condition}
+y^{i}(t_{e}) < s_{e}^{i} - ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
+\end{equation}
+
+For simplicity of notation, we define $\eta^{P}(t_{e}) \equiv
+s_{e}^{i} - ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )$.
+
+At given snapdate $t^{s}$, we build a differential geometric forecast
+model with $n$ variables, consisting of $\tilde{n}$ securities. We use
+this model to devise a strategy to trade on call and put options
+corresponding to these securities. The model predicts the price of the
+undelying assets that is $y^{i}(t)$.
+
+Based on the prediction, we should enter a call options contract if
+\ref{eqn:call-option-condition} holds. Let us assume $\bar{y}^{i}(t)$
+is the expected value of prediction of price of asset $i$, and
+$\sigma^{i}$ is the strandard deviation. Assuming a normal
+distribution, the probability of the condition
+\ref{eqn:call-option-condition} to hold is,
+
+\begin{equation}\label{eqn:call-option-condition}
+y^{i}(t_{e}) > s_{e}^{i} + ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
+\end{equation}
+
+\end{document}
