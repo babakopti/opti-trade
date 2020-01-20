@@ -36,7 +36,7 @@ $s^{e}_{i}$ is the strike price of the options, $\pi^{i}$ is price of
 the options (per unit in options contract), $C$ is the commision per
 unit in the options contract, and $\xi$ is the risk free interest rate
 per unit of time; note that $i \in [1,\tilde{n}] \cap \mathbb{N}$. For
-simplicity of notation, we define $\eta^{C}(t_{e}) \equiv s_{e}^{i} +
+simplicity of notation, we define $\eta^{c}(t_{e}) \equiv s_{e}^{i} +
 ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )$.
 
 Similaryly, a put option is profitable when,
@@ -45,7 +45,7 @@ Similaryly, a put option is profitable when,
 y^{i}(t_{e}) < s_{e}^{i} - ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
 \end{equation}
 
-For simplicity of notation, we define $\eta^{P}(t_{e}) \equiv
+For simplicity of notation, we define $\eta^{p}(t_{e}) \equiv
 s_{e}^{i} - ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )$.
 
 At given snapdate $t^{s}$, we build a differential geometric forecast
@@ -61,8 +61,37 @@ $\sigma^{i}$ is the strandard deviation. Assuming a normal
 distribution, the probability of the condition
 \ref{eqn:call-option-condition} to hold is,
 
-\begin{equation}\label{eqn:call-option-condition}
-y^{i}(t_{e}) > s_{e}^{i} + ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
+\begin{equation}\label{eqn:call-option-prob-intg}
+Pr[ y^{i}(t_{e}) > \eta^{c}(t_{e}) ] = \int_{\eta^{c}(t_{e})}^{\infty}
+\frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
+e^{\frac{-(\zeta-\bar{y}^{i}(t_{e}))^{2}}{2\sigma_{i}^{2}}} d\zeta
 \end{equation}
+
+This yields,
+
+\begin{equation}\label{eqn:call-option-prob}
+Pr[ y^{i}(t_{e}) > \eta^{c}(t_{e}) ] = \frac{1}{2} [ 1 - erf(
+  \frac{\eta^{c}(t_{e})-\bar{y}^{i}(t_{e})}{\sqrt{2} \sigma_{i}} ) ]
+\end{equation}
+
+Similary for a put option, the probability of
+condition \ref{eqn:put-option-condition} to hold is
+
+\begin{equation}\label{eqn:put-option-prob-intg}
+Pr[ y^{i}(t_{e}) < \eta^{p}(t_{e}) ] =
+\int_{-\infty}^{\eta^{p}(t_{e})} \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
+e^{\frac{-(\zeta-\bar{y}^{i}(t_{e}))^{2}}{2\sigma_{i}^{2}}} d\zeta
+\end{equation}
+
+This yields,
+
+\begin{equation}\label{eqn:call-option-prob}
+Pr[ y^{i}(t_{e}) < \eta^{p}(t_{e}) ] = \frac{1}{2} [ erf(
+  \frac{\eta^{p}(t_{e})-\bar{y}^{i}(t_{e})}{\sqrt{2} \sigma_{i}} ) -
+  erf( \frac{\bar{y}^{i}(t_{e})}{\sqrt{2} \sigma_{i}} ) ]
+\end{equation}
+
+
+
 
 \end{document}
