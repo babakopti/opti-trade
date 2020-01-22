@@ -127,6 +127,8 @@ def getKibotData( etfs        = [],
                   smoothCount = 1000,
                   smoothConf  = 10,
                   minRows     = 2,
+                  output      = 'price',                  
+                  interpolate = True,
                   logger      = None   ):
 
     t0       = time.time()
@@ -197,7 +199,12 @@ def getKibotData( etfs        = [],
                  'Volume' ]
     
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
-        tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
+
+        if output == 'volume':
+            tmpDf = tmpDf.rename( columns = { 'Volume' : symbol } )
+        else:
+            tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
+            
         tmpDf = tmpDf[ [ 'Date', 'Time', symbol ] ]
 
         # Remove anomalies
@@ -284,7 +291,12 @@ def getKibotData( etfs        = [],
                  'Volume' ]
     
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
-        tmpDf = tmpDf.rename( columns = { 'Close' : symbol } )
+
+        if output == 'volume':
+            tmpDf = tmpDf.rename( columns = { 'Volume' : symbol } )
+        else:
+            tmpDf = tmpDf.rename( columns = { 'Close' : symbol } )
+            
         tmpDf = tmpDf[ [ 'Date', symbol ] ]
         nRows = tmpDf.shape[0]
         
@@ -330,9 +342,12 @@ def getKibotData( etfs        = [],
     elif len( indexes ) > 0:
         df[ 'Date' ] = df[ 'Date' ].apply( pd.to_datetime )
         
-    df = df.sort_values( [ 'Date' ], ascending = [ True ] )    
-    df = df.interpolate( method = 'linear' )
-    df = df.dropna()
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+
+    if interpolate:
+        df = df.interpolate( method = 'linear' )
+        df = df.dropna()
+        
     df = df.reset_index( drop = True )
     
     logger.info( 'Getting %d symbols took %0.2f seconds!',
@@ -345,15 +360,16 @@ def getKibotData( etfs        = [],
 # getDailyKibotData( ): Read daily data from kibot
 # ***********************************************************************
 
-def getDailyKibotData( etfs     = [],
-                       futures  = [],
-                       stocks   = [],
-                       indexes  = [],
-                       nDays    = 365,
-                       maxTries = 10,
-                       timeout  = 60,
-                       minRows  = 2,
-                       logger   = None   ):
+def getDailyKibotData( etfs        = [],
+                       futures     = [],
+                       stocks      = [],
+                       indexes     = [],
+                       nDays       = 365,
+                       maxTries    = 10,
+                       timeout     = 60,
+                       minRows     = 2,
+                       interpolate = True,
+                       logger      = None   ):
 
     t0       = time.time()
     initFlag = True
@@ -446,9 +462,12 @@ def getDailyKibotData( etfs     = [],
     df = df[ [ 'Date' ] + symbols ]
     df[ 'Date' ] = df[ 'Date' ].apply( pd.to_datetime )
     
-    df = df.sort_values( [ 'Date' ], ascending = [ True ] )    
-    df = df.interpolate( method = 'linear' )
-    df = df.dropna()
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+
+    if interpolate:
+        df = df.interpolate( method = 'linear' )
+        df = df.dropna()
+        
     df = df.reset_index( drop = True )
     
     logger.info( 'Getting %d symbols took %0.2f seconds!',
