@@ -1,0 +1,116 @@
+A Strategy for Options Trading:
+
+# **************************************************************************
+# Introduction
+# **************************************************************************
+
+Here we propose a strategy for options trading, based on the
+differential geometric forecast model.
+
+# **************************************************************************
+# Sample pool of ETFs for options trading
+# **************************************************************************
+
+Let us have a pool of ETFs on which we want to trade options. An
+example can be the following,
+
+Symbol	Description
+
+QQQ	PowerShares QQQ	
+SPY	SPDR S&P 500 Growth ETF	
+DIA	SPDR Dow Jones Industrial Average ETF	
+MDY	SPDR S&P MidCap 400 ETF	
+IWM	iShares Russell 2000 Index Fund
+BBH	Market Vectors Biotech ETF
+PPH	Market Vectors Pharmaceutical ETF
+RTH	Market Vectors Retail ETF	
+SMH	Market Vectors Semiconductor ETF	
+XLC	Communication Services Select Sector SPDR Fund
+XLE	Energy Select Sector SPDR Fund	
+XLV	Health Care Select Sector SPDR Fund
+XLU	Utilities Select Sector SPDR Fund
+TLT	iShares Lehman 20+ Year Treasury Bond Fund
+IYR	iShares U.S. Real Estate ETF
+SLV	iShares Silver Trust
+GLD	SPDR Gold Shares
+USO	United States Oil Fund
+UNG	United States Natural Gas Fund
+TNA	Direxion Daily Small Cap Bull 3x Shares
+FAS	Direxion Daily Financial Bull 3x Shares
+
+# **************************************************************************
+# Proposed algorithm
+# **************************************************************************
+
+The following strategy is proposed,
+
+1) For a given current date (here on we call it the snapdate), a
+manifold model is built. Because Kibot date go back no more than 4
+years, we can train the model on the past 3 years so that there is one
+year for backtesting. We keep the last week as the out of sample
+period for testing. The model consists of the pool ETFs as well as
+other possible variables such as indexes and continuous futures.
+
+2) Get the options chains for all of the ETFs in the pool, with
+expirations dates up to a date in futures. This will depend on how
+good the model predicts long term and how much the forecast results
+deteriorate as we go forward in future. Overall, the manifold models
+seem to be better at long term predictions. With three years worth of
+training data, we can perhaps consider forecasting next six months or
+even more.
+
+3) Calculate the expected return of each call and put options contract
+in the chain. For a call option, this calculated as
+
+expected_return_call = ( max(y_expected(t)) - strike_price ) - cost_per_unit ) * quantity_in_contract
+
+For a put options we have,
+
+expected_return_put = ( strike_price - min(y_expected(t)) ) - cost_per_unit ) * quantity_in_contract
+
+where t_current < t <= min( t_expiration, t_max ), and y_expected(t)
+is the expected value of model price forecast at time t.
+
+Note that if the model has failed the out-of-sample test for a certain
+ETF, we drop all of its corresponding options.
+
+4) Select up to n first ETFs out of the pool with the highest options
+expected returns (call or put, whatever has higher return). Note that
+if return of an options contract is negative, we drop it out, even if
+we end up with an empty set.
+
+5) Calculate the win probabilities of these n options and based on
+that give a weight to each.
+
+6) Settle the current portfolio. If all cash, then skip this
+step. Otherwise, go through all options that we are currently
+holding. Calculate the return that we get with the following scenario,
+
+    6.A. Exercise the option is applicable
+    6.B. Sell th option if applicable
+    6.C. Hold on to it
+
+Note that the above evaluation is done using the most recent manifold model.
+
+If there is any cash left, then we buy options contracts according to
+what we calculated in (5). If the cash is not enough, then we use a
+subset of n (including an empty subset), giving priority to the
+options with higher expected returns.
+
+We should repeat the above steps at a certain cadence, for instance
+daily or weekly. Note that in many cases we may end up with no new
+options contracts, but building models frequently will allow for
+re-evaluation of the current portfolio (look at (6)) and will increase
+the probability of winning.
+
+# **************************************************************************
+# What is needed?
+# **************************************************************************
+
+1) We need to design a utility that can get a symbol and return the
+options chain. This can be perhaps based on Yahoo Finance which offers
+this for free.
+
+2) We need to find the right API for trading options.
+
+3) We need historical options data for backtesting.
