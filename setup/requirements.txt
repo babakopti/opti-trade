@@ -8,3 +8,4 @@ requests
 schedule
 google-cloud-storage
 ta-lib
+yfinance

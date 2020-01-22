@@ -11,6 +11,7 @@ import logging
 import dill
 import numpy as np
 import pandas as pd
+import yfinance as yf
 
 from logging.handlers import SMTPHandler
 from io import StringIO
@@ -962,3 +963,59 @@ def evalMfdPrtPerf( modFile,
                       'Assets' ] ]
     
     return outDf
+
+# ***********************************************************************
+# getOptionsChain: Get the options chain for a symbol 
+# ***********************************************************************
+
+def getOptionsChain( symbol,
+                     minExprDate  = None,
+                     maxExprDate  = None,
+                     minTradeDate = None,
+                     maxTries     = 10,
+                     logger       = None   ):
+    
+    for itr in range( maxTries ):
+        try:
+            yfObj = yf.Ticker( symbol )
+            break
+        except:
+            time.sleep( 1 )
+            continue
+
+    exprDates = list( yfObj.options )
+    cOptions  = []
+    pOptions  = []
+    
+    for date in exprDates:
+
+        if minExprDate is not None:
+            minDate = pd.to_datetime( minExprDate )
+            if pd.to_datetime( date ) < minDate:
+                continue
+
+        if maxExprDate is not None:
+            maxDate = pd.to_datetime( maxExprDate )
+            if pd.to_datetime( date ) > maxDate:
+                continue
+        
+        cDf = yfObj.option_chain( date ).calls
+
+        if minTradeDate is not None:
+            minDate = pd.to_datetime( minTradeDate )
+        else:
+            minDate = cDf.lastTradeDate.max().strftime( '%Y-%m-%d' )
+
+        cDf = cDf[ cDf.lastTradeDate >= minDate ]
+
+        pDf = yfObj.option_chain( date ).puts
+        
+        if minTradeDate is not None:
+            minDate = pd.to_datetime( minTradeDate )
+        else:
+            minDate = pDf.lastTradeDate.max().strftime( '%Y-%m-%d' )
+            
+        pDf = pDf[ pDf.lastTradeDate >= minDate ]        
+
+        
+            
