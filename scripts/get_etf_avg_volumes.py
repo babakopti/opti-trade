@@ -9,6 +9,7 @@ import pandas as pd
 sys.path.append( '../' )
 
 import utl.utils as utl
+from dat.assets import ETF_HASH
 
 # ***********************************************************************
 # Input
@@ -21,29 +22,35 @@ outFile = 'analysis-results/etf_avg_volumes.csv'
 # Analyze
 # ***********************************************************************
 
-eDf     = pd.read_csv( etfFile, delimiter = '\t' )
-symbols = []
-volumes = []
+#eDf     = pd.read_csv( etfFile, delimiter = '\t' )
+symbols    = []
+invSymbols = []
+volumes    = []
+invVolumes = []
 
-for symbol in list( set( eDf.Symbol ) ):
+for symbol in ETF_HASH.keys():
 
-    try:
-        etfs  = list( set( [ symbol, 'SPY' ] ) )
-        tmpDf = utl.getKibotData( etfs        = etfs,
-                                  nDays       = 2000,
-                                  interpolate = False,
-                                  output      = 'volume'  )
-        tmpDf = tmpDf.fillna( 0.0 )
+    invSymbol = ETF_HASH[ symbol ]
+    
+    etfs  = list( set( [ symbol, invSymbol, 'SPY' ] ) )
+    tmpDf = utl.getKibotData( etfs        = etfs,
+                              nDays       = 2000,
+                              interpolate = False,
+                              output      = 'volume'  )
 
-        symbols.append( symbol )
-        volumes.append( float( tmpDf[ symbol ].mean() ) )
+    tmpDf = tmpDf.fillna( 0.0 )
+
+    symbols.append( symbol )
+    invSymbols.append( invSymbol )
+    volumes.append( float( tmpDf[ symbol ].mean() ) )
+    invVolumes.append( float( tmpDf[ invSymbol ].mean() ) )
         
-    except Exception as e:
-        print( e )
-        print( 'Skipping %s...' % symbol )
-        continue
-        
-outDf = pd.DataFrame( { 'symbol' : symbols,
-                        'avg_volume' : volumes } )
+outDf = pd.DataFrame( { 'symbol'         : symbols,
+                        'inv_symbols'    : invSymbols,
+                        'avg_volume'     : volumes,
+                        'avg_inv_volume' : invVolumes } )
 
 outDf.to_csv( outFile, index = False )
+
+print( outDf )
+
