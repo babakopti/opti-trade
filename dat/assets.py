@@ -16,7 +16,8 @@ ETF_HASH = {    'QQQ'  : 'PSQ',
                 'UCO'  : 'SCO',
                 'BOIL' : 'KOLD',
                 'BIB'  : 'BIS',
-                'NUGT' : 'DUST' }               
+                'NUGT' : 'DUST',
+                'FREL' : 'REK'   }
 
 OLD_ETF_HASH = { 'TQQQ' : 'SQQQ',
               'SPY'  : 'SH',
