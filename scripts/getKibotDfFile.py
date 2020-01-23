@@ -15,46 +15,19 @@ sys.path.append( os.path.abspath( '../' ) )
 import utl.utils as utl
 
 from mod.mfdMod import MfdMod
+from dat.assets import ETF_HASH
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-dfFile    = 'data/dfFile_kibot_all.pkl'
+dfFile    = 'data/dfFile_kibot_all_popular.pkl'
 
 nDays     = 3000
 
 futures   = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-invHash   = { 'TQQQ' : 'SQQQ',
-              'SPY'  : 'SH',
-              'DDM'  : 'DXD',
-              'MVV'  : 'MZZ',
-              'UWM'  : 'TWM',
-              'SAA'  : 'SDD',
-              'UYM'  : 'SMN',
-              'UGE'  : 'SZK',
-              'UCC'  : 'SCC',
-              'FINU' : 'FINZ',
-              'RXL'  : 'RXD',
-              'UXI'  : 'SIJ',
-              'URE'  : 'SRS',
-              'ROM'  : 'REW',
-              'UJB'  : 'SJB',
-              'AGQ'  : 'ZSL',     
-              'DIG'  : 'DUG',
-              'USD'  : 'SSG',
-              'ERX'  : 'ERY',
-              'UYG'  : 'SKF',
-              'UCO'  : 'SCO',
-              'BOIL' : 'KOLD',
-              'UPW'  : 'SDP',
-              'UGL'  : 'GLL',
-              'BIB'  : 'BIS',
-              'UST'  : 'PST',
-              'UBT'  : 'TBT' }
-
-allETFs     = list( invHash.keys() ) + list( invHash.values() )
+allETFs     = list( ETF_HASH.keys() ) 
 
 # ***********************************************************************
 # Get data and save to pickle file
