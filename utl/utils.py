@@ -991,23 +991,33 @@ def getOptionsChain( symbol,
                      minExprDate  = None,
                      maxExprDate  = None,
                      minTradeDate = None,
-                     maxTries     = 10,
+                     minVolume    = 0,
+                     minInterest  = 0,
+                     maxTries     = 2,
                      logger       = None   ):
+
+    if logger is None:
+        logger = getLogger( None, 1 )
     
     for itr in range( maxTries ):
         try:
             yfObj = yf.Ticker( symbol )
             break
         except:
+            logger.warning( 'Could not connect, trying again...' )
             time.sleep( 1 )
             continue
 
+    assert itr < maxTries, 'Could not get ticket info from Yahoo!'
+    
     exprDates = list( yfObj.options )
-    cOptions  = []
-    pOptions  = []
+    options   = []
     
     for date in exprDates:
 
+        logger.debug( 'Getting options for expiration date %s',
+                      str( date ) )
+        
         if minExprDate is not None:
             minDate = pd.to_datetime( minExprDate )
             if pd.to_datetime( date ) < minDate:
@@ -1017,24 +1027,79 @@ def getOptionsChain( symbol,
             maxDate = pd.to_datetime( maxExprDate )
             if pd.to_datetime( date ) > maxDate:
                 continue
-        
-        cDf = yfObj.option_chain( date ).calls
 
+        cDf = None
+        for itr in range( maxTries ):
+            try:
+                cDf = yfObj.option_chain( date ).calls
+                break
+            except:
+                logger.warning( 'Could not connect, trying again...' )
+                time.sleep( 1 )
+                continue
+
+        if cDf is None:
+            logger.warning( 'Skipping expiration date %s', str( date ) )
+            continue
+            
         if minTradeDate is not None:
             minDate = pd.to_datetime( minTradeDate )
-        else:
-            minDate = cDf.lastTradeDate.max().strftime( '%Y-%m-%d' )
+            cDf     = cDf[ cDf.lastTradeDate >= minDate ]
 
-        cDf = cDf[ cDf.lastTradeDate >= minDate ]
+        cDf = cDf[ cDf.contractSize == 'REGULAR' ]
+        cDf = cDf[ cDf.volume >= minVolume ]
+        cDf = cDf[ cDf.openInterest >= minInterest ]
 
-        pDf = yfObj.option_chain( date ).puts
+        symList = list( cDf.contractSymbol )
+        stkList = list( cDf.strike )
+
+        assert len( symList ) == len( stkList ), 'Internal error!'
+
+        for i in range( len( symList ) ):
+            
+            item = { 'optionSymbol' : symList[i],
+                     'assetSymbol'  : symbol,
+                     'strike'       : stkList[i],
+                     'expiration'   : date,
+                     'type'         : 'call'      }
+            
+            options.append( item )
+
+        pDf = None
+        for itr in range( maxTries ):
+            try:
+                pDf = yfObj.option_chain( date ).puts                
+                break
+            except:
+                logger.warning( 'Could not connect, trying again...' )
+                time.sleep( 1 )
+                continue
+            
+        if pDf is None:
+            logger.warning( 'Skipping expiration date %s', str( date ) )
+            continue
         
         if minTradeDate is not None:
             minDate = pd.to_datetime( minTradeDate )
-        else:
-            minDate = pDf.lastTradeDate.max().strftime( '%Y-%m-%d' )
-            
-        pDf = pDf[ pDf.lastTradeDate >= minDate ]        
-
+            pDf     = pDf[ pDf.lastTradeDate >= minDate ]        
         
+        pDf = pDf[ pDf.contractSize == 'REGULAR' ]
+        pDf = pDf[ pDf.volume >= minVolume ]
+        pDf = pDf[ pDf.openInterest >= minInterest ]
+        
+        symList = list( pDf.contractSymbol )
+        stkList = list( pDf.strike )
+
+        assert len( symList ) == len( stkList ), 'Internal error!'
+
+        for i in range( len( symList ) ):
             
+            item = { 'optionSymbol' : symList[i],
+                     'assetSymbol'  : symbol,                     
+                     'strike'       : stkList[i],
+                     'expiration'   : date,
+                     'type'         : 'put'      }
+            
+            options.append( item )        
+
+    return options
