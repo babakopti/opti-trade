@@ -13,42 +13,16 @@ sys.path.append( '../' )
 
 import utl.utils as utl
 
+from dat.assets import ETF_HASH
+
 # ***********************************************************************
 # Input
 # ***********************************************************************
 
-prtFile     = 'p_5sortETF_kibot.txt'
-dfFile      = 'data/dfFile_kibot_2016plus.pkl'
+prtFile     = 'portfolios/popular_sorted_ETFs_portfolio_60_eval_days.txt'
+dfFile      = 'data/dfFile_kibot_all_popular_all.pkl'
 base        = 'SPY'
 initTotVal  = 1000000.0
-
-invHash = {   'TQQQ' : 'SQQQ',
-              'SPY'  : 'SH',
-              'DDM'  : 'DXD',
-              'MVV'  : 'MZZ',
-              'UWM'  : 'TWM',
-              'SAA'  : 'SDD',
-              'UYM'  : 'SMN',
-              'UGE'  : 'SZK',
-              'UCC'  : 'SCC',
-              'FINU' : 'FINZ',
-              'RXL'  : 'RXD',
-              'UXI'  : 'SIJ',
-              'URE'  : 'SRS',
-              'ROM'  : 'REW',
-              'UJB'  : 'SJB',
-              'AGQ'  : 'ZSL',     
-              'DIG'  : 'DUG',
-              'USD'  : 'SSG',
-              'ERX'  : 'ERY',
-              'UYG'  : 'SKF',
-              'UCO'  : 'SCO',
-              'BOIL' : 'KOLD',
-              'UPW'  : 'SDP',
-              'UGL'  : 'GLL',
-              'BIB'  : 'BIS',
-              'UST'  : 'PST',
-              'UBT'  : 'TBT' }
 
 # ***********************************************************************
 # Read portfolio dates, assets
@@ -64,7 +38,7 @@ retDf1 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                   dfFile     = dfFile,
                                   initTotVal = initTotVal,
                                   shortFlag  = False,
-                                  invHash    = invHash   )
+                                  invHash    = ETF_HASH   )
 
 retDf2 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                   dfFile     = dfFile,
