@@ -138,7 +138,10 @@ def buildModPrt( snapDate ):
 
     assets = []
 
-    eDf = utl.sortAssets( allETFs, 90 )
+    eDf = utl.sortBacktestAssets( symbols = allETFs,
+                                  dfFile  = dfFile,
+                                  begDate = snapDate - datetime.timedelta( days = 60 ),
+                                  endDate = snapDate  )
     assets = list( eDf.asset )[:5]
     
     # perfs  = mfdMod.ecoMfd.getOosTrendPerfs( 'vel' )

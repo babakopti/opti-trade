@@ -776,6 +776,85 @@ def calcBacktestReturns( prtWtsHash,
     return retDf
 
 # ***********************************************************************
+# getMadMeanKibot(): Get MAD and mean return of an ETF
+# ***********************************************************************
+
+def getBacktestMadMean( symbol,
+                        dfFile,
+                        begDate,
+                        endDate   ):
+
+    df    = pd.read_pickle( dfFile )
+    df    = df[ df.Date >= pd.to_datetime( begDate ) ]
+    df    = df[ df.Date <= pd.to_datetime( endDate ) ]
+    retDf = pd.DataFrame( { symbol: np.log( df[ symbol ] ).pct_change().dropna() } )
+    mean  = retDf.mean()
+    mad   = ( retDf - mean ).abs().mean()
+    mean  = float( mean )    
+    mad   = float( mad )
+    
+    return mad, mean
+
+# ***********************************************************************
+# sortBacktesAssets(): Sort assets for backtests
+# ***********************************************************************
+
+def sortBacktestAssets( symbols,
+                        dfFile,
+                        begDate,
+                        endDate,
+                        criterion = 'abs_sharpe',
+                        logger    = None    ):
+
+    assert criterion in [ 'abs_sharpe', 'abs_mean', 'mad' ], \
+        'Unkown criterion %s!' % criterion
+    
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    madList   = []
+    meanList  = []
+    assetList = []
+    
+    for symbol in symbols:
+
+        try:
+            mad, mean = getBacktestMadMean( symbol,
+                                            dfFile,
+                                            begDate,
+                                            endDate   )
+        except Exception as e:
+            logger.warning( e )
+            logger.warning( 'Skipping %s as could not get data!', symbol )
+            continue
+
+        assetList.append( symbol )
+        madList.append( mad )
+        meanList.append( mean )
+
+    eDf = pd.DataFrame( { 'asset' : assetList,
+                          'mad'   : madList,
+                          'mean'  : meanList } )
+
+    if criterion == 'abs_sharpe':
+        eDf[ 'score' ] = abs( eDf[ 'mean' ] ) / eDf[ 'mad' ]
+        ascending      = False
+    elif criterion == 'abs_mean':
+        eDf[ 'score' ] = abs( eDf[ 'mean' ] ) 
+        ascending      = False
+    elif criterion == 'mad':
+        eDf[ 'score' ] = eDf[ 'mad' ] 
+        ascending      = True
+    else:
+        assert False, 'Unkown criterion %s!' % criterion
+
+    eDf.sort_values( 'score', ascending = ascending, inplace = True )
+
+    eDf.reset_index( drop = True, inplace = True )
+    
+    return eDf
+
+# ***********************************************************************
 # evalPrtPerf: Evaluate a model / portfolio performance
 # ***********************************************************************
 
