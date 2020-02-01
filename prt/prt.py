@@ -31,14 +31,14 @@ OPT_TOL   = 1.0e-6
 MAX_ITERS = 10000
 
 # ***********************************************************************
-# Class MfdPrt: Model object for a manifold based portfolio
+# Class MfdPrt: Portfolio builder class
 # ***********************************************************************
 
 class MfdPrt:
 
     def __init__(   self,
                     modFile,
-                    assets,
+                    quoteHash,
                     nRetTimes,
                     nPrdTimes,
                     strategy     = 'mad',
@@ -72,8 +72,9 @@ class MfdPrt:
 
         self.vType = vType
 
+        self.quoteHash = quoteHash
         self.assets    = []
-        for asset in assets:
+        for asset in quoteHash:
             if asset not in self.vList:
                 self.logger.warning( 'Dropping %s ; not found in the model %s',
                                      asset,
@@ -85,7 +86,7 @@ class MfdPrt:
         self.nRetTimes   = nRetTimes
         self.nPrdTimes   = nPrdTimes
 
-        if strategy not in [ 'mad', 'gain', 'gain_mad', 'prob', 'equal' ]:
+        if strategy not in [ 'mad', 'mean_mad', 'prd_gain_std', 'equal' ]:
             self.logger.error( 'Strategy %s is not known!', strategy )
             assert False, 'Strategy %s is not known!' % strategy
 
@@ -111,13 +112,11 @@ class MfdPrt:
         self.prdSol       = None
         self.stdVec       = None
         self.optFuncVals  = None
-        self.quoteHash    = None
         self.trendHash    = None
 
         self.setRetDf()
         self.setPrdSol()
         self.setPrdStd()
-        self.setQuoteHash()
         self.setPrdTrends()
 
     def setRetDf( self ):
@@ -126,7 +125,6 @@ class MfdPrt:
         nRetTimes  = self.nRetTimes
         ecoMfd     = self.ecoMfd
         actSol     = ecoMfd.actSol
-        actOosSol  = ecoMfd.actOosSol
         nOosTimes  = ecoMfd.nOosTimes
 
         for m in range( ecoMfd.nDims ):
@@ -153,16 +151,30 @@ class MfdPrt:
         bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
 
         for m in range( ecoMfd.nDims ):
-            bcVec[m]  = actOosSol[m][-1] 
+            
+            item = self.vList[m]
 
-        odeObj   = OdeGeoConst( Gamma    = Gamma,
-                                bcVec    = bcVec,
-                                bcTime   = 0.0,
-                                timeInc  = 1.0,
-                                nSteps   = nPrdTimes - 1,
-                                intgType = 'LSODA',
-                                tol      = ODE_TOL,
-                               verbose  = self.verbose       )
+            if item in self.quoteHash:
+                tmp       = ecoMfd.deNormHash[ item ]
+                slope     = tmp[0]
+                intercept = tmp[1]
+                
+                slopeInv  = slope
+                if slopeInv != 0:
+                    slopeInv = 1.0 / slopeInv
+                    
+                bcVec[m] = slopeInv * ( self.quoteHash[ item ] - intercept )
+            else:
+                bcVec[m] = actOosSol[m][-1] 
+
+        odeObj = OdeGeoConst( Gamma    = Gamma,
+                              bcVec    = bcVec,
+                              bcTime   = 0.0,
+                              timeInc  = 1.0,
+                              nSteps   = nPrdTimes - 1,
+                              intgType = 'LSODA',
+                              tol      = ODE_TOL,
+                              verbose  = self.verbose       )
 
         sFlag    = odeObj.solve()
 
@@ -208,28 +220,8 @@ class MfdPrt:
 
         return stdVec
 
-    def setQuoteHash( self ):
-
-        ecoMfd    = self.ecoMfd
-        nDims     = ecoMfd.nDims
-        actOosSol = ecoMfd.actOosSol
-        quoteHash = {}
-
-        for m in range( nDims ):
-            asset     = self.vList[m]
-            tmp       = ecoMfd.deNormHash[ asset ]
-            slope     = tmp[0]
-            intercept = tmp[1]
-
-            quoteHash[ asset ] = slope * actOosSol[m][-1] + intercept 
-
-        self.quoteHash = quoteHash
-
-        return quoteHash
-
     def setPrdTrends( self ):
 
-        quoteHash = self.quoteHash
         mfdMod    = self.mfdMod
         ecoMfd    = self.ecoMfd
         nDims     = ecoMfd.nDims
@@ -250,7 +242,7 @@ class MfdPrt:
             if asset not in self.assets:
                 continue
 
-            curPrice = quoteHash[ asset ]
+            curPrice = prdSol[m][0]
             trend    = 0.0
             prob     = 0.0
 
@@ -280,7 +272,7 @@ class MfdPrt:
             if self.fallBack is None:
                 self.trendHash[ asset ] = ( trend, prob )
             else:
-                if perfs[m]: #and mfdMod.converged:
+                if perfs[m]: 
                     self.trendHash[ asset ] = ( trend, prob )
                 else:
                     self.logger.warning( 'Falling back on %s for asset %s!',
@@ -378,7 +370,6 @@ class MfdPrt:
         t0           = time.time()
         strategy     = self.strategy
         assets       = self.assets
-        quoteHash    = self.quoteHash
         minProbLong  = self.minProbLong 
         minProbShort = self.minProbShort
         nAssets      = len( assets )
@@ -445,12 +436,10 @@ class MfdPrt:
 
         if strategy == 'mad':
             optFunc = self.getMadFunc
-        elif strategy == 'gain':
-            optFunc = self.getGainFunc
-        elif strategy == 'gain_mad':
-            optFunc = self.getGainMadFunc
-        elif strategy == 'prob':
-            optFunc = self.getProbFunc
+        elif strategy == 'mean_mad':
+            optFunc = self.getMeanMadFunc
+        elif strategy == 'prd_gain_std':
+            optFunc = self.getPrdGainStdFunc
         else:
             self.logger.error( 'Strategy %s is not known!', strategy )
             assert False, 'Strategy %s is not known!' % strategy
@@ -520,16 +509,36 @@ class MfdPrt:
 
         return mad 
 
-    def getGainFunc( self, wts ):
+    def getMeanMadFunc( self, wts ):
+
+        mad  = self.getMadFunc( wts )
+        mean = self.retDf.mean().dot( wts )
+        
+        madInv = mad
+        if madInv > 0:
+            madInv = 1.0 / madInv
+            
+        val = -abs( mean ) * madInv
+        
+        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
+
+        if abs( sumFunc( wts ) ) < self.optTol:
+            self.optFuncVals.append( val )
+
+        return val
+
+    def getPrdGainStdFunc( self, wts ):
 
         ecoMfd      = self.ecoMfd        
         quoteHash   = self.quoteHash
-        totAssetVal = self.totAssetVal 
         assets      = self.assets
         prdSol      = self.prdSol
+        stdVec      = self.stdVec
         nAssets     = len( assets )
         gain        = 0.0
-
+        variance    = 0.0
+        std         = 0.0
+        
         for assetId in range( nAssets ):
 
             asset    = assets[assetId]
@@ -547,59 +556,24 @@ class MfdPrt:
                 self.logger.error( 'Asset %s not found in the model!', asset )
                 assert False, 'Asset %s not found in the model!' % asset
 
-            prdPrice = np.mean( prdSol[m] )
+            prdPrice  = prdSol[m][-1]
 
-            curPrice = np.log( curPrice )
-            prdPrice = np.log( prdPrice )
-            gain    += wts[assetId] * ( prdPrice - curPrice ) /  curPrice
+            curPrice  = np.log( curPrice )
+            prdPrice  = np.log( prdPrice )
+            gain     += wts[assetId] * ( prdPrice - curPrice ) /  curPrice
+            variance += ( wts[assetId] * stdVec[m] / curPrice )**2
 
-        val = 1.0 / gain
-
-        sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
-
-        if abs( sumFunc( wts ) ) < self.optTol:
-            self.optFuncVals.append( val )
-
-        return val
-
-    def getGainMadFunc( self, wts ):
-
-        gainInv = self.getGainFunc( wts )
-        mad     = self.getMadFunc(  wts )
-        val     = gainInv * mad
+        std = np.sqrt( variance )
+        
+        stdInv = std
+        if stdInv > 0:
+            stdInc = 1.0 / stdInv
+            
+        val = -gain * stdInv 
 
         sumFunc = lambda wts : ( sum( abs( wts ) ) - 1.0 )
 
         if abs( sumFunc( wts ) ) < self.optTol:
-            self.optFuncVals.append( val )
-
-        return val
-
-    def getProbFunc( self, wts ):
-
-        assets     = self.assets
-        nAssets    = len( assets )
-        trendHash  = self.trendHash
-        val        = 0.0
-
-        for i in range( nAssets ):
-            asset = assets[i]
-            prob  = trendHash[ asset ][1]
-            val  += abs( wts[i] ) * prob
-
-        tmpSum = np.sum( abs( wts ) )
-        val   /= tmpSum
-        val    = 1.0 - val
-
-        if val < 0.0:
-            self.logger.error( 'Invalid value %f of probability!', val )
-            assert False, 'Invalid value %f of probability!' % val
-
-        if val > 1.0:
-            self.logger.error( 'Invalid value %f of probability!', val )
-            assert False, 'Invalid value %f of probability!' % val
-
-        if abs( tmpSum - 1.0 ) < self.optTol:
             self.optFuncVals.append( val )
 
         return val
