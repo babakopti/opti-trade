@@ -26,7 +26,7 @@ from prt.prt import MfdPrt
 # ***********************************************************************
 
 diffFlag    = False
-modFlag     = True
+modFlag     = False
 
 if diffFlag:
     dfFile  = 'data/dfFile_2017plus_diff.pkl'
@@ -36,8 +36,8 @@ else:
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2018-10-26 09:00:00' )
-bkEndDate   = pd.to_datetime( '2018-12-31 09:00:00' )
+bkBegDate   = pd.to_datetime( '2018-01-01 09:00:00' )
+bkEndDate   = pd.to_datetime( '2020-01-20 09:00:00' )
 
 # indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
 #                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -136,24 +136,32 @@ def buildModPrt( snapDate ):
     nPrdTimes = int( nDays * 19 * 60 )
     nRetTimes = int( 30 * 17 * 60 )  
 
-    assets = []
-
     eDf = utl.sortBacktestAssets( symbols = allETFs,
                                   dfFile  = dfFile,
                                   begDate = snapDate - datetime.timedelta( days = 60 ),
                                   endDate = snapDate  )
     assets = list( eDf.asset )[:5]
     
-    # perfs  = mfdMod.ecoMfd.getOosTrendPerfs( 'vel' )
-    # for i in range( mfdMod.ecoMfd.nDims ):
-    #     if mfdMod.ecoMfd.velNames[i] in allETFs and perfs[i]:
-    #         assets.append( mfdMod.ecoMfd.velNames[i] )
-    
+    ecoMfd = mfdMod.ecoMfd
+    quoteHash = {}
+    for m in range( ecoMfd.nDims ):
+
+        asset = ecoMfd.velNames[m]
+
+        if asset not in assets:
+            continue
+        
+        tmp       = ecoMfd.deNormHash[ asset ]
+        slope     = tmp[0]
+        intercept = tmp[1]
+        
+        quoteHash[ asset ] = slope * ecoMfd.actOosSol[m][-1] + intercept
+        
     mfdPrt = MfdPrt( modFile      = modFilePath,
-                     assets       = assets,
+                     quoteHash    = quoteHash,
                      nRetTimes    = nRetTimes,
                      nPrdTimes    = nPrdTimes,
-                     strategy     = 'mad',
+                     strategy     = 'equal',
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
                      vType        = vType,
@@ -191,7 +199,7 @@ def worker(snapDate):
 
 if __name__ ==  '__main__':
     snapDate = bkBegDate
-    pool     = Pool()
+    pool     = Pool(6)
 
     while snapDate <= bkEndDate:
 
