@@ -25,7 +25,7 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from dat.assets import ETF_HASH
+from dat.assets import OLD_ETF_HASH as ETF_HASH
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
 
@@ -82,6 +82,7 @@ USE_OLD_DATA = False
 NUM_DAYS_DATA_CLEAN = 2
 NUM_DAYS_MOD_CLEAN  = 30
 NUM_DAYS_PRT_CLEAN  = 730
+NUM_DAYS_BUCKET_CLEAN = 5
 
 GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
 GOOGLE_BUCKET = 'prt-storage'
@@ -240,7 +241,7 @@ class MfdPrtBuilder( Daemon ):
             self.logger.error( 'The model did not converge!' )
             return False
 
-        mfdMod.save( modFile )
+        self.saveMod( mfdMod, modFile )
 
         if not os.path.exists( modFile ):
             self.logger.error( 'New model file is not written to disk!' )
@@ -271,7 +272,7 @@ class MfdPrtBuilder( Daemon ):
                          assets       = assets,
                          nRetTimes    = nRetTimes,
                          nPrdTimes    = nPrdTimes,
-                         strategy     = 'mad',
+                         strategy     = 'equal',
                          minProbLong  = 0.5,
                          minProbShort = 0.5,
                          vType        = 'vel',
@@ -304,7 +305,7 @@ class MfdPrtBuilder( Daemon ):
         self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
         self.clean( self.prtDir, NUM_DAYS_PRT_CLEAN  )
 
-        self.cleanBucket( NUM_DAYS_PRT_CLEAN )
+        self.cleanBucket( NUM_DAYS_BUCKET_CLEAN )
             
         return True
     
@@ -542,7 +543,32 @@ class MfdPrtBuilder( Daemon ):
                 self.stop()
 
         self.logger.info( 'The new data file looks ok!' )
-        
+
+    def saveMod( self, mfdMod, modFile ):
+
+        try:
+            mfdMod.save( modFile )
+        except Exception as e:
+            self.logger.error( e )
+
+        if not os.path.exists( modFile ):
+            self.logger.error( 'The model file was not generated!' )
+
+        try:
+            client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
+            bucket   = client.get_bucket( GOOGLE_BUCKET )
+            baseName = os.path.basename( modFile )
+            blob     = bucket.blob( baseName )
+            
+            with open( modFile, 'rb' ) as fHd:
+                blob.upload_from_file( fHd )
+
+            self.logger.info( 'The model file %s was saved to bucket!',
+                              baseName )
+
+        except Exception as e:
+            self.logger.error( e )
+            
     def savePrt( self, wtHash, prtFile ):
 
         try:
