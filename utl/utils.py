@@ -723,6 +723,8 @@ def getMadMean( symbols,
                 mode = 'daily'   ):
 
     df = pd.read_pickle( dfFile )
+    df = df[ df.Date >= pd.to_datetime( begDate ) ]
+    df = df[ df.Date <= pd.to_datetime( endDate ) ]
 
     if mode == 'daily':
        tmpFunc     = lambda x : pd.to_datetime( x ).date()
@@ -730,9 +732,6 @@ def getMadMean( symbols,
        df          = df.groupby( [ 'tmp' ],
                                  as_index = False )[ symbols ].mean()
        df          = df.rename( columns = { 'tmp' : 'Date' } )
-       
-    df = df[ df.Date >= pd.to_datetime( begDate ) ]
-    df = df[ df.Date <= pd.to_datetime( endDate ) ]
 
     madList  = []
     meanList = []
