@@ -36,8 +36,8 @@ else:
 nTrnDays    = 360
 nOosDays    = 3
 nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2018-01-01 09:00:00' )
-bkEndDate   = pd.to_datetime( '2020-01-20 09:00:00' )
+bkBegDate   = pd.to_datetime( '2019-01-01 09:00:00' )
+bkEndDate   = pd.to_datetime( '2019-03-31 09:00:00' )
 
 # indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
 #                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
@@ -136,10 +136,12 @@ def buildModPrt( snapDate ):
     nPrdTimes = int( nDays * 19 * 60 )
     nRetTimes = int( 30 * 17 * 60 )  
 
-    eDf = utl.sortBacktestAssets( symbols = allETFs,
-                                  dfFile  = dfFile,
-                                  begDate = snapDate - datetime.timedelta( days = 60 ),
-                                  endDate = snapDate  )
+    eDf = utl.sortAssets( symbols   = allETFs,
+                          dfFile    = dfFile,
+                          begDate   = snapDate - datetime.timedelta( days = 60 ),
+                          endDate   = snapDate,
+                          criterion = 'abs_sharpe',                          
+                          mode      = 'daily'     )
     assets = list( eDf.asset )[:5]
     
     ecoMfd = mfdMod.ecoMfd

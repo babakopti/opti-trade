@@ -438,7 +438,7 @@ def getDailyKibotData( etfs        = [],
                  'Volume' ]
     
         tmpDf = pd.read_csv( StringIO( resp.text ), names = cols )
-        tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
+        tmpDf = tmpDf.rename( columns = { 'Close' : symbol } )
         tmpDf = tmpDf[ [ 'Date', symbol ] ]
         nRows = tmpDf.shape[0]
         
@@ -513,69 +513,6 @@ def getMadMeanKibot( symbol,
     mad   = float( mad )
     
     return mad, mean
-
-# ***********************************************************************
-# selectETFs(): Select ETFs
-# ***********************************************************************
-
-def sortAssets( symbols,
-                nDays,
-                criterion = 'abs_sharpe',
-                sType     = 'ETF',
-                minRows   = 2,
-                logger    = None    ):
-
-    assert criterion in [ 'abs_sharpe', 'abs_mean', 'mad' ], \
-        'Unkown criterion %s!' % criterion
-    
-    if logger is None:
-        logger = getLogger( None, 1 )
-
-    madList   = []
-    meanList  = []
-    assetList = []
-    
-    for symbol in symbols:
-
-        try:
-            mad, mean = getMadMeanKibot( symbol,
-                                         sType    = sType,
-                                         nDays    = nDays,
-                                         interval = 1,
-                                         maxTries = 10,
-                                         timeout  = 60,
-                                         minRows  = minRows,
-                                         logger   = logger   )
-        except Exception as e:
-            logger.warning( e )
-            logger.warning( 'Skipping %s as could not get data!', symbol )
-            continue
-
-        assetList.append( symbol )
-        madList.append( mad )
-        meanList.append( mean )
-
-    eDf = pd.DataFrame( { 'asset' : assetList,
-                          'mad'   : madList,
-                          'mean'  : meanList } )
-
-    if criterion == 'abs_sharpe':
-        eDf[ 'score' ] = abs( eDf[ 'mean' ] ) / eDf[ 'mad' ]
-        ascending      = False
-    elif criterion == 'abs_mean':
-        eDf[ 'score' ] = abs( eDf[ 'mean' ] ) 
-        ascending      = False
-    elif criterion == 'mad':
-        eDf[ 'score' ] = eDf[ 'mad' ] 
-        ascending      = True
-    else:
-        assert False, 'Unkown criterion %s!' % criterion
-
-    eDf.sort_values( 'score', ascending = ascending, inplace = True )
-
-    eDf.reset_index( drop = True, inplace = True )
-    
-    return eDf
 
 # ***********************************************************************
 # calcBacktestReturns: Calculate portfolio returns over a period
@@ -776,35 +713,53 @@ def calcBacktestReturns( prtWtsHash,
     return retDf
 
 # ***********************************************************************
-# getMadMeanKibot(): Get MAD and mean return of an ETF
+# getMadMean(): Get MAD and mean for a list of assets
 # ***********************************************************************
 
-def getBacktestMadMean( symbol,
-                        dfFile,
-                        begDate,
-                        endDate   ):
+def getMadMean( symbols,
+                dfFile,
+                begDate,
+                endDate,
+                mode = 'daily'   ):
 
-    df    = pd.read_pickle( dfFile )
-    df    = df[ df.Date >= pd.to_datetime( begDate ) ]
-    df    = df[ df.Date <= pd.to_datetime( endDate ) ]
-    retDf = pd.DataFrame( { symbol: np.log( df[ symbol ] ).pct_change().dropna() } )
-    mean  = retDf.mean()
-    mad   = ( retDf - mean ).abs().mean()
-    mean  = float( mean )    
-    mad   = float( mad )
+    df = pd.read_pickle( dfFile )
+
+    if mode == 'daily':
+       tmpFunc     = lambda x : pd.to_datetime( x ).date()
+       df[ 'tmp' ] = df.Date.apply( tmpFunc )
+       df          = df.groupby( [ 'tmp' ],
+                                 as_index = False )[ symbols ].mean()
+       df          = df.rename( columns = { 'tmp' : 'Date' } )
+       
+    df = df[ df.Date >= pd.to_datetime( begDate ) ]
+    df = df[ df.Date <= pd.to_datetime( endDate ) ]
+
+    madList  = []
+    meanList = []
     
-    return mad, mean
+    for symbol in symbols:
+        tmpVec = np.log( df[ symbol ] ).pct_change().dropna()
+        mean   = tmpVec.mean()
+        mad    = ( tmpVec - tmpVec.mean() ).abs().mean()
+        mean   = float( mean )    
+        mad    = float( mad )
+
+        madList.append( mad )
+        meanList.append( mean )
+    
+    return madList, meanList
 
 # ***********************************************************************
-# sortBacktesAssets(): Sort assets for backtests
+# sortAssets(): Sort assets 
 # ***********************************************************************
 
-def sortBacktestAssets( symbols,
-                        dfFile,
-                        begDate,
-                        endDate,
-                        criterion = 'abs_sharpe',
-                        logger    = None    ):
+def sortAssets( symbols,
+                dfFile,
+                begDate,
+                endDate,
+                criterion = 'abs_sharpe',
+                mode      = 'daily',
+                logger    = None    ):
 
     assert criterion in [ 'abs_sharpe', 'abs_mean', 'mad' ], \
         'Unkown criterion %s!' % criterion
@@ -812,27 +767,13 @@ def sortBacktestAssets( symbols,
     if logger is None:
         logger = getLogger( None, 1 )
 
-    madList   = []
-    meanList  = []
-    assetList = []
-    
-    for symbol in symbols:
+    madList, meanList = getMadMean( symbols = symbols,
+                                    dfFile  = dfFile,
+                                    begDate = begDate,
+                                    endDate = endDate,
+                                    mode    = mode      )
 
-        try:
-            mad, mean = getBacktestMadMean( symbol,
-                                            dfFile,
-                                            begDate,
-                                            endDate   )
-        except Exception as e:
-            logger.warning( e )
-            logger.warning( 'Skipping %s as could not get data!', symbol )
-            continue
-
-        assetList.append( symbol )
-        madList.append( mad )
-        meanList.append( mean )
-
-    eDf = pd.DataFrame( { 'asset' : assetList,
+    eDf = pd.DataFrame( { 'asset' : symbols,
                           'mad'   : madList,
                           'mean'  : meanList } )
 

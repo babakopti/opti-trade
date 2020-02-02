@@ -251,8 +251,6 @@ class MfdPrtBuilder( Daemon ):
 
         t0     = time.time()
         wtHash = {}
-        curDt  = snapDate
-        endDt  = snapDate + datetime.timedelta( days = self.nPrdDays )
 
         nPrdTimes = int( self.nPrdDays * 19 * 60 )
         nRetTimes = int( self.nMadDays * 19 * 60 )
@@ -562,18 +560,24 @@ class MfdPrtBuilder( Daemon ):
 
     def getQuoteHash( self, mfdMod ):
 
+        ecoMfd    = mfdMod.ecoMfd
+        snapDate  = ecoMfd.maxOosDate
+        endDate   = snapDate
+        begDate   = endDate - datetime.timedelta( days = self.nEvalDays )
+        
         if self.maxAssets is None:
             assets = self.assets
         else:
             try:
                 eDf = utl.sortAssets( symbols = self.etfs,
-                                      nDays   = self.nEvalDays,
+                                      dfFile  = self.dfFile,
+                                      begDate = begDate,
+                                      endDate = endDate,
                                       logger  = self.logger     )
                 assets = list( eDf.asset )[:self.maxAssets]
             except Exception as e:
                 self.logger.error( e )
 
-        ecoMfd    = mfdMod.ecoMfd
         quoteHash = {}
     
         for m in range( ecoMfd.nDims ):
