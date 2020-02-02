@@ -257,19 +257,10 @@ class MfdPrtBuilder( Daemon ):
         nPrdTimes = int( self.nPrdDays * 19 * 60 )
         nRetTimes = int( self.nMadDays * 19 * 60 )
 
-        if self.maxAssets is None:
-            assets = self.assets
-        else:
-            try:
-                eDf = utl.sortAssets( symbols = self.etfs,
-                                      nDays   = self.nEvalDays,
-                                      logger  = self.logger     )
-                assets = list( eDf.asset )[:self.maxAssets]
-            except Exception as e:
-                self.logger.error( e )
+        quoteHash = self.getQuoteHash( mfdMod )
         
         mfdPrt = MfdPrt( modFile      = modFile,
-                         assets       = assets,
+                         quoteHash    = quoteHash,
                          nRetTimes    = nRetTimes,
                          nPrdTimes    = nPrdTimes,
                          strategy     = 'equal',
@@ -568,7 +559,38 @@ class MfdPrtBuilder( Daemon ):
 
         except Exception as e:
             self.logger.error( e )
-            
+
+    def getQuoteHash( self, mfdMod ):
+
+        if self.maxAssets is None:
+            assets = self.assets
+        else:
+            try:
+                eDf = utl.sortAssets( symbols = self.etfs,
+                                      nDays   = self.nEvalDays,
+                                      logger  = self.logger     )
+                assets = list( eDf.asset )[:self.maxAssets]
+            except Exception as e:
+                self.logger.error( e )
+
+        ecoMfd    = mfdMod.ecoMfd
+        quoteHash = {}
+    
+        for m in range( ecoMfd.nDims ):
+
+            asset = ecoMfd.velNames[m]
+
+            if asset not in assets:
+                continue
+        
+            tmp       = ecoMfd.actOosSol[m][-1]
+            slope     = ecoMfd.deNormHash[ asset ][0]
+            intercept = ecoMfd.deNormHash[ asset ][1]
+        
+            quoteHash[ asset ] = slope * tmp + intercept
+
+        return quoteHash
+    
     def savePrt( self, wtHash, prtFile ):
 
         try:
