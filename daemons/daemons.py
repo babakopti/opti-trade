@@ -26,6 +26,7 @@ sys.path.append( os.path.abspath( '../' ) )
 import utl.utils as utl
 
 from dat.assets import OLD_ETF_HASH as ETF_HASH
+from dat.assets import SUB_ETF_HASH
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
 
@@ -36,9 +37,11 @@ from prt.prt import MfdPrt
 INDEXES  = []
 STOCKS   = []
 
-ETFs     = list( ETF_HASH.keys() )
+ETFS     = list( ETF_HASH.keys() )
 
 FUTURES  = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+
+ASSETS   = list( SUB_ETF_HASH.keys() )
 
 MAX_NUM_ASSETS = 5
 NUM_ASSET_EVAL_DAYS = 60
@@ -94,8 +97,8 @@ GOOGLE_BUCKET = 'prt-storage'
 class MfdPrtBuilder( Daemon ):
 
     def __init__(   self,
-                    assets      = ETFs,
-                    etfs        = ETFs,
+                    assets      = ASSETS,
+                    etfs        = ETFS,
                     stocks      = STOCKS,
                     futures     = FUTURES,
                     indexes     = INDEXES,
@@ -569,7 +572,7 @@ class MfdPrtBuilder( Daemon ):
             assets = self.assets
         else:
             try:
-                eDf = utl.sortAssets( symbols = self.etfs,
+                eDf = utl.sortAssets( symbols = self.assets,
                                       dfFile  = self.dfFile,
                                       begDate = begDate,
                                       endDate = endDate,
