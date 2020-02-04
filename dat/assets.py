@@ -2,6 +2,23 @@
 # ETF Hash: values are inverse ETFs
 # ***********************************************************************
 
+SUB_ETF_HASH = { 'TQQQ' : 'SQQQ',
+                 'ROM'  : 'REW',
+                 'UGL'  : 'GLL',
+                 'BOIL' : 'KOLD',
+                 'SPY'  : 'SH',
+                 'UCO'  : 'SCO',
+                 'ERX'  : 'ERY',
+                 'DIG'  : 'DUG',
+                 'USD'  : 'SSG',
+                 'UBT'  : 'TBT',
+                 'BIB'  : 'BIS',
+                 'AGQ'  : 'ZSL',
+                 'DDM'  : 'DXD',
+                 'UWM'  : 'TWM',
+                 'UYG'  : 'SKF',
+                 'MVV'  : 'MZZ'    }
+
 NEW_ETF_HASH = { 'TQQQ' : 'SQQQ',
                  'SPY'  : 'SH',
                  'DDM'  : 'DXD',
