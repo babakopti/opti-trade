@@ -720,7 +720,7 @@ def getMadMean( symbols,
                 dfFile,
                 begDate,
                 endDate,
-                mode = 'daily'   ):
+                mode       ):
 
     df = pd.read_pickle( dfFile )
     df = df[ df.Date >= pd.to_datetime( begDate ) ]
@@ -757,7 +757,7 @@ def sortAssets( symbols,
                 begDate,
                 endDate,
                 criterion = 'abs_sharpe',
-                mode      = 'daily',
+                mode      = 'intraday',
                 logger    = None    ):
 
     assert criterion in [ 'abs_sharpe', 'abs_mean', 'mad' ], \
