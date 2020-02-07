@@ -680,3 +680,154 @@ class MfdPrt:
         plt.plot( self.optFuncVals, '-o' )
         plt.show()
 
+# ***********************************************************************
+# Class MfdOptionsPrt: Portfolio builder class for options
+# ***********************************************************************
+
+class MfdOptionsPrt:
+
+    def __init__(   self,
+                    options,
+                    curDate,
+                    modFile,
+                    minProbLong  = 0.5,
+                    minProbShort = 0.5,
+                    logFileName  = None,                    
+                    verbose      = 1          ):
+
+        self.mfdMod       = dill.load( open( modFile, 'rb' ) ) 
+        self.ecoMfd       = self.mfdMod.ecoMfd
+        self.logFileName  = logFileName
+        self.verbose      = verbose
+        self.logger       = getLogger( logFileName, verbose, 'prt' )
+        self.options      = []
+        self.curDate      = pd.to_datetime( curDate )        
+        self.minProbLong  = minProbLong
+        self.minProbShort = minProbShort
+        self.prdHash      = {}
+        self.maxDate      = self.curDate        
+        
+        for option in options:
+
+            asset    = option[ 'assetSymbol' ]
+            exprDate = pd.to_datetime( option[ 'expiration' ] )
+            
+            if asset not in self.ecoMfd.velNames:
+                self.logger.warning( 'Dropping contract %s; asset %s not found in model %s',
+                                     option[ 'optionSymbol' ],
+                                     asset
+                                     modFile       )
+                continue
+            
+            if exprDate <= self.curDate:
+                self.logger.warning( 'Dropping contract %s; expiration %s should be smaller than curDate %s',
+                                     option[ 'optionSymbol' ],
+                                     str( exprDate ),
+                                     str( self.curDate )   )
+                continue
+
+            self.maxDate = max( self.maxDate, exprDate )
+            
+            self.options.append( option )
+            
+        if minProbLong <= 0:
+            self.logger.error( 'minProbLong should be > 0!' )
+            assert False, 'minProbLong should be > 0!'
+
+        if minProbLong >= 1:
+            self.logger.error( 'minProbLong should be < 1!' )
+            assert False,  'minProbLong should be < 1!'
+
+        if minProbShort <= 0:
+            self.logger.error( 'minProbShort should be > 0!' )
+            assert False, 'minProbShort should be > 0!'
+
+        if minProbShort >= 1:
+            self.logger.error( 'minProbShort should be < 1!' )
+            assert False, 'minProbShort should be < 1!'
+
+        self.setPrdHash()
+
+    def setPrdHash( self ):
+
+        nPrdTimes = self.nPrdTimes        
+        ecoMfd    = self.ecoMfd
+        nDims     = ecoMfd.nDims
+        actOosSol = ecoMfd.actOosSol
+        Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
+        bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
+
+        for m in range( ecoMfd.nDims ):
+            
+            item = self.vList[m]
+
+            if item in self.quoteHash:
+                tmp       = ecoMfd.deNormHash[ item ]
+                slope     = tmp[0]
+                intercept = tmp[1]
+                
+                slopeInv  = slope
+                if slopeInv != 0:
+                    slopeInv = 1.0 / slopeInv
+                    
+                bcVec[m] = slopeInv * ( self.quoteHash[ item ] - intercept )
+            else:
+                bcVec[m] = actOosSol[m][-1] 
+
+        odeObj = OdeGeoConst( Gamma    = Gamma,
+                              bcVec    = bcVec,
+                              bcTime   = 0.0,
+                              timeInc  = 1.0,
+                              nSteps   = nPrdTimes - 1,
+                              intgType = 'LSODA',
+                              tol      = ODE_TOL,
+                              verbose  = self.verbose       )
+
+        sFlag    = odeObj.solve()
+
+        if not sFlag:
+            self.logger.error( 'Geodesic equation did not converge!' )
+            return None
+
+        prdSol   = odeObj.getSol()
+
+        for m in range( ecoMfd.nDims ):
+            asset     = self.vList[m]
+            tmp       = ecoMfd.deNormHash[ asset ]
+            slope     = tmp[0]
+            intercept = tmp[1]
+            
+            for i in range( nPrdTimes ):
+                prdSol[m][i] = slope * prdSol[m][i] + intercept
+
+        if prdSol.shape[0] != ecoMfd.nDims:
+            self.logger.error( 'Inconsistent prdSol size!' )
+            assert False, 'Inconsistent prdSol size!'
+
+        if prdSol.shape[1] <= 0:
+            self.logger.error( 'Number of minutes should be positive!' )
+            assert False, 'Number of minutes should be positive!'
+        
+        self.prdSol = prdSol
+
+        return prdSol
+
+    def setPrdStd( self ):
+
+        ecoMfd = self.ecoMfd
+        stdVec = ecoMfd.getConstStdVec()
+
+        for m in range( ecoMfd.nDims ):
+            asset     = self.vList[m]
+            tmp       = ecoMfd.deNormHash[ asset ]
+            slope     = tmp[0]
+            stdVec[m] = slope * stdVec[m]
+
+        self.stdVec = stdVec
+
+        return stdVec
+
+    def getPortfolio( self ):
+        pass
+        
+  

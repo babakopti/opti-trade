@@ -1029,8 +1029,9 @@ def getOptionsChain( symbol,
 
     assert itr < maxTries, 'Could not get ticket info from Yahoo!'
     
-    exprDates = list( yfObj.options )
-    options   = []
+    exprDates  = list( yfObj.options )
+    options    = []
+    assetPrice = list( yfObj.history().Close )[-1]
     
     for date in exprDates:
 
@@ -1071,15 +1072,25 @@ def getOptionsChain( symbol,
 
         symList = list( cDf.contractSymbol )
         stkList = list( cDf.strike )
+        prcList = list( cDf.lastPrice )
+        cszList = list( cDf.contractSize )
 
         assert len( symList ) == len( stkList ), 'Internal error!'
 
         for i in range( len( symList ) ):
+
+            if cszList[i] != 'REGULAR':
+                logger.warning( 'Skipping %s because contractSize is %s!',
+                                symList[i],
+                                cszList[i] )
             
             item = { 'optionSymbol' : symList[i],
                      'assetSymbol'  : symbol,
                      'strike'       : stkList[i],
                      'expiration'   : date,
+                     'contractCnt'  : 100,                     
+                     'optionPrice'  : prcList[i],
+                     'assetPrice'   : assetPrice,
                      'type'         : 'call'      }
             
             options.append( item )
@@ -1108,15 +1119,25 @@ def getOptionsChain( symbol,
         
         symList = list( pDf.contractSymbol )
         stkList = list( pDf.strike )
-
+        prcList = list( pDf.lastPrice )
+        cszList = list( cDf.contractSize )
+        
         assert len( symList ) == len( stkList ), 'Internal error!'
 
         for i in range( len( symList ) ):
+
+            if cszList[i] != 'REGULAR':
+                logger.warning( 'Skipping %s because contractSize is %s!',
+                                symList[i],
+                                cszList[i] )
             
             item = { 'optionSymbol' : symList[i],
                      'assetSymbol'  : symbol,                     
                      'strike'       : stkList[i],
                      'expiration'   : date,
+                     'contractCnt'  : 100,                     
+                     'optionPrice'  : prcList[i],
+                     'assetPrice'   : assetPrice,                     
                      'type'         : 'put'      }
             
             options.append( item )        
