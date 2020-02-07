@@ -22,7 +22,7 @@ from mod.mfdMod import MfdMod
 # Get model and process
 # ***********************************************************************
 
-modFile  = 'models/mfd_model_2020-01-16_04:00:42.dill'
+modFile  = 'models/model_2019-03-18 09:00:00.dill'
 
 t0       = time.time()
 print( 'Reading model file...' )
@@ -93,16 +93,28 @@ y = np.empty( shape = ( nDims, nTimes ), dtype = 'd' )
 
 for tsId in range( nTimes ):
     for m in range( nDims ):
-        y[m][tsId] = res[m][tsId] / actSol[m][tsId]
+        tmp = actSol[m][tsId]
+        if tmp != 0:
+            tmp = 1.0 / tmp
+        y[m][tsId] = res[m][tsId] * tmp
 
-legends = []
-for m in range( 5 ): 
-    plt.plot( times[-1000:], y[m][-1000:] )
-    legends.append( velNames[m] )
+y_avg = np.zeros( shape = ( nTimes ), dtype = 'd' )
+for tsId in range( nTimes ):
+    y_avg[tsId] = 0.0
+    for m in range( nDims ):
+        y_avg[tsId] += y[m][tsId] / nDims
+
+resDf = pd.DataFrame( { 'average' : y_avg } )
+
+for m in range( nDims ):
+    resDf[ velNames[m] ] = y[m]
+
+resDf.to_pickle( 'f_of_s_model_2019-03-18.pkl', protocol = 4 )
+
+plt.plot( times[-1000:], y_avg[-1000:] )
     
 plt.xlabel( 'Time' )
 plt.ylabel( 'f(s)' )
-plt.legend( legends ) 
 plt.show()
 
 sys.exit()

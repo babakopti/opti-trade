@@ -15,7 +15,7 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from dat.assets import OLD_ETF_HASH, POP_ETF_HASH, NEW_ETF_HASH
+from dat.assets import OLD_ETF_HASH, SUB_ETF_HASH, NEW_ETF_HASH
 
 # ***********************************************************************
 # Some definitions
@@ -53,7 +53,7 @@ for symbol in symbols:
     if searchStr.lower() in descHash[ symbol ].lower():
         ETFs.append( symbol )
 
-ETFs = list( set( NEW_ETF_HASH.values() ) )
+ETFs = list( set( SUB_ETF_HASH.values() ) )
 
 # ***********************************************************************
 # Utility functions

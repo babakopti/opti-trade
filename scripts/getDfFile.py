@@ -15,20 +15,24 @@ sys.path.append( os.path.abspath( '../' ) )
 
 from mod.mfdMod import MfdMod
 
+from utl.utils import getKibotData
+
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
 quandlDir = '/Users/babak/workarea/data/quandl_data'
 piDir     = '/Users/babak/workarea/data/pitrading_data'
-dfFile    = 'data/dfFile_2016plus.pkl'
+dfFile    = 'data/dfFile_long_term_pitrading.pkl'
 
-minDate  = pd.to_datetime( '2016-01-01 00:00:00' )
-maxDate  = pd.to_datetime( '2019-08-02 23:59:00' )
+#dfFile    = 'data/dfFile_long_term_kibot.pkl'
 
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
+minDate  = pd.to_datetime( '2001-01-01 00:00:00' )
+maxDate  = pd.to_datetime( '2016-12-31 23:59:00' )
+
+indices     = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',  
+                'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
+                'HGX',  'TYX',  'HUI', 'XAU'               ] 
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
@@ -57,6 +61,13 @@ velNames    = ETFs + indices + futures
 # ***********************************************************************
 
 df = getDf( quandlDir, piDir, velNames )
+
+# df = getKibotData( etfs    = ETFs,
+#                    futures = futures,
+#                    indexes = indices,
+#                    nDays   = 3000       )
+
 df = df[ df.Date >= minDate ]
 df = df[ df.Date <= maxDate ]
+
 df.to_pickle( dfFile, protocol = 4 )

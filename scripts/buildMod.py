@@ -14,77 +14,35 @@ from utils import getDf
 sys.path.append( os.path.abspath( '../' ) )
 
 from mod.mfdMod import MfdMod
+from dat.assets import OLD_ETF_HASH
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-mode        = 'intraday'
-diffFlag    = False
-dataFlag    = False
-quandlDir   = '/Users/babak/workarea/data/quandl_data'
-piDir       = '/Users/babak/workarea/data/pitrading_data'
+dfFile      = 'data/dfFile_long_term_all.pkl'
 
-if mode == 'day':
-    dfFile  = 'data/dfFile_daily.pkl'
-else:
-    dfFile  = 'data/dfFile_kibot_2016plus.pkl'
+minTrnDate  = pd.to_datetime( '2003-01-01 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2017-12-31 09:00:00' )
+maxOosDate  = pd.to_datetime( '2020-02-04 15:00:00' )
 
-minTrnDate  = pd.to_datetime( '2018-01-23 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2019-01-18 09:00:00' )
-maxOosDate  = pd.to_datetime( '2019-01-21 09:00:00' )
-
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'XAU'                      ] 
-
-oldETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLF', 'EWJ'          ]
-ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-
-ETFs        = ETFs + oldETFs
-ETFs        = list( set( ETFs ) )
+indices     = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',  
+                'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
+                'HGX',  'TYX', 'XAU'               ] 
 
 futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
-allETFs     = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM',  'SAA',
-                'UYM',  'UGE', 'UCC', 'FINU', 'RXL', 'UXI',
-                'URE',  'ROM', 'UJB', 'AGQ',  'DIG', 'USD',
-                'ERX',  'UYG', 'UCO', 'BOIL', 'UPW', 'UGL',
-                'BIB', 'UST', 'UBT'  ]
+ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
+                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
 
-velNames    = allETFs + futures 
+velNames    = ETFs + indices + futures
 
-if diffFlag:
-    nDims = len( velNames )
-    for m in range( nDims ):
-        velNames[m] = velNames[m] + '_Diff'
-    pType = 'var'
-else:
-    pType = 'vel'
+pType       = 'vel'
 
-if diffFlag:
-    modFileName = 'models/model_diff.dill'
-else:
-    modFileName = 'models/model.dill'
+modFileName = 'models/model_long_term.dill'
 
-if diffFlag:
-    factor = 1.0e-6
-else:
-    if mode == 'day':
-        factor = 1.0e-2
-    else:
-        factor = 4.0e-5
+factor      = 1.0e-5
     
-# ***********************************************************************
-# Get data and save to pickle file
-# ***********************************************************************
-
-if dataFlag:
-    df = getDf( quandlDir, piDir, velNames )
-    df.to_pickle( dfFile )
-
 # ***********************************************************************
 # Build model
 # ***********************************************************************
@@ -94,12 +52,13 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 300,
-                    optGTol      = 5.0e-2,
-                    optFTol      = 5.0e-2,
+                    maxOptItrs   = 500,
+                    optGTol      = 1.0e-2,
+                    optFTol      = 1.0e-2,
                     factor       = factor,
                     regCoef      = 1.0e-3,
                     smoothCount  = None,
+                    logFileName  = None,
                     verbose      = 1          )
 
 validFlag = mfdMod.build()
@@ -108,6 +67,6 @@ print( 'Success :', validFlag )
 
 mfdMod.save( modFileName )
 
-mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
+#mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
 mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
 
