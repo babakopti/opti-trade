@@ -6,6 +6,7 @@ import sys
 import os
 import dill
 import time
+import datetime
 import talib
 import numpy as np
 import pandas as pd
@@ -688,10 +689,13 @@ class MfdOptionsPrt:
 
     def __init__(   self,
                     options,
+                    assetHash,
                     curDate,
                     modFile,
-                    minProbLong  = 0.5,
-                    minProbShort = 0.5,
+                    rfiDaily,
+                    tradeFee,
+                    nDayTimes    = 1140,
+                    minProb      = 0.5,
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -701,26 +705,38 @@ class MfdOptionsPrt:
         self.verbose      = verbose
         self.logger       = getLogger( logFileName, verbose, 'prt' )
         self.options      = []
-        self.curDate      = pd.to_datetime( curDate )        
-        self.minProbLong  = minProbLong
-        self.minProbShort = minProbShort
-        self.prdHash      = {}
+        self.assetHash    = assetHash        
+        self.curDate      = pd.to_datetime( curDate )
+        self.nDayTimes    = nDayTimes
+        self.rfiDaily     = rfiDaily
+        self.tradeFee     = tradeFee
+        self.minProb      = minProb
+        self.prdDf        = None
         self.maxDate      = self.curDate        
         
         for option in options:
 
             asset    = option[ 'assetSymbol' ]
             exprDate = pd.to_datetime( option[ 'expiration' ] )
+
+            if asset not in self.assetHash.keys():
+                self.logger.error( 'Asset %s not found in assetHash!', asset )
+                assert False, 'Asset %s not found in assetHash!' % asset
             
             if asset not in self.ecoMfd.velNames:
-                self.logger.warning( 'Dropping contract %s; asset %s not found in model %s',
-                                     option[ 'optionSymbol' ],
-                                     asset
-                                     modFile       )
-                continue
-            
+                self.logger.error( 'Contract %s: asset %s not found in model %s',
+                                   option[ 'optionSymbol' ],
+                                   asset,
+                                   modFile )
+                assert False, 'Contract %s: asset %s not found in model %s' % \
+                    ( option[ 'optionSymbol' ], asset, modFile )
+                
             if exprDate <= self.curDate:
-                self.logger.warning( 'Dropping contract %s; expiration %s should be smaller than curDate %s',
+                
+                msgStr = 'Dropping contract %s; ' +\
+                    'expiration %s should be smaller than curDate %s'
+                
+                self.logger.warning( msgStr,
                                      option[ 'optionSymbol' ],
                                      str( exprDate ),
                                      str( self.curDate )   )
@@ -729,50 +745,65 @@ class MfdOptionsPrt:
             self.maxDate = max( self.maxDate, exprDate )
             
             self.options.append( option )
-            
-        if minProbLong <= 0:
-            self.logger.error( 'minProbLong should be > 0!' )
-            assert False, 'minProbLong should be > 0!'
 
-        if minProbLong >= 1:
-            self.logger.error( 'minProbLong should be < 1!' )
-            assert False,  'minProbLong should be < 1!'
+        self.curDate = self.curDate.replace( minute = 0,  second = 0  )
+        self.maxDate = self.maxDate.replace( minute = 23, second = 59 )
+        
+        if minProb <= 0 or minProb >= 1:
+            self.logger.error( 'minProb should be in (0,1)!' )
+            assert False, 'minProb should be in (0,1)!'
 
-        if minProbShort <= 0:
-            self.logger.error( 'minProbShort should be > 0!' )
-            assert False, 'minProbShort should be > 0!'
+        if rfiDaily <= 0 or rfiDaily >= 1:
+            self.logger.error( 'rfiDaily should be in (0,1)!' )
+            assert False, 'rfiDaily should be in (0,1)!'
+ 
+        self.setPrdDf()
 
-        if minProbShort >= 1:
-            self.logger.error( 'minProbShort should be < 1!' )
-            assert False, 'minProbShort should be < 1!'
+    def setPrdDf( self ):
 
-        self.setPrdHash()
-
-    def setPrdHash( self ):
-
-        nPrdTimes = self.nPrdTimes        
         ecoMfd    = self.ecoMfd
         nDims     = ecoMfd.nDims
-        actOosSol = ecoMfd.actOosSol
         Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
         bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
-
-        for m in range( ecoMfd.nDims ):
-            
-            item = self.vList[m]
-
-            if item in self.quoteHash:
-                tmp       = ecoMfd.deNormHash[ item ]
-                slope     = tmp[0]
-                intercept = tmp[1]
+        dateList  = []
+        date      = self.curDate
+        
+        while date <= self.maxDate:
                 
-                slopeInv  = slope
-                if slopeInv != 0:
-                    slopeInv = 1.0 / slopeInv
+            while True:
+                if date.isoweekday() not in [6, 7]:
+                    break
+                else:
+                    date += datetime.timedelta( days = 1 )
+
+            if date > self.maxDate:
+                break
+            
+            dateStr = date.strftime( '%Y-%m-%d' )
+            
+            for k in range( nDayTimes ):
+                dateList.append( dateStr )
                     
-                bcVec[m] = slopeInv * ( self.quoteHash[ item ] - intercept )
-            else:
-                bcVec[m] = actOosSol[m][-1] 
+            date += datetime.timedelta( days = 1 )
+
+        nPrdTimes = len( dateList )
+
+        for m in range( nDims ):
+            
+            asset = ecoMfd.velNames[m]
+
+            if asset not in self.assets:
+                continue
+
+            tmp       = ecoMfd.deNormHash[ item ]
+            slope     = tmp[0]
+            intercept = tmp[1]
+                
+            slopeInv  = slope
+            if slopeInv != 0:
+                slopeInv = 1.0 / slopeInv
+
+            bcVec[m] = slopeInv * ( self.assetHash[ asset ] - intercept )
 
         odeObj = OdeGeoConst( Gamma    = Gamma,
                               bcVec    = bcVec,
@@ -783,16 +814,30 @@ class MfdOptionsPrt:
                               tol      = ODE_TOL,
                               verbose  = self.verbose       )
 
-        sFlag    = odeObj.solve()
+        sFlag = odeObj.solve()
 
         if not sFlag:
             self.logger.error( 'Geodesic equation did not converge!' )
             return None
 
-        prdSol   = odeObj.getSol()
+        prdSol = odeObj.getSol()
 
-        for m in range( ecoMfd.nDims ):
-            asset     = self.vList[m]
+        if prdSol.shape[0] != nDims:
+            self.logger.error( 'Inconsistent prdSol size!' )
+            assert False, 'Inconsistent prdSol size!'
+
+        if prdSol.shape[1] <= 0:
+            self.logger.error( 'Number of minutes should be positive!' )
+            assert False, 'Number of minutes should be positive!'
+
+        stdVec = ecoMfd.getConstStdVec()
+
+        if stdVec.shape[0] != nDims:
+            self.logger.error( 'Inconsistent stdVec size!' )
+            assert False, 'Inconsistent stdVec size!'
+        
+        for m in range( nDims ):
+            asset     = ecoMfd.velNames[m]
             tmp       = ecoMfd.deNormHash[ asset ]
             slope     = tmp[0]
             intercept = tmp[1]
@@ -800,33 +845,46 @@ class MfdOptionsPrt:
             for i in range( nPrdTimes ):
                 prdSol[m][i] = slope * prdSol[m][i] + intercept
 
-        if prdSol.shape[0] != ecoMfd.nDims:
-            self.logger.error( 'Inconsistent prdSol size!' )
-            assert False, 'Inconsistent prdSol size!'
-
-        if prdSol.shape[1] <= 0:
-            self.logger.error( 'Number of minutes should be positive!' )
-            assert False, 'Number of minutes should be positive!'
-        
-        self.prdSol = prdSol
-
-        return prdSol
-
-    def setPrdStd( self ):
-
-        ecoMfd = self.ecoMfd
-        stdVec = ecoMfd.getConstStdVec()
-
-        for m in range( ecoMfd.nDims ):
-            asset     = self.vList[m]
-            tmp       = ecoMfd.deNormHash[ asset ]
-            slope     = tmp[0]
             stdVec[m] = slope * stdVec[m]
 
-        self.stdVec = stdVec
+        prdDf = pd.DataFrame( { 'Date' : dates } )
+        
+        for m in range( nDims ):
+            asset = ecoMfd.velNames[m]
+            prdDf[ asset ] = prdSol[m]
+            prdDf[ asset + '_std' ] = stdVec[m]
 
-        return stdVec
+        self.prdDf = prdDf.groupby( 'Date', as_index = False ).mean()
 
+        return prdDf
+
+    def getOptionProb( self, option ):
+  
+        asset    = option[ 'assetSymbol' ]
+        strike   = option[ 'strike' ]
+        exprDate = option[ 'expiration' ]
+        exprDate = pd.to_datetime( exprDate )
+        uPrice   = option[ 'unitPrice' ]        
+        oType    = option[ 'type' ]
+        oCnt     = option[ 'contractCnt' ]
+
+        assert oCnt > 0, 'contractCnt should be > 0!'
+
+        fee      = self.tradeFee / oCnt
+        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
+        dateStr  = exprDate.strftime( '%Y-%m-%d' )
+        prdPrice = prdHash[ dateStr ]
+        nDays    = ( self.exprDate - self.curDate ).days
+        tmpVal   = ( 1.0 + self.rfiDaily )**nDays
+
+        if oType == 'call':
+            etaVal   = strike + tmpVal * ( uPrice + fee )
+        elif oType == 'put':
+            etaVal   = strike - tmpVal * ( uPrice + fee )
+        else:
+            assert False, 'Only call/put options are accepted!'
+
+        
     def getPortfolio( self ):
         pass
         

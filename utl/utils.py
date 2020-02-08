@@ -1031,7 +1031,7 @@ def getOptionsChain( symbol,
     
     exprDates  = list( yfObj.options )
     options    = []
-    assetPrice = list( yfObj.history().Close )[-1]
+    #assetPrice = list( yfObj.history().Close )[-1]
     
     for date in exprDates:
 
@@ -1089,8 +1089,7 @@ def getOptionsChain( symbol,
                      'strike'       : stkList[i],
                      'expiration'   : date,
                      'contractCnt'  : 100,                     
-                     'optionPrice'  : prcList[i],
-                     'assetPrice'   : assetPrice,
+                     'unitPrice'    : prcList[i],
                      'type'         : 'call'      }
             
             options.append( item )
@@ -1136,8 +1135,7 @@ def getOptionsChain( symbol,
                      'strike'       : stkList[i],
                      'expiration'   : date,
                      'contractCnt'  : 100,                     
-                     'optionPrice'  : prcList[i],
-                     'assetPrice'   : assetPrice,                     
+                     'unitPrice'    : prcList[i],
                      'type'         : 'put'      }
             
             options.append( item )        
