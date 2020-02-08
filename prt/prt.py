@@ -688,10 +688,10 @@ class MfdPrt:
 class MfdOptionsPrt:
 
     def __init__(   self,
-                    options,
+                    modFile,
                     assetHash,
                     curDate,
-                    modFile,
+                    maxDate,
                     rfiDaily     = 0.0,
                     tradeFee     = 0.0,
                     nDayTimes    = 1140,
@@ -704,48 +704,15 @@ class MfdOptionsPrt:
         self.logFileName  = logFileName
         self.verbose      = verbose
         self.logger       = getLogger( logFileName, verbose, 'prt' )
-        self.options      = []
         self.assetHash    = assetHash        
         self.curDate      = pd.to_datetime( curDate )
+        self.maxDate      = pd.to_datetime( maxDate )
         self.nDayTimes    = nDayTimes
         self.rfiDaily     = rfiDaily
         self.tradeFee     = tradeFee
         self.minProb      = minProb
         self.prdDf        = None
-        self.maxDate      = self.curDate        
-        
-        for option in options:
-
-            asset    = option[ 'assetSymbol' ]
-            exprDate = pd.to_datetime( option[ 'expiration' ] )
-
-            if asset not in self.assetHash.keys():
-                self.logger.error( 'Asset %s not found in assetHash!', asset )
-                assert False, 'Asset %s not found in assetHash!' % asset
             
-            if asset not in self.ecoMfd.velNames:
-                self.logger.error( 'Contract %s: asset %s not found in model %s',
-                                   option[ 'optionSymbol' ],
-                                   asset,
-                                   modFile )
-                assert False, 'Contract %s: asset %s not found in model %s' % \
-                    ( option[ 'optionSymbol' ], asset, modFile )
-                
-            if exprDate <= self.curDate:
-                
-                msgStr = 'Dropping contract %s; ' +\
-                    'expiration %s should be smaller than curDate %s'
-                
-                self.logger.warning( msgStr,
-                                     option[ 'optionSymbol' ],
-                                     str( exprDate ),
-                                     str( self.curDate )   )
-                continue
-
-            self.maxDate = max( self.maxDate, exprDate )
-            
-            self.options.append( option )
-
         self.curDate = self.curDate.replace( minute = 0,  second = 0  )
         self.maxDate = self.maxDate.replace( minute = 23, second = 59 )
         
@@ -857,9 +824,71 @@ class MfdOptionsPrt:
         self.prdDf = prdDf.groupby( 'Date', as_index = False ).mean()
 
         return prdDf
+    
+    def sortOptions( self, options ):
 
-    def getProb( self, option ):
+        probHash = {}
+        for option in options:
+            probHash[ option ] = self.getProb( option )
   
+        sortOptions = sorted( options,
+                              key = lambda x : probHash[x],
+                              reverse = True )
+
+        return sortOptions
+
+    def getExpReturn( self, option, mode = 'exec_maturity' ):
+
+        validFlag = self.validateOption( option )
+        
+        if not validFlag:
+            return None
+
+        asset    = option[ 'assetSymbol' ]
+        strike   = option[ 'strike' ]
+        exprDate = option[ 'expiration' ]
+        exprDate = pd.to_datetime( exprDate )
+        uPrice   = option[ 'unitPrice' ]
+        oType    = option[ 'type' ]        
+        oCnt     = option[ 'contractCnt' ]
+
+        prdDf    = self.prdDf        
+        dateStr  = exprDate.strftime( '%Y-%m-%d' )
+        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
+        prdPrice = prdHash[ dateStr ]
+
+        curPrice = self.assetHash[ asset ]
+
+        if mode == 'exec_maturity':
+            prob = self.getProb( option )
+            if oType == 'call':
+                val = oCnt * prob * ( prdPrice - strike )
+            elif oType == 'put':
+                val = oCnt * prob * ( strike - prdPrice )
+            else:
+                return None
+        elif mode == 'exec_now':
+            if oType == 'call':
+                val = oCnt * ( curPrice - strike )
+            elif oType == 'put':
+                val = oCnt * ( strike - curPrice )
+            else:
+                return None
+        elif mode == 'sell_now':
+            val = oCnt * uPrice
+        else:
+            self.logger.error( 'Unknow mode %s!', mode )
+            return None
+
+        return val
+            
+    def getProb( self, option ):
+
+        validFlag = self.validateOption( option )
+
+        if not validFlag:
+            return -1.0
+        
         asset    = option[ 'assetSymbol' ]
         strike   = option[ 'strike' ]
         exprDate = option[ 'expiration' ]
@@ -871,7 +900,8 @@ class MfdOptionsPrt:
         assert oCnt > 0, 'contractCnt should be > 0!'
 
         fee      = self.tradeFee / oCnt
-        
+
+        prdDf    = self.prdDf
         dateStr  = exprDate.strftime( '%Y-%m-%d' )
         prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
         prdPrice = prdHash[ dateStr ]
@@ -899,12 +929,36 @@ class MfdOptionsPrt:
 
         return prob
         
-    def sortOptions( self ):
+    def validateOption( self, option ):
 
-        probHash = {}
-        for option in self.options:
-            probHash[ option ] = self.getProb( option )
-  
-        sortOptions = sorted( self.options, key = lambda x : probHash[x] )
+        asset     = option[ 'assetSymbol' ]
+        exprDate  = pd.to_datetime( option[ 'expiration' ] )
 
-        return sortOptions
+        if asset not in self.assetHash.keys():
+            self.logger.error( 'Asset %s not found in assetHash!', asset )
+            return False
+            
+        if asset not in self.ecoMfd.velNames:
+            self.logger.error( 'Contract %s: asset %s not found in the model!',
+                               option[ 'optionSymbol' ], asset )
+            return Flase
+                
+        if exprDate <= self.curDate:
+            msgStr = 'Contract %s: ' +\
+                'expiration %s should be > curDate %s'
+            self.logger.error( msgStr,
+                               option[ 'optionSymbol' ],
+                               str( exprDate ),
+                               str( self.curDate )   )
+            return False
+
+        if exprDate > self.maxDate:
+            msgStr = 'Contract %s: ' +\
+                'expiration %s should be <= maxDate %s'
+            self.logger.error( msgStr,
+                               option[ 'optionSymbol' ],
+                               str( exprDate ),
+                               str( self.maxDate )   )
+            return False
+
+        return True
