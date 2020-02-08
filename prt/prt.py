@@ -692,8 +692,8 @@ class MfdOptionsPrt:
                     assetHash,
                     curDate,
                     modFile,
-                    rfiDaily,
-                    tradeFee,
+                    rfiDaily     = 0.0,
+                    tradeFee     = 0.0,
                     nDayTimes    = 1140,
                     minProb      = 0.5,
                     logFileName  = None,                    
@@ -753,9 +753,9 @@ class MfdOptionsPrt:
             self.logger.error( 'minProb should be in (0,1)!' )
             assert False, 'minProb should be in (0,1)!'
 
-        if rfiDaily <= 0 or rfiDaily >= 1:
-            self.logger.error( 'rfiDaily should be in (0,1)!' )
-            assert False, 'rfiDaily should be in (0,1)!'
+        if rfiDaily < 0 or rfiDaily > 1:
+            self.logger.error( 'rfiDaily should be in [0,1]!' )
+            assert False, 'rfiDaily should be in [0,1]!'
  
         self.setPrdDf()
 
@@ -858,7 +858,7 @@ class MfdOptionsPrt:
 
         return prdDf
 
-    def getOptionProb( self, option ):
+    def getProb( self, option ):
   
         asset    = option[ 'assetSymbol' ]
         strike   = option[ 'strike' ]
@@ -871,21 +871,40 @@ class MfdOptionsPrt:
         assert oCnt > 0, 'contractCnt should be > 0!'
 
         fee      = self.tradeFee / oCnt
-        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
+        
         dateStr  = exprDate.strftime( '%Y-%m-%d' )
+        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
         prdPrice = prdHash[ dateStr ]
+        stdHash  = dict( zip( prdDf.Date, prdDf[ asset + '_std' ] ) )
+        stdVal   = stdHash[ dateStr ]
+
+        stdInv = stdVal * np.sqrt(2)
+        if stdInv > 0:
+            stdInv = 1.0 / stdInv 
+
         nDays    = ( self.exprDate - self.curDate ).days
         tmpVal   = ( 1.0 + self.rfiDaily )**nDays
 
         if oType == 'call':
-            etaVal   = strike + tmpVal * ( uPrice + fee )
+            etaVal  = strike + tmpVal * ( uPrice + fee )
+            tmpVal1 = stdInv * ( etaVal - prdPrice ) 
+            prob    = 0.5 * ( 1.0 - erf( tmpVal1 ) )
         elif oType == 'put':
-            etaVal   = strike - tmpVal * ( uPrice + fee )
+            etaVal  = strike - tmpVal * ( uPrice + fee )
+            tmpVal1 = stdInv * ( etaVal - prdPrice ) 
+            tmpVal2 = stdInv * prdPrice
+            prob    = 0.5 * ( erf( tmpVal1 ) - erf( tmpVal2 ) )
         else:
             assert False, 'Only call/put options are accepted!'
 
+        return prob
         
-    def getPortfolio( self ):
-        pass
-        
+    def sortOptions( self ):
+
+        probHash = {}
+        for option in self.options:
+            probHash[ option ] = self.getProb( option )
   
+        sortOptions = sorted( self.options, key = lambda x : probHash[x] )
+
+        return sortOptions
