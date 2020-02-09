@@ -13,7 +13,6 @@ import pandas as pd
 import scipy as sp
 import matplotlib.pyplot as plt
 
-from collections import defaultdict
 from scipy.special import erf
 from scipy.optimize import minimize
 
@@ -692,10 +691,12 @@ class MfdOptionsPrt:
                     assetHash,
                     curDate,
                     maxDate,
+                    maxPriceC,
+                    maxPriceA,                    
+                    minProb,
                     rfiDaily     = 0.0,
                     tradeFee     = 0.0,
                     nDayTimes    = 1140,
-                    minProb      = 0.0,
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -707,10 +708,12 @@ class MfdOptionsPrt:
         self.assetHash    = assetHash        
         self.curDate      = pd.to_datetime( curDate )
         self.maxDate      = pd.to_datetime( maxDate )
+        self.maxPriceC    = maxPriceC
+        self.maxPriceA    = maxPriceA        
+        self.minProb      = minProb        
         self.nDayTimes    = nDayTimes
         self.rfiDaily     = rfiDaily
         self.tradeFee     = tradeFee
-        self.minProb      = minProb
         self.prdDf        = None
 
         setA = set( self.assetHash.keys() )
@@ -733,6 +736,7 @@ class MfdOptionsPrt:
 
     def setPrdDf( self ):
 
+        t0        = time.time()
         ecoMfd    = self.ecoMfd
         nDims     = ecoMfd.nDims
         Gamma     = ecoMfd.getGammaArray( ecoMfd.GammaVec )
@@ -825,27 +829,53 @@ class MfdOptionsPrt:
 
         self.prdDf = prdDf.groupby( 'Date', as_index = False ).mean()
 
+        self.logger.info( 'Setting prediction solution took %0.2f seconds!' % \
+                          ( time.time() - t0 ) )
+        
         return prdDf
     
     def sortOptions( self, options ):
 
-        probs    = []
+        t0      = time.time()
+        
+        options = sorted( options,
+                          key     = self.getProb,
+                          reverse = True          )
+        
+        tmpHash  = {}
+
+        for asset in self.assetHash:
+            tmpHash[ asset ] = 0.0
+
         sOptions = []
         
         for option in options:
             
-            prob = self.getProb( option )
+            prob   = self.getProb( option )
+            asset  = option[ 'assetSymbol' ]            
+            uPrice = option[ 'unitPrice' ]
+            oCnt   = option[ 'contractCnt' ]
+            oPrice = uPrice * oCnt
             
-            if prob >= self.minProb:
-                sOptions.append( option )
-                probs.append( prob )
+            if prob < self.minProb:
+                continue
+
+            if oPrice > self.maxPriceC:
+                continue
+
+            tmpVal = tmpHash[ asset ] + oPrice
+
+            if tmpVal > self.maxPriceA:
+                continue
             
-        sOptions = sorted( sOptions,
-                           key     = self.getProb,
-                           reverse = True          )
-        probs = sorted( probs, reverse = True      )
-        
-        return sOptions, probs
+            tmpHash[ asset ] += oPrice
+            
+            sOptions.append( option )
+
+        self.logger.info( 'Sorting options took %0.2f seconds!' % \
+                          ( time.time() - t0 ) )
+            
+        return sOptions
 
     def getExpReturn( self,
                       option,

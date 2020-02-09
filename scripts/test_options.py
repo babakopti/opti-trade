@@ -94,14 +94,22 @@ prtObj = MfdOptionsPrt( modFile     = modFile,
                         assetHash   = assetHash,
                         curDate     = curDate,
                         maxDate     = maxDate,
+                        maxPriceC   = 2000.0,
+                        maxPriceA   = 4000.0,
+                        minProb     = 0.5,
                         rfiDaily    = 0.0,
                         tradeFee    = 0.0,
                         nDayTimes   = 1140,
-                        minProb     = 0.5,
                         logFileName = None,                    
                         verbose     = 1          )                        
 
-sOptions, probs = prtObj.sortOptions( options )
+sOptions = prtObj.sortOptions( options )
 
-print( sOptions[:5] )
-print( probs[:5] )
+sOptions = sOptions[:5]
+
+print( sOptions  )
+
+probs = []
+
+for option in sOptions:
+    print( prtObj.getProb( option ) )
