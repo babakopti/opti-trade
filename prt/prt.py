@@ -695,7 +695,7 @@ class MfdOptionsPrt:
                     rfiDaily     = 0.0,
                     tradeFee     = 0.0,
                     nDayTimes    = 1140,
-                    minProb      = 0.5,
+                    minProb      = 0.0,
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -712,7 +712,12 @@ class MfdOptionsPrt:
         self.tradeFee     = tradeFee
         self.minProb      = minProb
         self.prdDf        = None
-            
+
+        setA = set( self.assetHash.keys() )
+        setB = set( self.ecoMfd.velNames )
+        
+        assert setA == setB, 'modFile and assetHash are not consistent!'
+        
         self.curDate = self.curDate.replace( minute = 0,  second = 0  )
         self.maxDate = self.maxDate.replace( minute = 23, second = 59 )
         
@@ -748,7 +753,7 @@ class MfdOptionsPrt:
             
             dateStr = date.strftime( '%Y-%m-%d' )
             
-            for k in range( nDayTimes ):
+            for k in range( self.nDayTimes ):
                 dateList.append( dateStr )
                     
             date += datetime.timedelta( days = 1 )
@@ -759,10 +764,7 @@ class MfdOptionsPrt:
             
             asset = ecoMfd.velNames[m]
 
-            if asset not in self.assets:
-                continue
-
-            tmp       = ecoMfd.deNormHash[ item ]
+            tmp       = ecoMfd.deNormHash[ asset ]
             slope     = tmp[0]
             intercept = tmp[1]
                 
@@ -771,7 +773,7 @@ class MfdOptionsPrt:
                 slopeInv = 1.0 / slopeInv
 
             bcVec[m] = slopeInv * ( self.assetHash[ asset ] - intercept )
-
+                
         odeObj = OdeGeoConst( Gamma    = Gamma,
                               bcVec    = bcVec,
                               bcTime   = 0.0,
@@ -814,7 +816,7 @@ class MfdOptionsPrt:
 
             stdVec[m] = slope * stdVec[m]
 
-        prdDf = pd.DataFrame( { 'Date' : dates } )
+        prdDf = pd.DataFrame( { 'Date' : dateList } )
         
         for m in range( nDims ):
             asset = ecoMfd.velNames[m]
@@ -827,17 +829,27 @@ class MfdOptionsPrt:
     
     def sortOptions( self, options ):
 
-        probHash = {}
+        probs    = []
+        sOptions = []
+        
         for option in options:
-            probHash[ option ] = self.getProb( option )
-  
-        sortOptions = sorted( options,
-                              key = lambda x : probHash[x],
-                              reverse = True )
+            
+            prob = self.getProb( option )
+            
+            if prob >= self.minProb:
+                sOptions.append( option )
+                probs.append( prob )
+            
+        sOptions = sorted( sOptions,
+                           key     = self.getProb,
+                           reverse = True          )
+        probs = sorted( probs, reverse = True      )
+        
+        return sOptions, probs
 
-        return sortOptions
-
-    def getExpReturn( self, option, mode = 'exec_maturity' ):
+    def getExpReturn( self,
+                      option,
+                      mode = 'exec_maturity' ):
 
         validFlag = self.validateOption( option )
         
@@ -881,7 +893,7 @@ class MfdOptionsPrt:
             return None
 
         return val
-            
+
     def getProb( self, option ):
 
         validFlag = self.validateOption( option )
@@ -892,11 +904,18 @@ class MfdOptionsPrt:
         asset    = option[ 'assetSymbol' ]
         strike   = option[ 'strike' ]
         exprDate = option[ 'expiration' ]
-        exprDate = pd.to_datetime( exprDate )
         uPrice   = option[ 'unitPrice' ]        
         oType    = option[ 'type' ]
         oCnt     = option[ 'contractCnt' ]
 
+        exprDate = pd.to_datetime( exprDate )
+        
+        while True:
+            if exprDate.isoweekday() not in [6, 7]:
+                break
+            else:
+                exprDate -= datetime.timedelta( days = 1 )
+        
         assert oCnt > 0, 'contractCnt should be > 0!'
 
         fee      = self.tradeFee / oCnt
@@ -912,7 +931,7 @@ class MfdOptionsPrt:
         if stdInv > 0:
             stdInv = 1.0 / stdInv 
 
-        nDays    = ( self.exprDate - self.curDate ).days
+        nDays    = ( exprDate - self.curDate ).days
         tmpVal   = ( 1.0 + self.rfiDaily )**nDays
 
         if oType == 'call':
@@ -941,7 +960,7 @@ class MfdOptionsPrt:
         if asset not in self.ecoMfd.velNames:
             self.logger.error( 'Contract %s: asset %s not found in the model!',
                                option[ 'optionSymbol' ], asset )
-            return Flase
+            return False
                 
         if exprDate <= self.curDate:
             msgStr = 'Contract %s: ' +\

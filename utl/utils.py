@@ -27,7 +27,7 @@ from ode.odeGeo import OdeGeoConst
 
 def getLogger( logFileName, verbose, pkgName = None ):
     
-    verboseHash = { 0 : logging.NOTSET,
+    verboseHash = { 0 : logging.CRITICAL,
                     1 : logging.INFO,
                     2 : logging.DEBUG }
         
@@ -1003,6 +1003,38 @@ def evalMfdPrtPerf( modFile,
     return outDf
 
 # ***********************************************************************
+# getLastValue: Get the latest value of a symbol from Kibot
+# ***********************************************************************
+
+def getKibotLastValue( symbol, sType = 'ETF', maxDays = 3 ):
+
+    logger = getLogger( None, 0 )
+    
+    if sType == 'ETF':
+        df = getKibotData( etfs    = [ symbol ],
+                           nDays   = maxDays,
+                           logger  = logger      )
+    elif sType == 'futures':
+        df = getKibotData( futures = [ symbol ],
+                           nDays   = maxDays,
+                           logger  = logger      )
+    elif sType == 'stock':
+        df = getKibotData( stocks  = [ symbol ],
+                           nDays   = maxDays,
+                           logger  = logger      )                           
+    elif sType == 'index':
+        df = getKibotData( indexes = [ symbol ],
+                           nDays   = maxDays,
+                           logger  = logger      )                           
+    else:
+        return None
+
+    val  = list( df[ symbol ] )[-1]
+    date = list( df.Date )[-1]
+    
+    return ( val, date )
+
+# ***********************************************************************
 # getOptionsChain: Get the options chain for a symbol 
 # ***********************************************************************
 
@@ -1058,7 +1090,7 @@ def getOptionsChain( symbol,
                 time.sleep( 1 )
                 continue
 
-        if cDf is None:
+        if cDf is None or cDf.shape[0] == 0:
             logger.warning( 'Skipping expiration date %s', str( date ) )
             continue
             
@@ -1066,10 +1098,10 @@ def getOptionsChain( symbol,
             minDate = pd.to_datetime( minTradeDate )
             cDf     = cDf[ cDf.lastTradeDate >= minDate ]
 
-        cDf = cDf[ cDf.contractSize == 'REGULAR' ]
+        cDf = cDf[ cDf.contractSize == 'REGULAR' ]        
         cDf = cDf[ cDf.volume >= minVolume ]
         cDf = cDf[ cDf.openInterest >= minInterest ]
-
+        
         symList = list( cDf.contractSymbol )
         stkList = list( cDf.strike )
         prcList = list( cDf.lastPrice )
@@ -1119,7 +1151,7 @@ def getOptionsChain( symbol,
         symList = list( pDf.contractSymbol )
         stkList = list( pDf.strike )
         prcList = list( pDf.lastPrice )
-        cszList = list( cDf.contractSize )
+        cszList = list( pDf.contractSize )
         
         assert len( symList ) == len( stkList ), 'Internal error!'
 
