@@ -25,34 +25,39 @@ price and a commission fee. Note that options are often contracts
 consisting of 100 units of the underlying security. 
 
 Let us assume that $t_{s}$ is the current time. There is a profit on
-exercising a call option at time $t_{e} > t_{s}$ when,
+exercising a call option $\alpha$ with an underlying security $i$, at
+time $t > t_{s}$ when,
 
 \begin{equation}\label{eqn:call-option-condition}
-y^{i}(t_{e}) > s_{e}^{i} + ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
+y^{i}(t) > s^{i}_{\alpha} + ( 1 + \xi )^{t-t_{s}} ( \pi^{i}_{\alpha}(t_{s}) + C )
 \end{equation}
 
 where $y^{i}(t)$ is the price of the underlying security at time $t$,
-$s^{e}_{i}$ is the strike price of the options, $\pi^{i}$ is price of
-the options (per unit in options contract), $C$ is the commision per
-unit in the options contract, and $\xi$ is the risk free interest rate
-per unit of time; note that $i \in [1,\tilde{n}] \cap \mathbb{N}$. For
-simplicity of notation, we define $\eta^{c}(t_{e}) \equiv s_{e}^{i} +
-( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )$.
+$s^{i}_{\alpha}$ is the option strike price, $\pi^{i}_{\alpha}(t_{s})$
+is price of the option at $t_{s}$ (per unit in contract, so if there
+are 100 unites of the underlying security in the contract, the total
+contract price is $100 \pi^{i}_{\alpha}(t_{s})$ ), $C$ is the
+commision per unit in the contract, and $\xi$ is the risk free
+interest rate per unit of time; note that $i \in [1,\tilde{n}] \cap
+\mathbb{N}$. For simplicity of notation, we define $\eta^{c}(t) \equiv
+s^{i}_{\alpha} + ( 1 + \xi )^{t-t_{s}} ( \pi^{i}_{\alpha}(t_{s}) + C
+)$.
 
-Similaryly, a put option is profitable when,
+Similarly, a put option is profitable when,
 
 \begin{equation}\label{eqn:put-option-condition}
-y^{i}(t_{e}) < s_{e}^{i} - ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )
+y^{i}(t) < s^{i}_{\alpha} - ( 1 + \xi )^{t-t_{s}} ( \pi^{i}_{\alpha}(t_{s}) + C )
 \end{equation}
 
-For simplicity of notation, we define $\eta^{p}(t_{e}) \equiv
-s_{e}^{i} - ( 1 + \xi )^{t_{e}-t_{s}} ( \pi^{i} + C )$.
+For simplicity of notation, we define $\eta^{p}(t) \equiv
+s^{i}_{\alpha} - ( 1 + \xi )^{t-t_{s}} ( \pi^{i}_{\alpha}(t_{s}) + C )$.
 
-At given snapdate $t^{s}$, we build a differential geometric forecast
-model with $n$ variables, consisting of $\tilde{n}$ securities. We use
-this model to devise a strategy to trade on call and put options
-corresponding to these securities. The model predicts the price of the
-undelying assets that is $y^{i}(t)$.
+At a given snapdate $t_{s}$, we build a differential geometric
+forecast model with $n$ variables, consisting of $\tilde{n}$
+securities, using hirtorical data up to $t_{s}$. We use this model to
+devise a strategy to trade on call and put options corresponding to
+these securities. The model predicts the price of the undelying
+assets, that is $y^{i}(t)$.
 
 Based on the prediction, we should enter a call options contract if
 \ref{eqn:call-option-condition} holds. Let us assume $\bar{y}^{i}(t)$
@@ -62,36 +67,91 @@ distribution, the probability of the condition
 \ref{eqn:call-option-condition} to hold is,
 
 \begin{equation}\label{eqn:call-option-prob-intg}
-Pr[ y^{i}(t_{e}) > \eta^{c}(t_{e}) ] = \int_{\eta^{c}(t_{e})}^{\infty}
+Pr[ y^{i}(t) > \eta^{c}(t) ] = \int_{\eta^{c}(t)}^{\infty}
 \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
-e^{\frac{-(\zeta-\bar{y}^{i}(t_{e}))^{2}}{2\sigma_{i}^{2}}} d\zeta
+e^{\frac{-(\zeta-\bar{y}^{i}(t))^{2}}{2\sigma_{i}^{2}}} d\zeta
 \end{equation}
 
 This yields,
 
 \begin{equation}\label{eqn:call-option-prob}
-Pr[ y^{i}(t_{e}) > \eta^{c}(t_{e}) ] = \frac{1}{2} [ 1 - erf(
-  \frac{\eta^{c}(t_{e})-\bar{y}^{i}(t_{e})}{\sqrt{2} \sigma_{i}} ) ]
+Pr[ y^{i}(t) > \eta^{c}(t) ] = \frac{1}{2} [ 1 - erf(
+  \frac{\eta^{c}(t)-\bar{y}^{i}(t)}{\sqrt{2} \sigma_{i}} ) ]
 \end{equation}
 
 Similary for a put option, the probability of
 condition \ref{eqn:put-option-condition} to hold is
 
 \begin{equation}\label{eqn:put-option-prob-intg}
-Pr[ y^{i}(t_{e}) < \eta^{p}(t_{e}) ] =
-\int_{-\infty}^{\eta^{p}(t_{e})} \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
-e^{\frac{-(\zeta-\bar{y}^{i}(t_{e}))^{2}}{2\sigma_{i}^{2}}} d\zeta
+Pr[ y^{i}(t) < \eta^{p}(t) ] =
+\int_{-\infty}^{\eta^{p}(t)} \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
+e^{\frac{-(\zeta-\bar{y}^{i}(t))^{2}}{2\sigma_{i}^{2}}} d\zeta
 \end{equation}
 
 This yields,
 
-\begin{equation}\label{eqn:call-option-prob}
-Pr[ y^{i}(t_{e}) < \eta^{p}(t_{e}) ] = \frac{1}{2} [ erf(
-  \frac{\eta^{p}(t_{e})-\bar{y}^{i}(t_{e})}{\sqrt{2} \sigma_{i}} ) -
-  erf( \frac{\bar{y}^{i}(t_{e})}{\sqrt{2} \sigma_{i}} ) ]
+\begin{equation}\label{eqn:put-option-prob}
+Pr[ y^{i}(t) < \eta^{p}(t) ] = \frac{1}{2} [ erf(
+  \frac{\eta^{p}(t)-\bar{y}^{i}(t)}{\sqrt{2} \sigma_{i}} ) -
+  erf( \frac{\bar{y}^{i}(t)}{\sqrt{2} \sigma_{i}} ) ]
 \end{equation}
 
+The strategy consists of the following steps,
 
+\begin{itemize}
+  
+  \item[1] Loop through all assets in the pool and get the options
+    chain for each asset. We can limit the expiration dates. For
+    instance, we can get the options that mature no sooner than a week
+    and no later than three months from now. We can further limit the
+    options chain by filtering out contracts that have not been traded
+    lately, for instance in the last business day. Furthermore, given
+    our capital we can limit what we are willing to spend on one
+    contract and filter out contracts accordingly. For example, we can
+    limit what we pay for each contract to \$4,000, and assuming the
+    the contract has 100 units of underlying security, the unit price
+    cannot be above \$200. We then collect all options for all assets
+    into one big list. Note that when working with popular assets such
+    as SPY, this list can consist of several thousand contracts. Note
+    too that this list has both call and put options.
 
+  \item[2] Loop through all contracts and calculate the probability of
+    thet contract being profitable using
+    Eq.~\ref{eqn:call-option-prob} for call options and
+    Eq.~\ref{eqn:put-option-prob} for put options. Sort the list of
+    contracts based on the corresponding probabilities. Note that
+    effectively this probability represents the projected return to
+    risk ratio on a contract (see Eqs.~\ref{eqn:call-option-prob} and
+    \ref{eqn:put-option-prob}).
+
+   \item[3] Enter into a certain number of top contracts in the list,
+     for instance the first 10.
+
+\end{itemize}
+
+If we already have some options in our portfolio, we can settle each
+existing contract by one of three following actions, 
+
+\begin{itemize}
+
+   \item[1] Sell the contract. The expected return on unit underlying
+     asset will be $\pi^{i}_{\alpha}(t_{curr}) -
+     \pi^{i}_{\alpha}(t_{s}) - C$, where $t_{curr}$ is the current
+     time. Th eexpected return can be negative.
+
+   \item[2] Exercise the contract. The expected return per unit of
+     underlying asset will be $y^{i}(t_{curr}) - \eta^{c}(t_{curr})$
+     for call options and $\eta^{p}(t_{curr}) - y^{i}(t_{curr})$ for
+     put options.
+
+   \item[3] Not take any action. A reasonable expected return for this
+     scenario is $Pr[ y^{i}(t_{m}) > \eta^{c}(t_{m}) ] (y^{i}(t_{m}) -
+     \eta^{c}(t_{m}))$ for call options and $Pr[ y^{i}(t_{m}) <
+       \eta^{p}(t_{m}) ] (\eta^{p}(t_{m}) - y^{i}(t_{m}))$ for put
+     options, where the probilities are calculated from
+     Eqs.~\ref{eqn:call-option-prob} and \ref{eqn:put-option-prob},
+     and $t_{m}$ is the maturity date.
+
+\end{itemize}
 
 \end{document}
