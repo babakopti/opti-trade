@@ -879,6 +879,7 @@ class MfdOptionsPrt:
 
     def getExpReturn( self,
                       option,
+                      curUPrice,
                       mode = 'exec_maturity' ):
 
         validFlag = self.validateOption( option )
@@ -893,7 +894,7 @@ class MfdOptionsPrt:
         uPrice   = option[ 'unitPrice' ]
         oType    = option[ 'type' ]        
         oCnt     = option[ 'contractCnt' ]
-
+        
         prdDf    = self.prdDf        
         dateStr  = exprDate.strftime( '%Y-%m-%d' )
         prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
@@ -901,23 +902,36 @@ class MfdOptionsPrt:
 
         curPrice = self.assetHash[ asset ]
 
+        fee      = self.tradeFee / oCnt        
+
+        nDays    = ( exprDate - self.curDate ).days
+        tmpVal   = ( 1.0 + self.rfiDaily )**nDays
+        uCost    = tmpVal * ( uPrice + fee )
+        
+        if oType == 'call':
+            etaVal  = strike + uCost
+        elif oType == 'put':
+            etaVal  = strike - uCost
+        else:
+            return None
+            
         if mode == 'exec_maturity':
             prob = self.getProb( option )
             if oType == 'call':
-                val = oCnt * prob * ( prdPrice - strike )
+                val = prob * ( prdPrice - etaVal )
             elif oType == 'put':
-                val = oCnt * prob * ( strike - prdPrice )
+                val = prob * ( etaVal - prdPrice )
             else:
                 return None
         elif mode == 'exec_now':
             if oType == 'call':
-                val = oCnt * ( curPrice - strike )
+                val = curPrice - etaVal
             elif oType == 'put':
-                val = oCnt * ( strike - curPrice )
+                val = etaVal - curPrice
             else:
                 return None
         elif mode == 'sell_now':
-            val = oCnt * uPrice
+            val = curUPrice - uCost
         else:
             self.logger.error( 'Unknow mode %s!', mode )
             return None
