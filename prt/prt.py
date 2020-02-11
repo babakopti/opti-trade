@@ -877,6 +877,28 @@ class MfdOptionsPrt:
             
         return sOptions
 
+    def getDecision( self, option, curUPrice ):
+
+        decisions = [ 'exec_maturity', 'exec_now', 'sell_now' ]
+        retHash   = {}
+        
+        for decision in decisions:
+            
+            ret = self.getExpReturn( option, curUPrice, mode =  decision )
+            
+            retHash[ decision ] = ret
+
+        maxRet = max( retHash.value() )
+
+        if retHash[ 'exec_now' ] == maxRet:
+            decision =  'exec_now'
+        elif retHash[ 'sell_now' ] == maxRet:
+            decision = 'sell_now'
+        else:
+            decision = 'exec_maturity'
+
+        return decision
+        
     def getExpReturn( self,
                       option,
                       curUPrice,
