@@ -23,12 +23,12 @@ from utl.utils import getKibotData
 
 quandlDir = '/Users/babak/workarea/data/quandl_data'
 piDir     = '/Users/babak/workarea/data/pitrading_data'
-dfFile    = 'data/dfFile_long_term_pitrading.pkl'
+#dfFile    = 'data/dfFile_long_term_pitrading.pkl'
 
-#dfFile    = 'data/dfFile_long_term_kibot.pkl'
+dfFile    = 'data/dfFile_long_term_kibot.pkl'
 
-minDate  = pd.to_datetime( '2001-01-01 00:00:00' )
-maxDate  = pd.to_datetime( '2016-12-31 23:59:00' )
+#minDate  = pd.to_datetime( '2001-01-01 00:00:00' )
+#maxDate  = pd.to_datetime( '2016-12-31 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
@@ -60,14 +60,14 @@ velNames    = ETFs + indices + futures
 # Get data and save to pickle file
 # ***********************************************************************
 
-df = getDf( quandlDir, piDir, velNames )
+#df = getDf( quandlDir, piDir, velNames )
 
-# df = getKibotData( etfs    = ETFs,
-#                    futures = futures,
-#                    indexes = indices,
-#                    nDays   = 3000       )
+df = getKibotData( etfs    = ETFs,
+                   futures = futures,
+                   indexes = indices,
+                   nDays   = 3000       )
 
-df = df[ df.Date >= minDate ]
-df = df[ df.Date <= maxDate ]
+#df = df[ df.Date >= minDate ]
+#df = df[ df.Date <= maxDate ]
 
 df.to_pickle( dfFile, protocol = 4 )

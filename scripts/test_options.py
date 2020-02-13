@@ -20,9 +20,9 @@ from prt.prt import MfdOptionsPrt
 # Input parameters
 # ***********************************************************************
 
-modFile = 'models/model_long_term.dill'
-curDate = '2020-02-08'
-maxDate = '2020-09-30'
+modFile = 'models/model_long_term_snap_2020_01_31.dill'
+curDate = '2020-02-11'
+maxDate = '2020-05-30'
 
 indices = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',
             'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
@@ -33,36 +33,40 @@ futures = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 ETFs    = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
             'SMH', 'XLE', 'XLF', 'XLU', 'EWJ' ]
 
+cash    = 20000
+
 # ***********************************************************************                                                                   
 # Get asset prices
 # ***********************************************************************
 
-# print( 'Getting assetHash...' )
+if False:
+    assetHash = {'QQQ': 234.35, 'SPY': 337.4, 'DIA': 295.87, 'MDY': 380.93, 'IWM': 168.12, 'OIH': 11.4, 'SMH': 151.0, 'XLE': 55.08, 'XLF': 31.14, 'XLU': 69.2, 'EWJ': 59.443000000000005, 'ES': 3371.75, 'NQ': 9594.25, 'US': 162.0, 'YM': 29445, 'RTY': 1685.7, 'EMD': 2086.4, 'QM': 51.5, 'INDU': 29276.34, 'NDX': 9517.86, 'SPX': 3357.75, 'RUT': 1677.515, 'OEX': 1508.33, 'MID': 2076.67, 'SOX': 1931.08, 'RUI': 1857.118, 'RUA': 1965.181, 'TRAN': 10902.72, 'HGX': 375.83, 'TYX': 20.51, 'XAU': 102.87}
 
-# t0 = time.time()
+else:
+    print( 'Getting assetHash...' )
 
-# assetHash = {}
+    t0 = time.time()
 
-# for symbol in ETFs:
-#     val, date = utl.getKibotLastValue( symbol,
-#                                        sType = 'ETF' )
-#     assetHash[ symbol ] = val
+    assetHash = {}
 
-# for symbol in futures:
-#     val, date = utl.getKibotLastValue( symbol,
-#                                        sType = 'futures' )
-#     assetHash[ symbol ] = val
+    for symbol in ETFs:
+        val, date = utl.getKibotLastValue( symbol,
+                                           sType = 'ETF' )
+        assetHash[ symbol ] = val
 
-# for symbol in indices:
-#     val, date = utl.getKibotLastValue( symbol,
-#                                        sType = 'index' )
-#     assetHash[ symbol ] = val
+    for symbol in futures:
+        val, date = utl.getKibotLastValue( symbol,
+                                           sType = 'futures' )
+        assetHash[ symbol ] = val
 
-# print( 'Done with getting assetHash! Took %0.2f seconds!' % ( time.time() - t0 ) )
+    for symbol in indices:
+        val, date = utl.getKibotLastValue( symbol,
+                                           sType = 'index' )
+        assetHash[ symbol ] = val
 
-# print( assetHash )
+    print( 'Done with getting assetHash! Took %0.2f seconds!' % ( time.time() - t0 ) )
 
-assetHash = {'QQQ': 228.83, 'SPY': 331.72, 'DIA': 290.99, 'MDY': 373.47, 'IWM': 164.76, 'OIH': 11.14, 'SMH': 143.05, 'XLE': 53.96, 'XLF': 30.86, 'XLU': 68.59, 'EWJ': 59.5, 'ES': 3322.75, 'NQ': 9401.0, 'US': 162.46875, 'YM': 29031, 'RTY': 1656.8, 'EMD': 2048.7, 'QM': 50.35, 'INDU': 29102.51, 'NDX': 9401.1, 'SPX': 3327.71, 'RUT': 1656.7779999999998, 'OEX': 1498.07, 'MID': 2049.3, 'SOX': 1864.36, 'RUI': 1839.675, 'RUA': 1946.354, 'TRAN': 10857.73, 'HGX': 372.58, 'TYX': 20.42, 'XAU': 101.33}
+print( assetHash )
 
 # ***********************************************************************                                                                   
 # Get options chain
@@ -75,7 +79,7 @@ for symbol in ETFs:
     print( 'Getting options for %s...' % symbol )
     
     tmpList = utl.getOptionsChain( symbol,
-                                   minExprDate  = pd.to_datetime( curDate ) + datetime.timedelta( days = 7 ),
+                                   minExprDate  = pd.to_datetime( curDate ) + datetime.timedelta( days = 2 ),
                                    maxExprDate  = maxDate,
                                    minTradeDate = pd.to_datetime( curDate ) - datetime.timedelta( days = 2 ),
                                    minVolume    = 0,
@@ -96,20 +100,16 @@ prtObj = MfdOptionsPrt( modFile     = modFile,
                         maxDate     = maxDate,
                         maxPriceC   = 2000.0,
                         maxPriceA   = 4000.0,
-                        minProb     = 0.5,
+                        minProb     = 0.75,
                         rfiDaily    = 0.0,
                         tradeFee    = 0.0,
                         nDayTimes   = 1140,
                         logFileName = None,                    
                         verbose     = 1          )                        
 
-sOptions = prtObj.sortOptions( options )
+print( 'Found %d eligible contracts..' % len( prtObj.sortOptions( options ) ) )
+actDf = prtObj.getActionDf( cash, options )
 
-sOptions = sOptions[:5]
+print( actDf )
 
-print( sOptions  )
-
-probs = []
-
-for option in sOptions:
-    print( prtObj.getProb( option ) )
+actDf.to_csv( 'actDf.csv', index = False )

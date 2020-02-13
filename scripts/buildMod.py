@@ -23,8 +23,8 @@ from dat.assets import OLD_ETF_HASH
 dfFile      = 'data/dfFile_long_term_all.pkl'
 
 minTrnDate  = pd.to_datetime( '2003-01-01 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2017-12-31 09:00:00' )
-maxOosDate  = pd.to_datetime( '2020-02-04 15:00:00' )
+maxTrnDate  = pd.to_datetime( '2020-01-31 09:00:00' )
+maxOosDate  = pd.to_datetime( '2020-02-10 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
@@ -39,7 +39,7 @@ velNames    = ETFs + indices + futures
 
 pType       = 'vel'
 
-modFileName = 'models/model_long_term.dill'
+modFileName = 'models/model_long_term_snap_2020_01_31.dill'
 
 factor      = 1.0e-5
     

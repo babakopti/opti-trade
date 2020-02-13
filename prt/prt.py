@@ -833,7 +833,131 @@ class MfdOptionsPrt:
                           ( time.time() - t0 ) )
         
         return prdDf
-    
+
+    def getActionDf( self,
+                     cash,
+                     newOptions,
+                     curOptions = [],
+                     curCnts    = [],
+                     curUPrices = []  ):
+
+        assert len( curOptions ) == len( curUPrices ),\
+            'Inconsistent lengths!'
+
+        assert len( curOptions ) == len( curCnts ),\
+            'Inconsistent lengths!'
+
+        symList    = []
+        assetList  = []
+        exprList   = []
+        strikeList = []
+        typeList   = []
+        cntList    = []
+        actList    = []
+        probList   = []
+
+        totVal = cash
+        
+        for i in range( len( curOptions ) ):
+            
+            curOption = curOptions[i]
+            curCnt    = curCnts[i]
+            curUPrice = curUPrices[i]
+            symbol    = curOption[ 'optionSymbol' ]
+            asset     = curOption[ 'assetSymbol' ]
+            strike    = curOption[ 'strike' ]
+            exprDate  = curOption[ 'expiration' ]
+            oType     = curOption[ 'type' ]
+            oCnt      = curOption[ 'contractCnt' ]
+            curPrice  = self.assetHash[ asset ]
+            decision  = self.getDecision( curOption, curUPrice )
+
+            if decision == 'sell_now':
+                totVal += curCnt * oCnt * curUPrice
+                prob    = 1.0
+            elif decision == 'exec_now':
+                totVal += curCnt * oCnt * abs( strike - curPrice )
+                prob    = 1.0
+            elif decision == 'exec_maturity':
+                prob = self.getProb( curOption )
+            else:
+                prob = 1.0
+            
+            symList.append( symbol )
+            assetList.append( asset )
+            exprList.append( exprDate )
+            strikeList.append( strike )
+            typeList.append( oType )
+            cntList.append( curCnt )
+            actList.append( decision )
+            probList.append( 1.0 )
+
+        sOptions = self.sortOptions( newOptions )
+
+        while totVal > 0:
+
+            endFlag = True
+            
+            for option in sOptions:
+                
+                symbol   = option[ 'optionSymbol' ]
+                asset    = option[ 'assetSymbol' ]
+                strike   = option[ 'strike' ]
+                exprDate = option[ 'expiration' ]
+                oType    = option[ 'type' ]                
+                oCnt     = option[ 'contractCnt' ]
+                uPrice   = option[ 'unitPrice' ]
+                prob     = self.getProb( option )
+
+                tmpVal   = totVal - oCnt * uPrice - self.tradeFee
+
+                if tmpVal <= 0:
+                    continue
+                
+                totVal = tmpVal
+                
+                symList.append( symbol )
+                assetList.append( asset )
+                exprList.append( exprDate )
+                strikeList.append( strike )
+                typeList.append( oType )
+                cntList.append( 1 )
+                actList.append( 'buy_now' )
+                probList.append( prob )
+
+                endFlag = False
+
+            if endFlag:
+                break
+
+        actDf = pd.DataFrame( { 'symbol'     : symList,
+                                'asset'      : assetList,
+                                'expiration' : exprList,
+                                'strike'     : strikeList,
+                                'type'       : typeList,
+                                'count'      : cntList,
+                                'action'     : actList,
+                                'win_prob'   : probList     } )
+
+        cols  = list( set( actDf.keys() ) - set( [ 'count' ] ) )
+        
+        actDf = actDf.groupby( cols, as_index = False )[ 'count' ].sum()
+
+        cols  = [ 'symbol',
+                  'asset',
+                  'expiration',
+                  'strike',
+                  'type',
+                  'count',
+                  'action',
+                  'win_prob' ]
+
+        actDf = actDf[ cols ]
+        actDf = actDf.sort_values( [ 'win_prob', 'asset', 'expiration' ],
+                                   ascending = [ False, True, True ] )
+        
+        return actDf
+                  
     def sortOptions( self, options ):
 
         t0      = time.time()
@@ -880,6 +1004,7 @@ class MfdOptionsPrt:
     def getDecision( self, option, curUPrice ):
 
         decisions = [ 'exec_maturity', 'exec_now', 'sell_now' ]
+        exprDate  = pd.to_datetime( option[ 'expiration' ] )
         retHash   = {}
         
         for decision in decisions:
@@ -890,10 +1015,15 @@ class MfdOptionsPrt:
 
         maxRet = max( retHash.value() )
 
-        if retHash[ 'exec_now' ] == maxRet:
-            decision =  'exec_now'
+        if maxRet < 0:
+            decision = 'no_action'
+        elif retHash[ 'exec_now' ] == maxRet:
+            decision = 'exec_now'
         elif retHash[ 'sell_now' ] == maxRet:
             decision = 'sell_now'
+        elif retHash[ 'exec_maturity' ] == maxRet and \
+             exprDate == self.curDate:
+            decision = 'exec_now'
         else:
             decision = 'exec_maturity'
 
