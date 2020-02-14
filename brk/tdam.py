@@ -130,10 +130,62 @@ class Tdam:
                 
         return options
 
-    def order( self, symbol, orderType = 'MARKET', sType = 'EQUITY' ):
+    def order( self,
+               symbol,
+               orderType = 'MARKET',
+               duration  = 'DAY',
+               price     = None,
+               quantity  = 1,
+               sType     = 'EQUITY',
+               action    = 'BUY' ):
+
+        self.logger.info( 'Ordering %d of %s...', quantity, symbol )
+
+        assert orderType in [ 'MARKET', 'LIMIT' ], 'Incorrect orderType!'
+        assert duration in  [ 'DAY',
+                              'GOOD_TILL_CANCEL',
+                              'FILL_OR_KILL' ], 'Incorrect duration!'
+        assert sType in [ 'EQUITY', 'OPTION' ], 'Incorrect sType!'
+
+        if sType == 'EQUITY':
+            assert action in [ 'BUY',
+                               'SELL',
+                               'SELL_SHORT' ], 'Incorrect action!'
+        elif sType == 'OPTION': 
+            assert action in [ 'BUY_TO_OPEN',
+                               'SELL_TO_CLOSE',
+                               'BUY_TO_CLOSE',
+                               'SELL_TO_OPEN' ], 'Incorrect action!'
+
+        orderHash = {
+            'orderType': orderType,
+            'duration': duration,
+            'session': 'NORMAL',
+            'orderStrategyType': 'SINGLE',
+            'orderLegCollection': [
+                {
+                    'instruction': action,
+                    'quantity': quantity,
+                    'instrument': {
+                        'symbol': symbol,
+                        'assetType': sType
+                    }
+                }
+            ]
+        }
+
+        if orderType == 'LIMIT':
+            orderHash[ 'price' ] = price
 
         url = 'https://api.tdameritrade.com/v1/accounts/%s/orders' % \
             self.accountId
-
-        orderHash = {}
         
+        headers = { 'Authorization': 'Bearer ' + self.token }
+        
+        ret = requests.post( url,
+                             headers = headers,
+                             json    = orderHash    )
+
+        self.logger.info( ret )
+
+        return ret
