@@ -182,10 +182,11 @@ class Tdam:
         
         headers = { 'Authorization': 'Bearer ' + self.token }
         
-        ret = requests.post( url,
-                             headers = headers,
-                             json    = orderHash    )
+        resp = requests.post( url,
+                              headers = headers,
+                              json    = orderHash    )
 
-        self.logger.info( ret )
-
-        return ret
+        if resp.status_code == 200:
+            self.logger.error( resp )
+        else:
+            self.logger.info( resp )
