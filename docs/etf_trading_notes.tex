@@ -44,9 +44,9 @@ of the model's $n$ economic variables as initial conditions, the
 solution of these ODEs yields forecast of economic variables.
 
 Let us assume that we entered $q_{i}$ positions of asset $i$ at time
-$t_{0}$; the values are posive and negative for long and short
+$t_{0}$; the values are positive and negative for long and short
 positions, respectively. The predicted value of our portfolio at time
-$t$ > $t_{0}$, that is $V(t)$ is calculated as,
+$t > t_{0}$, that is $V(t)$ is calculated as,
 
 \begin{equation}\label{eqn:prt-value}
 V(t) = \sum_{i=1}^{\tilde{n}} q_{i} y^{i}(t)
@@ -92,7 +92,7 @@ generally every $t_{H}-t{0}$.
 When solving \ref{eqn:optimization-problem-q}, we should consider that
 values of $q^{i}$ can be only integers. A simpler approach is to
 convert quantities to portfolio weights; $w_{i} = \frac{q_{i}
-  y^{i}(t_{0})}{V(t_{0})}$. The optimization probelm become,
+  y^{i}(t_{0})}{V(t_{0})}$. The optimization problem become,
 
 \begin{equation}\label{eqn:optimization-problem-w}
 \max_{w_{i}} \frac{\sum_{i=1}^{\tilde{n}}
@@ -112,7 +112,7 @@ the expected return on asset $i$.
 For short trading horizons, for example a day, the standard deviation
 of model forecasts are rather high and overwhelm the actual price
 movements. As such, the above algorithm does not work. We tested the
-above agolrithm using a differential geometric consisting of 27 ETFs
+above algorithm using a differential geometric consisting of 27 ETFs
 and 7 continuous futures contracts, that is a total of 34 economic
 variables; the 27 ETFs were used as portfolio
 assets. Figure~\ref{fig:etf-results-approach-1} should the results for
@@ -133,9 +133,9 @@ follows,
 
 \begin{itemize}
 
-  \item[1] At a given current time $t_{0}$ abuild a geometric forecast
+  \item[1] At a given current time $t_{0}$ build a geometric forecast
     model using historical data, using $n$ economic variables,
-    includng prices of the $\tilde{n}$ ETFs which are used as an asset
+    including prices of the $\tilde{n}$ ETFs which are used as an asset
     pool for trading.
 
   \item[2] Given a trading horizon end time $t_{H} > t_{0}$, get the
@@ -149,7 +149,7 @@ follows,
 
     \item[3] Calculate the historical mean and mean absolute deviation
       (MAD) of logarithmic return, and choose a subset of
-      $\tilde{n}^{\prime}$ < $\tilde{n}$ which have the highet mean to
+      $\tilde{n}^{\prime}$ < $\tilde{n}$ which have the highest mean to
       MAD ratio. The logarithmic return for asset $i$ is calculated
       as,
 
@@ -165,14 +165,14 @@ follows,
       \end{equation}
 
       where the last $N$ discrete times prior to $t_{0}$ are used to
-      calculate the mean. SImilary, the MAD is calculated as,
+      calculate the mean. Similarly, the MAD is calculated as,
       
       \begin{equation}\label{eqn:log-return-mad}
         MAD(R^{i}) = \frac{1}{N} \sum_{k=-N}^{0} |R^{i}(t_{k}) - \bar{R}^{i}|
       \end{equation}
       
   \item[4] Give each of the $\tilde{n}^{\prime}$ assets an equal
-    weight in portfolio. If the proce is oredicted to increase take a
+    weight in portfolio. If the price is predicted to increase take a
     long position, and if it is predicted to decrease take a short
     position.
 
@@ -216,10 +216,10 @@ as they represent velocity and acceleration signs, respectively. The
 number of historical times used to calculate MACD should be at least
 $s$ + $r$ ($N > s + r$).
 
-\subsection{Some Backtest Results for Aprroach II}\label{subsection:fallback-macd}
+\subsection{Some Backtest Results for Approach II}\label{subsection:fallback-macd}
 
 The approach II was tested using a model with 34 variables, consisting
-of 27 ETFs and 7 constineous futures
+of 27 ETFs and 7 continuous futures
 contracts. Figure~\ref{fig:etf-results-approach-2} should the results
 for 2018 and 2019.
 
