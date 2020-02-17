@@ -66,14 +66,14 @@ as
 The variance of $V(t)$ is calculated as
 
 \begin{equation}\label{eqn:stdev-prt-value}
-Var(V(t)) = \sum_{i=1}^{\tilde{n}} q_{i}^{2} (\sigma^{i})^{2}
+VAR[V(t)] = \sum_{i=1}^{\tilde{n}} q_{i}^{2} (\sigma^{i})^{2}
 \end{equation}
 
 We determine the asset quantities $q_{i}$ by solving the following
 optimization problem,
 
 \begin{equation}\label{eqn:optimization-problem-V}
-\max_{q_{i}} \frac{\bar{V}(t_{H})-V(t_{0})}{\[Var(V(t_{H})-V(t_{0})\]}
+\max_{q_{i}} \frac{\bar{V}(t_{H})-V(t_{0})}{VAR[V(t_{H})-V(t_{0})]}
 \end{equation}
 
 Using Eqs.~\ref{eqn:expected-prt-value} and \ref{eqn:stdev-prt-value},
@@ -81,11 +81,11 @@ we get
 
 \begin{equation}\label{eqn:optimization-problem-q}
 \max_{q_{i}} \frac{\sum_{i=1}^{\tilde{n}}
-  q_{i} \[\bar{y}^{i}(t_{H})-y^{i}(t_{0})\]}{\[\sum_{i=1}^{\tilde{n}}
-  q_{i}^{2} (\sigma^{i})^{2}\]^{1/2}}
+  q_{i} [\bar{y}^{i}(t_{H})-y^{i}(t_{0})]}{(\sum_{i=1}^{\tilde{n}}
+    q_{i}^{2} (\sigma^{i})^{2})^{1/2}}
 \end{equation}
 
-where $t_{H}$ > $t_{0}$ is the end of our trading horizon. In other
+where $t_{H} > t_{0}$ is the end of our trading horizon. In other
 words, we plan to adjust our portfolio again at $t{H}$, or more
 generally every $t_{H}-t{0}$.
 
@@ -96,8 +96,8 @@ convert quantities to portfolio weights; $w_{i} = \frac{q_{i}
 
 \begin{equation}\label{eqn:optimization-problem-w}
 \max_{w_{i}} \frac{\sum_{i=1}^{\tilde{n}}
-  w_{i} r^{i}(t_{H})}{\[\sum_{i=1}^{\tilde{n}}
-  w_{i}^{2} \(\frac{\sigma^{i}}{y^{i}(t_{0})\)^{2}\]^{1/2}}
+  w_{i} r^{i}(t_{H})}{(\sum_{i=1}^{\tilde{n}}
+  w_{i}^{2} (\frac{\sigma^{i}}{y^{i}(t_{0})})^{2})^{1/2}}
 \end{equation}
 
 subject to the following equality constraint,
@@ -114,7 +114,9 @@ of model forecasts are rather high and overwhelm the actual price
 movements. As such, the above algorithm does not work. We tested the
 above agolrithm using a differential geometric consisting of 27 ETFs
 and 7 continuous futures contracts, that is a total of 34 economic
-variables; the 27 ETFs were used as portfolio assets.
+variables; the 27 ETFs were used as portfolio
+assets. Figure~\ref{fig:etf-results-approach-1} should the results for
+2018n and 2019.
 
 \begin{figure}
 \includegraphics[scale=0.42,bb=0 0 320 240]{figures/Gain_std_maximization.png}
@@ -136,11 +138,11 @@ follows,
     includng prices of the $\tilde{n}$ ETFs which are used as an asset
     pool for trading.
 
-  \item[2] Given a trading horizon end time $t_{H}$ > $t_{0}$, get the
+  \item[2] Given a trading horizon end time $t_{H} > t_{0}$, get the
     expected trends of the $\tilde{n}$ ETFs. This is the only piece of
     information we get from the geometric model. We only need to know
     whether price of an asset is expected to increase or decrease over
-    a trading horizon. We can combine the trend predictions fromk the
+    a trading horizon. We can combine the trend predictions from the
     geometric model with a ''fall back'' method, as described in
     section~\ref{subsection:fallback-macd}, to increase the chance of
     a correct price trend forecast.
@@ -153,7 +155,7 @@ follows,
 
       \begin{equation}\label{eqn:log-return}
         R^{i}(t) = \sum_{i=1}^{\tilde{n}}
-        \frac{log\(\hat{y}^{i}(t)\)-log\(\hat{y}^{i}(t-1)\)}{log\(\hat{y}^{i}(t-1)\)}
+        \frac{log(\hat{y}^{i}(t))-log(\hat{y}^{i}(t-1))}{log(\hat{y}^{i}(t-1))}
       \end{equation}
 
       The mean of $R^{i}$ is calculated as,
@@ -166,7 +168,7 @@ follows,
       calculate the mean. SImilary, the MAD is calculated as,
       
       \begin{equation}\label{eqn:log-return-mad}
-        MAD(R^{i}) = \frac{1}{N} \sum_{k=-N}^{0} \abs{R^{i}(t_{k}) - \bar{R}^{i}}
+        MAD(R^{i}) = \frac{1}{N} \sum_{k=-N}^{0} |R^{i}(t_{k}) - \bar{R}^{i}|
       \end{equation}
       
   \item[4] Give each of the $\tilde{n}^{\prime}$ assets an equal
@@ -213,6 +215,20 @@ $F_{MACD}^{(f,s)}(x)|_{t_{0}}-E^{r}(F_{MACD}^{(f,s)}(x))|_{t_{0}}$
 as they represent velocity and acceleration signs, respectively. The
 number of historical times used to calculate MACD should be at least
 $s$ + $r$ ($N > s + r$).
+
+\subsection{Some Backtest Results for Aprroach II}\label{subsection:fallback-macd}
+
+The approach II was tested using a model with 34 variables, consisting
+of 27 ETFs and 7 constineous futures
+contracts. Figure~\ref{fig:etf-results-approach-2} should the results
+for 2018 and 2019.
+
+\begin{figure}
+\includegraphics[scale=0.42,bb=0 0 320 240]{figures/sorted-5-Equal-60-days-eval.png}
+\caption{Results of ETF trading backtest using approach II; here we
+  used the geometric model qualitatively, only to predict the trends.}
+\label{fig:etf-results-approach-2}
+\end{figure}
 
 \end{document}
 

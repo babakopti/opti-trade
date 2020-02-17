@@ -13,14 +13,14 @@ sys.path.append( '../' )
 
 import utl.utils as utl
 
-from dat.assets import ETF_HASH
+from dat.assets import SUB_ETF_HASH as ETF_HASH
 
 # ***********************************************************************
 # Input
 # ***********************************************************************
 
-prtFile     = 'portfolios/popular_sorted_ETFs_portfolio_60_eval_days.txt'
-dfFile      = 'data/dfFile_kibot_all_popular_all.pkl'
+prtFile     = 'p_sub_minute_mad.txt'
+dfFile      = 'data/dfFile_kibot_2016plus.pkl'
 base        = 'SPY'
 initTotVal  = 1000000.0
 
@@ -64,6 +64,6 @@ plt.plot( retDf1.Date, retDf1.EndVal, 'b',
           retDf3.Date, retDf3.EndVal, 'r'  )
 plt.xlabel( 'Date' )
 plt.ylabel( 'Value ($)' )
-plt.legend( [ 'Inverse ETFs', 'Short Sell', base ] )
+plt.legend( [ 'Inverse ETF', 'Short Sell', base ] )
 plt.title( prtFile )
 plt.show()
