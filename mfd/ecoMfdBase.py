@@ -486,8 +486,8 @@ class EcoMfdCBase:
         nDims    = self.nDims
         actSol   = self.actSol
         varCoefs = self.varCoefs
-        atnCoefs = self.atnCoefs        
-        tmpVec   = self.tmpVec.copy()
+        atnCoefs = self.atnCoefs
+        tmpVec   = np.zeros( shape = ( nTimes ), dtype = 'd' )
 
         tmpVec.fill( 0.0 )
         for varId in range( nDims ):
@@ -754,7 +754,13 @@ class EcoMfdCBase:
             errVec[m] = tmp1 * tmp2
 
         return errVec
-                
+
+    def lighten( self ):
+        
+        self.actSol    = None
+        self.actOosSol = None
+        self.tmpVec    = None
+        
     def save( self, outModFile ):
 
         self.logger.info( 'Saving the model to %s', 
