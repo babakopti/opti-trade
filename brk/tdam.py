@@ -21,14 +21,17 @@ class Tdam:
 
     def __init__(   self,
                     authKey      = None,
+                    refToken     = None,
                     callbackUrl  = 'http://localhost:8080',
                     logFileName  = None,                    
                     verbose      = 1          ):
 
         if authKey is None:
-            self.authKey = 'QKSFXGSPRYAV3FMQMKTA23WXSDGSJL2A'
+            self.authKey  = 'QKSFXGSPRYAV3FMQMKTA23WXSDGSJL2A'
         else:
-            self.authKey = authKey
+            self.authKey  = authKey
+
+        self.refToken    = refToken
 
         self.callbackUrl = callbackUrl
         self.logFileName = logFileName
@@ -41,13 +44,18 @@ class Tdam:
         self.accountId   = None
 
         self.setAuth()
-        self.setAccount()
+        self.setAccounts()
         self.setAccountId()
 
     def setAuth( self ):
 
-        accessHash = auth.authentication( client_id    = self.authKey,
-                                          redirect_uri = self.callbackUrl )        
+        if self.refToken is None:
+            accessHash = auth.authentication( client_id    = self.authKey,
+                                              redirect_uri = self.callbackUrl )
+            self.refToken = accessHash[ 'refresh_token' ]
+        else:
+            accessHash = auth.refresh_token( refresh_token = self.refToken,
+                                             client_id     = self.authKey     )
         
         self.token  = accessHash[ 'access_token' ]
         self.client = TDClient( self.token )
@@ -88,10 +96,12 @@ class Tdam:
                 obj = stkHash[ strike ][0]
                 
                 assert symbol == obj[ 'symbol' ].split( '_' )[0], \
-                    'Inconsistent underlying symbol!'
+                    'Inconsistent underlying symbol %s vs. %s!' % \
+                    ( symbol, obj[ 'symbol' ].split( '_' )[0] ) 
 
-                assert strike == obj[ 'strikePrice' ], \
-                    'Inconsistent strikePrice!'
+                assert float( strike ) == float( obj[ 'strikePrice' ] ), \
+                    'Inconsistent strikePrices %s vs. %s!' % \
+                    ( str( strike ), str( obj[ 'strikePrice' ] ) )
                 
                 option = { 'optionSymbol' : obj[ 'symbol' ],
                            'assetSymbol'  : symbol,
@@ -113,10 +123,12 @@ class Tdam:
                 obj = stkHash[ strike ][0]
 
                 assert symbol == obj[ 'symbol' ].split( '_' )[0], \
-                    'Inconsistent underlying symbol!'
-                
-                assert strike == obj[ 'strikePrice' ], \
-                    'Inconsistent strikePrice!'
+                    'Inconsistent underlying symbol %s vs. %s!' % \
+                    ( symbol, obj[ 'symbol' ].split( '_' )[0] ) 
+
+                assert float( strike ) == float( obj[ 'strikePrice' ] ), \
+                    'Inconsistent strikePrices %s vs. %s!' % \
+                    ( str( strike ), str( obj[ 'strikePrice' ] ) )
                 
                 option = { 'optionSymbol' : obj[ 'symbol' ],
                            'assetSymbol'  : symbol,
