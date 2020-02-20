@@ -37,9 +37,11 @@ ETFs    = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
 # Input parameters
 # ***********************************************************************
 
-baseDfFile  = 'data/dfFile_long_term_pitrading.pkl'
+dataFlag    = True
+modFlag     = True
+baseDfFile  = 'data/dfFile_long_term_all.pkl'
 timeZone    = 'America/New_York'
-minTrnDate  = '2003-01-01'
+minTrnDate  = pd.to_datetime( '2003-01-01 09:00:00' )
 nOosMinutes = 60
 oMonths     = 3
 factor      = 1.0e-5
@@ -61,60 +63,63 @@ os.environ[ 'TZ' ] = timeZone
 snapDate = datetime.datetime.now()
 snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
 snapDate = pd.to_datetime( snapDate )
+dateStr  = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )
 
 # ***********************************************************************                                                                   
 # Get data
 # ***********************************************************************
 
-dfFile   = 'data/dfFile_long_term_' + str( snapDate ) + '.pkl'
+dfFile   = 'data/dfFile_long_term_' + dateStr + '.pkl'
 
 velNames = ETFs + indexes + futures
 
-cols     = [ 'Date' ] + velNames
+if dataFlag:
+    cols     = [ 'Date' ] + velNames
 
-oldDf    = pd.read_pickle( baseDfFile )
-newDf    = utl.getKibotData( etfs    = ETFs,
-                             futures = futures,
-                             indexes = indexes,
-                             nDays   = 3000       )
+    oldDf    = pd.read_pickle( baseDfFile )
+    newDf    = utl.getKibotData( etfs    = ETFs,
+                                 futures = futures,
+                                 indexes = indexes,
+                                 nDays   = 30        )
 
-oldDf    = oldDf[ cols ]
-newDf    = newDf[ cols ]
-newDf    = newDf[ newDf.Date > oldDf.Date.max() ]
-allDf    = pd.concat( [ oldDf, newDf ] )
+    oldDf    = oldDf[ cols ]
+    newDf    = newDf[ cols ]
+    newDf    = newDf[ newDf.Date > oldDf.Date.max() ]
+    allDf    = pd.concat( [ oldDf, newDf ] )
 
-allDf.to_pickle( dfFile, protocol = 4 )
+    allDf.to_pickle( dfFile, protocol = 4 )
 
 # ***********************************************************************                                                                   
 # Build the model
 # ***********************************************************************
 
-maxOosDate = snapDate
-maxTrnDate = maxOosDate - datetime.timedelta( minutes = nOosMinutes )
+modFile    = 'models/model_long_term_' + dateStr + '.dill'
 
-modFile    = 'models/model_long_term_' + str( snapDate ) + '.dill'
+if modFlag:
+    maxOosDate = snapDate
+    maxTrnDate = maxOosDate - datetime.timedelta( minutes = nOosMinutes )
 
-mfdMod     = MfdMod( dfFile       = dfFile,
-                     minTrnDate   = minTrnDate,
-                     maxTrnDate   = maxTrnDate,
-                     maxOosDate   = maxOosDate,
-                     velNames     = velNames,
-                     maxOptItrs   = 500,
-                     optGTol      = 1.0e-2,
-                     optFTol      = 1.0e-2,
-                     factor       = factor,
-                     regCoef      = 1.0e-3,
-                     smoothCount  = None,
-                     logFileName  = None,
-                     verbose      = 1          )
+    mfdMod     = MfdMod( dfFile       = dfFile,
+                         minTrnDate   = minTrnDate,
+                         maxTrnDate   = maxTrnDate,
+                         maxOosDate   = maxOosDate,
+                         velNames     = velNames,
+                         maxOptItrs   = 500,
+                         optGTol      = 1.0e-2,
+                         optFTol      = 1.0e-2,
+                         factor       = factor,
+                         regCoef      = 1.0e-3,
+                         smoothCount  = None,
+                         logFileName  = None,
+                         verbose      = 1        )
 
-validFlag = mfdMod.build()
+    validFlag = mfdMod.build()
 
-print( 'Success :', validFlag )
+    print( 'Success :', validFlag )
 
-mfd.ecoMfd.lighten()
+    mfd.ecoMfd.lighten()
 
-mfdMod.save( modFileName )
+    mfdMod.save( modFileName )
 
 # ***********************************************************************                                                                   
 # Get TD Ameritrade handle
