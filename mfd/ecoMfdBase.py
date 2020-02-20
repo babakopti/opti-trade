@@ -133,9 +133,10 @@ class EcoMfdCBase:
         self.srcTerm     = srcTerm
 
         nDims            = self.nDims
-        self.endSol      = np.zeros( shape = ( nDims ),            dtype = 'd' )
-        self.bcSol       = np.zeros( shape = ( nDims ),            dtype = 'd' )    
-        self.varOffsets  = np.zeros( shape = ( nDims ),            dtype = 'd' )
+        self.endSol      = np.zeros( shape = ( nDims ), dtype = 'd' )
+        self.bcSol       = np.zeros( shape = ( nDims ), dtype = 'd' )
+        self.stdVec      = np.zeros( shape = ( nDims ), dtype = 'd' )        
+        self.varOffsets  = np.zeros( shape = ( nDims ), dtype = 'd' )
 
         self.setDf()        
 
@@ -354,6 +355,8 @@ class EcoMfdCBase:
         self.logger.info( 'Setting Gamma: %0.2f seconds.', 
                           time.time() - t0   )
 
+        self.setConstStdVec()
+        
         return sFlag
 
     def setGammaVecGD( self ):
@@ -403,7 +406,18 @@ class EcoMfdCBase:
             self.GammaVec = self.GammaVec - stepSize * grad
 
         return False
-        
+
+    def setConstStdVec( self ): 
+
+        nDims  = self.nDims
+        actSol = self.actSol
+        odeObj  = self.getSol( self.GammaVec )
+        sol     = odeObj.getSol()
+
+        for varId in range( nDims ):
+            tmpVec = ( sol[varId][:] - actSol[varId][:] )**2
+            self.stdVec[varId] = np.sqrt( np.mean( tmpVec ) )
+
     def getObjFunc( self, GammaVec ):
 
         self.statHash[ 'funCnt' ] += 1
@@ -664,17 +678,7 @@ class EcoMfdCBase:
 
     def getConstStdVec( self ): 
 
-        nDims  = self.nDims
-        actSol = self.actSol
-        odeObj  = self.getSol( self.GammaVec )
-        sol     = odeObj.getSol()
-        stdVec  = np.zeros( shape = ( nDims ), dtype = 'd' )
-
-        for varId in range( nDims ):
-            tmpVec = ( sol[varId][:] - actSol[varId][:] )**2
-            stdVec[varId] = np.sqrt( np.mean( tmpVec ) )
-
-        return stdVec
+        return self.stdVec
 
     def getStdCoefs( self ): 
 
