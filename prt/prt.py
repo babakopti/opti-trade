@@ -892,11 +892,21 @@ class MfdOptionsPrt:
             actList.append( decision )
             probList.append( 1.0 )
 
+        self.logger.info( '%d new options contracts before filteration!',
+                          len( newOptions ) )
+            
+        newOptions = self.filterOptions( newOptions )
+
+        self.logger.info( '%d new options contracts after filteration!',
+                          len( newOptions ) )
+
         sOptions = self.sortOptions( newOptions )
 
         while totVal > 0:
 
-            endFlag = True
+            prevVal = totVal
+            
+            self.logger.info( 'Remaining cash is %0.2f', totVal )
             
             for option in sOptions:
                 
@@ -907,7 +917,6 @@ class MfdOptionsPrt:
                 oType    = option[ 'type' ]                
                 oCnt     = option[ 'contractCnt' ]
                 uPrice   = option[ 'unitPrice' ]
-                prob     = self.getProb( option )
 
                 tmpVal   = totVal - oCnt * uPrice - self.tradeFee
 
@@ -915,6 +924,8 @@ class MfdOptionsPrt:
                     continue
                 
                 totVal = tmpVal
+
+                prob = self.getProb( option )
                 
                 symList.append( symbol )
                 assetList.append( asset )
@@ -925,11 +936,9 @@ class MfdOptionsPrt:
                 actList.append( 'buy_now' )
                 probList.append( prob )
 
-                endFlag = False
-
-            if endFlag:
+            if totVal == prevVal:
                 break
-
+                
         actDf = pd.DataFrame( { 'symbol'     : symList,
                                 'asset'      : assetList,
                                 'expiration' : exprList,
@@ -955,6 +964,7 @@ class MfdOptionsPrt:
         actDf = actDf[ cols ]
         actDf = actDf.sort_values( [ 'win_prob', 'asset', 'expiration' ],
                                    ascending = [ False, True, True ] )
+        actDf = actDf.reset_index( drop = True )
         
         return actDf
                   
@@ -1098,9 +1108,9 @@ class MfdOptionsPrt:
             return -1.0
         
         asset    = option[ 'assetSymbol' ]
-        strike   = option[ 'strike' ]
+        strike   = float( option[ 'strike' ] )
         exprDate = option[ 'expiration' ]
-        uPrice   = option[ 'unitPrice' ]        
+        uPrice   = float( option[ 'unitPrice' ] )
         oType    = option[ 'type' ]
         oCnt     = option[ 'contractCnt' ]
 
@@ -1143,7 +1153,32 @@ class MfdOptionsPrt:
             assert False, 'Only call/put options are accepted!'
 
         return prob
+
+    def filterOptions( self, options ):
         
+        subSet = []
+
+        for option in options:
+            
+            asset    = option[ 'assetSymbol' ]
+            exprDate = pd.to_datetime( option[ 'expiration' ] )
+
+            if asset not in self.assetHash.keys():
+                continue
+
+            if asset not in self.ecoMfd.velNames:
+                continue
+
+            if exprDate <= self.curDate:
+                continue
+
+            if exprDate > self.maxDate:
+                continue
+            
+            subSet.append( option )
+
+        return subSet
+    
     def validateOption( self, option ):
 
         asset     = option[ 'assetSymbol' ]

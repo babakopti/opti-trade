@@ -21,6 +21,29 @@ from prt.prt import MfdOptionsPrt
 from brk.tdam import Tdam
 
 # ***********************************************************************                                                                   
+# Input parameters
+# ***********************************************************************
+
+dataFlag    = False
+modFlag     = False
+baseDfFile  = 'data/dfFile_long_term_all.pkl'
+timeZone    = 'America/New_York'
+nOosMinutes = 60
+nTrnYears   = 10
+factor      = 1.0e-5
+refToken    = None
+
+# ***********************************************************************                                                                   
+# Input investment parameters
+# ***********************************************************************
+
+cash      = 1000
+maxPriceC = 0.20 * cash
+maxPriceA = 0.33 * cash
+oMonths   = 3
+minProb   = 0.75
+
+# ***********************************************************************                                                                   
 # Input variables
 # ***********************************************************************
 
@@ -34,44 +57,40 @@ ETFs    = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
             'SMH', 'XLE', 'XLF', 'XLU', 'EWJ' ]
 
 # ***********************************************************************                                                                   
-# Input parameters
-# ***********************************************************************
-
-dataFlag    = True
-modFlag     = True
-baseDfFile  = 'data/dfFile_long_term_all.pkl'
-timeZone    = 'America/New_York'
-minTrnDate  = pd.to_datetime( '2003-01-01 09:00:00' )
-nOosMinutes = 60
-oMonths     = 3
-factor      = 1.0e-5
-
-refToken = None
-
-try:
-    with open( 'ref_token.txt', 'r' ) as fHd:
-        refToken = tmp = fHd.read()[:-1]
-except Exception as e:
-    print( e )
-
-# ***********************************************************************                                                                   
-# Set snapdate
+# Set time zone
 # ***********************************************************************
 
 os.environ[ 'TZ' ] = timeZone
 
-snapDate = datetime.datetime.now()
-snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
-snapDate = pd.to_datetime( snapDate )
-dateStr  = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )
+# ***********************************************************************                                                                   
+# Set model build date
+# ***********************************************************************
+
+if dataFlag or modFlag:
+    modDate = datetime.datetime.now()
+    modDate = modDate.strftime( '%Y-%m-%d %H:%M:%S' )
+else:
+    modDate = '2020-02-20 03:36:26'
+
+modDate = pd.to_datetime( modDate )
+
+# ***********************************************************************                                                                   
+# Set some parameters
+# ***********************************************************************
+
+dateStr    = modDate.strftime( '%Y-%m-%d_%H:%M:%S' )
+dfFile     = 'data/dfFile_long_term_' + dateStr + '.pkl'
+modFile    = 'models/model_long_term_' + dateStr + '.dill'
+velNames   = ETFs + indexes + futures
+minTrnDate = modDate - pd.DateOffset( years = nTrnYears )
+
+if refToken is None:
+    with open( 'ref_token.txt', 'r' ) as fHd:
+        refToken = tmp = fHd.read()[:-1]
 
 # ***********************************************************************                                                                   
 # Get data
 # ***********************************************************************
-
-dfFile   = 'data/dfFile_long_term_' + dateStr + '.pkl'
-
-velNames = ETFs + indexes + futures
 
 if dataFlag:
     cols     = [ 'Date' ] + velNames
@@ -86,6 +105,7 @@ if dataFlag:
     newDf    = newDf[ cols ]
     newDf    = newDf[ newDf.Date > oldDf.Date.max() ]
     allDf    = pd.concat( [ oldDf, newDf ] )
+    allDf    = allDf[ allDf.Date >= minTrnDate ]
 
     allDf.to_pickle( dfFile, protocol = 4 )
 
@@ -93,12 +113,15 @@ if dataFlag:
 # Build the model
 # ***********************************************************************
 
-modFile    = 'models/model_long_term_' + dateStr + '.dill'
-
 if modFlag:
-    maxOosDate = snapDate
-    maxTrnDate = maxOosDate - datetime.timedelta( minutes = nOosMinutes )
+    maxOosDate = pd.read_pickle( dfFile ).Date.max()
 
+    if maxOosDate != modDate:
+        print( 'Warning maxOosDate is not the same as modDate: %s vs. %s' \
+               % ( maxOosDate, modDate ) )
+
+    maxTrnDate = maxOosDate - datetime.timedelta( minutes = nOosMinutes )
+    
     mfdMod     = MfdMod( dfFile       = dfFile,
                          minTrnDate   = minTrnDate,
                          maxTrnDate   = maxTrnDate,
@@ -117,46 +140,15 @@ if modFlag:
 
     print( 'Success :', validFlag )
 
-    mfd.ecoMfd.lighten()
+    mfdMod.ecoMfd.lighten()
 
-    mfdMod.save( modFileName )
+    mfdMod.save( modFile )
 
 # ***********************************************************************                                                                   
 # Get TD Ameritrade handle
 # ***********************************************************************
 
 td = Tdam( refToken = refToken )
-
-# ***********************************************************************                                                                   
-# Get asset prices
-# ***********************************************************************
-
-assetHash = {}
-
-for symbol in velNames:
-    assetHash[ symbol ] = td.getQuote( symbol )
-
-# ***********************************************************************                                                                   
-# Instantiate options portfolio
-# ***********************************************************************
-
-maxDate = snapDate + pd.DateOffset( months = oMonths )
-
-prtObj  = MfdOptionsPrt( modFile     = modFile,
-                         assetHash   = assetHash,
-                         curDate     = snapDate,
-                         maxDate     = maxDate,
-                         maxPriceC   = 2000.0,
-                         maxPriceA   = 4000.0,
-                         minProb     = 0.75,
-                         rfiDaily    = 0.0,
-                         tradeFee    = 0.0,
-                         nDayTimes   = 1140,
-                         logFileName = None,                    
-                         verbose     = 1          )                        
-
-print( 'Found %d eligible contracts..' % \
-       len( prtObj.sortOptions( options ) ) )
 
 # ***********************************************************************                                                                   
 # Get options chain
@@ -172,6 +164,49 @@ for symbol in ETFs:
     options += tmpList
     
 print( 'Found %d options contracts!' % len( options ) )
+
+# ***********************************************************************                                                                   
+# Get asset prices
+# ***********************************************************************
+
+assetHash = {}
+
+for symbol in ETFs:
+    assetHash[ symbol ] = td.getQuote( symbol )
+
+for symbol in futures:
+    val, date = utl.getKibotLastValue( symbol,
+                                       sType = 'futures' )
+    assetHash[ symbol ] = val
+
+for symbol in indexes:
+    val, date = utl.getKibotLastValue( symbol,
+                                       sType = 'index' )
+    assetHash[ symbol ] = val
+
+print( assetHash )
+
+# ***********************************************************************                                                                   
+# Instantiate options portfolio
+# ***********************************************************************
+
+snapDate = datetime.datetime.now()
+snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
+snapDate = pd.to_datetime( snapDate )
+maxDate  = snapDate + pd.DateOffset( months = oMonths )
+
+prtObj  = MfdOptionsPrt( modFile     = modFile,
+                         assetHash   = assetHash,
+                         curDate     = snapDate,
+                         maxDate     = maxDate,
+                         maxPriceC   = maxPriceC,
+                         maxPriceA   = maxPriceA,
+                         minProb     = minProb,
+                         rfiDaily    = 0.0,
+                         tradeFee    = 0.0,
+                         nDayTimes   = 1140,
+                         logFileName = None,                    
+                         verbose     = 1          ) 
 
 # ***********************************************************************                                                                   
 # Get action 
