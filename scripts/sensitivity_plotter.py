@@ -17,19 +17,21 @@ from mod.mfdMod import MfdMod
 # Set input parameters
 # ***********************************************************************
 
-xType    = 'atnFct'
-yType    = 'trend_cnt'
+xType    = 'nTrnDays'
+yType    = 'error'
 xlog     = False
 
-pltList  = [ { 'model' : '2018-03-10', 'nTrnDays' : '360', 'tol' : '0.05', 'regCoef' : '0.001', 'atnFct' : None } ]
+pltList  = [ { 'model' : '2017-07-23', 'nTrnDays' : None, 'tol' : '0.01', 'regCoef' : '0.001', 'atnFct' :'1.0' },
+             { 'model' : '2018-03-10', 'nTrnDays' : None, 'tol' : '0.01', 'regCoef' : '0.001', 'atnFct' :'1.0' },
+             { 'model' : '2019-05-06', 'nTrnDays' : None, 'tol' : '0.01', 'regCoef' : '0.001', 'atnFct' :'1.0' } ]
 
-legList  = [ '2018-03-10' ]
+legList  = [ '2017-07-23', '2018-03-10', '2019-05-06' ]
              
-modDir   = 'models_sensitivity'
+modDir   = 'models_sensitivity_long_term'
 
-figName  = 'atnFct-sensitivity-trend-cnt.png'
+figName  = 'nTrnYears-sensitivity-error-logn-term.png'
 
-title    = 'tol = 0.05; nTrnDays = 360; regCoef = 0.001'
+title    = 'tol = 0.01; regCoef = 0.001'
 
 # ***********************************************************************
 # Sanity checks + Set some parameters

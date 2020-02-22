@@ -21,7 +21,7 @@ from mod.mfdMod import MfdMod
 # Set some parameters
 # ***********************************************************************
 
-snapDates   = [ '2018-03-10' ]
+snapDates   = [ '2018-03-10', '2019-05-06', '2017-07-23' ]
 
 # snapDates   = [ '2018-01-15', '2018-02-15', '2019-04-18',
 #                 '2018-05-15', '2018-06-15', '2019-07-18',
@@ -43,25 +43,28 @@ snapDates   = [ '2018-03-10' ]
 # regCoefList = [ 1.0e-3 ]
 # atnFctList  = [ 1.0 ]
 
-trnDaysList = [ 360 ]
-tolList     = [ 0.05 ]
+trnDaysList = [ 365 * 5, 365 * 10, 365 * 15 ]
+tolList     = [ 0.01 ]
 regCoefList = [ 1.0e-3 ]
-atnFctList  = [ 0.75, 0.5, 0.25, 0.0 ]
+atnFctList  = [ 1.0 ]
 
-modDir      = 'models_sensitivity'
-dfFile      = 'data/dfFile_2017plus.pkl'
-nOosDays    = 3
-maxOptItrs  = 300
+modDir      = 'models_sensitivity_long_term'
+dfFile      = 'data/dfFile_long_term_all.pkl'
+nOosDays    = 6 * 30
+maxOptItrs  = 500
 
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
-velNames    = indices + ETFs + futures
+indexes = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',
+            'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
+            'HGX',  'TYX', 'XAU' ]
 
-factor      = 4.0e-05
+futures = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+
+ETFs    = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH',
+            'SMH', 'XLE', 'XLF', 'XLU', 'EWJ' ]
+
+velNames    = indexes + ETFs + futures
+
+factor      = 1.0e-05
 numCores    = 1
 
 # ***********************************************************************
