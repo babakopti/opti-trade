@@ -13,6 +13,7 @@ import pandas as pd
 import scipy as sp
 import matplotlib.pyplot as plt
 
+from collections import Counter
 from scipy.special import erf
 from scipy.optimize import minimize
 
@@ -692,7 +693,8 @@ class MfdOptionsPrt:
                     curDate,
                     maxDate,
                     maxPriceC,
-                    maxPriceA,                    
+                    maxPriceA,
+                    maxContracts,
                     minProb,
                     rfiDaily     = 0.0,
                     tradeFee     = 0.0,
@@ -709,7 +711,8 @@ class MfdOptionsPrt:
         self.curDate      = pd.to_datetime( curDate )
         self.maxDate      = pd.to_datetime( maxDate )
         self.maxPriceC    = maxPriceC
-        self.maxPriceA    = maxPriceA        
+        self.maxPriceA    = maxPriceA
+        self.maxContracts = maxContracts                
         self.minProb      = minProb        
         self.nDayTimes    = nDayTimes
         self.rfiDaily     = rfiDaily
@@ -834,73 +837,38 @@ class MfdOptionsPrt:
         
         return prdDf
 
-    def getActionDf( self,
-                     cash,
-                     newOptions,
-                     curOptions = [],
-                     curCnts    = [],
-                     curUPrices = []  ):
+    def getCurAction( self, curOption, curUPrice ):
 
-        assert len( curOptions ) == len( curUPrices ),\
-            'Inconsistent lengths!'
+        decision  = self.getDecision( curOption, curUPrice )
 
-        assert len( curOptions ) == len( curCnts ),\
-            'Inconsistent lengths!'
-
-        symList    = []
-        assetList  = []
-        exprList   = []
-        strikeList = []
-        typeList   = []
-        cntList    = []
-        actList    = []
-        probList   = []
-
-        totVal = cash
+        if decision == 'sell_now':
+            prob    = 1.0
+        elif decision == 'exec_now':
+            prob    = 1.0
+        elif decision == 'exec_maturity':
+            prob = self.getProb( curOption )
+        else:
+            prob = 1.0
         
-        for i in range( len( curOptions ) ):
-            
-            curOption = curOptions[i]
-            curCnt    = curCnts[i]
-            curUPrice = curUPrices[i]
-            symbol    = curOption[ 'optionSymbol' ]
-            asset     = curOption[ 'assetSymbol' ]
-            strike    = curOption[ 'strike' ]
-            exprDate  = curOption[ 'expiration' ]
-            oType     = curOption[ 'type' ]
-            oCnt      = curOption[ 'contractCnt' ]
-            curPrice  = self.assetHash[ asset ]
-            decision  = self.getDecision( curOption, curUPrice )
+        return ( decision, prob )
 
-            if decision == 'sell_now':
-                totVal += curCnt * oCnt * curUPrice
-                prob    = 1.0
-            elif decision == 'exec_now':
-                totVal += curCnt * oCnt * abs( strike - curPrice )
-                prob    = 1.0
-            elif decision == 'exec_maturity':
-                prob = self.getProb( curOption )
-            else:
-                prob = 1.0
-            
-            symList.append( symbol )
-            assetList.append( asset )
-            exprList.append( exprDate )
-            strikeList.append( strike )
-            typeList.append( oType )
-            cntList.append( curCnt )
-            actList.append( decision )
-            probList.append( 1.0 )
+    def selOptions( self, cash, options ):
 
-        self.logger.info( '%d new options contracts before filteration!',
-                          len( newOptions ) )
-            
-        newOptions = self.filterOptions( newOptions )
+        t0      = time.time()
 
-        self.logger.info( '%d new options contracts after filteration!',
-                          len( newOptions ) )
+        options = self.filterOptions( options )
+        
+        options = sorted( options,
+                          key     = self.getProb,
+                          reverse = True          )
+        
+        tmpHash = {}
+        for asset in self.assetHash:
+            tmpHash[ asset ] = 0.0
 
-        sOptions = self.sortOptions( newOptions )
+        totVal  = cash            
+        selHash = Counter()
+        selOptions = []
 
         while totVal > 0:
 
@@ -908,7 +876,7 @@ class MfdOptionsPrt:
             
             self.logger.info( 'Remaining cash is %0.2f', totVal )
             
-            for option in sOptions:
+            for option in options:
                 
                 symbol   = option[ 'optionSymbol' ]
                 asset    = option[ 'assetSymbol' ]
@@ -917,99 +885,41 @@ class MfdOptionsPrt:
                 oType    = option[ 'type' ]                
                 oCnt     = option[ 'contractCnt' ]
                 uPrice   = option[ 'unitPrice' ]
+                oPrice   = uPrice * oCnt                
+                cost     = oCnt * uPrice + self.tradeFee
 
-                tmpVal   = totVal - oCnt * uPrice - self.tradeFee
+                if totVal < cost:
+                    continue
 
-                if tmpVal <= 0:
+                if oPrice > self.maxPriceC:
+                    continue
+
+                tmpVal = tmpHash[ asset ] + oPrice
+
+                if tmpVal > self.maxPriceA:
                     continue
                 
-                totVal = tmpVal
-
                 prob = self.getProb( option )
-                
-                symList.append( symbol )
-                assetList.append( asset )
-                exprList.append( exprDate )
-                strikeList.append( strike )
-                typeList.append( oType )
-                cntList.append( 1 )
-                actList.append( 'buy_now' )
-                probList.append( prob )
 
+                if prob < self.minProb:
+                    continue
+            
+                selHash[ symbol ] += 1                
+                tmpHash[ asset ]  += oPrice                
+                totVal            -= cost
+
+                selOptions.append( option )
+                
+                if len( selHash.keys() ) >= self.maxContracts:
+                    break
+                
             if totVal == prevVal:
                 break
-                
-        actDf = pd.DataFrame( { 'symbol'     : symList,
-                                'asset'      : assetList,
-                                'expiration' : exprList,
-                                'strike'     : strikeList,
-                                'type'       : typeList,
-                                'count'      : cntList,
-                                'action'     : actList,
-                                'win_prob'   : probList     } )
 
-        cols  = list( set( actDf.keys() ) - set( [ 'count' ] ) )
-        
-        actDf = actDf.groupby( cols, as_index = False )[ 'count' ].sum()
-
-        cols  = [ 'symbol',
-                  'asset',
-                  'expiration',
-                  'strike',
-                  'type',
-                  'count',
-                  'action',
-                  'win_prob' ]
-
-        actDf = actDf[ cols ]
-        actDf = actDf.sort_values( [ 'win_prob', 'asset', 'expiration' ],
-                                   ascending = [ False, True, True ] )
-        actDf = actDf.reset_index( drop = True )
-        
-        return actDf
-                  
-    def sortOptions( self, options ):
-
-        t0      = time.time()
-        
-        options = sorted( options,
-                          key     = self.getProb,
-                          reverse = True          )
-        
-        tmpHash  = {}
-
-        for asset in self.assetHash:
-            tmpHash[ asset ] = 0.0
-
-        sOptions = []
-        
-        for option in options:
-            
-            prob   = self.getProb( option )
-            asset  = option[ 'assetSymbol' ]            
-            uPrice = option[ 'unitPrice' ]
-            oCnt   = option[ 'contractCnt' ]
-            oPrice = uPrice * oCnt
-            
-            if prob < self.minProb:
-                continue
-
-            if oPrice > self.maxPriceC:
-                continue
-
-            tmpVal = tmpHash[ asset ] + oPrice
-
-            if tmpVal > self.maxPriceA:
-                continue
-            
-            tmpHash[ asset ] += oPrice
-            
-            sOptions.append( option )
-
-        self.logger.info( 'Sorting options took %0.2f seconds!' % \
+        self.logger.info( 'Selecting options took %0.2f seconds!' % \
                           ( time.time() - t0 ) )
-            
-        return sOptions
+
+        return selHash
 
     def getDecision( self, option, curUPrice ):
 
@@ -1161,7 +1071,11 @@ class MfdOptionsPrt:
         for option in options:
             
             asset    = option[ 'assetSymbol' ]
-            exprDate = pd.to_datetime( option[ 'expiration' ] )
+            exprDate = option[ 'expiration' ]
+            oCnt     = option[ 'contractCnt' ]
+            uPrice   = option[ 'unitPrice' ]
+            oPrice   = uPrice * oCnt                
+            exprDate = pd.to_datetime( exprDate )
 
             if asset not in self.assetHash.keys():
                 continue
@@ -1173,6 +1087,14 @@ class MfdOptionsPrt:
                 continue
 
             if exprDate > self.maxDate:
+                continue
+
+            if oPrice > self.maxPriceC:
+                continue
+
+            prob = self.getProb( option )
+
+            if prob < self.minProb:
                 continue
             
             subSet.append( option )

@@ -37,7 +37,7 @@ refToken    = None
 # Input investment parameters
 # ***********************************************************************
 
-cash      = 1000
+cash      = 500
 maxPriceC = 0.20 * cash
 maxPriceA = 0.33 * cash
 oMonths   = 3
@@ -201,6 +201,7 @@ prtObj  = MfdOptionsPrt( modFile     = modFile,
                          maxDate     = maxDate,
                          maxPriceC   = maxPriceC,
                          maxPriceA   = maxPriceA,
+                         maxContracts= 20,
                          minProb     = minProb,
                          rfiDaily    = 0.0,
                          tradeFee    = 0.0,
@@ -212,8 +213,19 @@ prtObj  = MfdOptionsPrt( modFile     = modFile,
 # Get action 
 # ***********************************************************************
 
-actDf = prtObj.getActionDf( cash, options )
+selHash = prtObj.selOptions( cash, options )
+
+symbols = []
+cnts    = []
+
+for symbol in selHash:
+    symbols.append( symbol )
+    cnts.append( selHash[ symbol ] )
+
+actDf = pd.DataFrame( { 'symbol' : symbols, 'count' : cnts } )
 
 print( actDf )
+
+print( actDf.shape )
 
 actDf.to_csv( 'actDf.csv', index = False )
