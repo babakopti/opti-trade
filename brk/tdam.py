@@ -4,6 +4,7 @@
 
 import sys
 import os
+import requests
 import tdameritrade
 import tdameritrade.auth as auth
 
@@ -73,9 +74,16 @@ class Tdam:
         else:
             self.accountId = str( accountId )
         
-    def getQuote( self, symbol ):
+    def getQuote( self, symbol, pType = 'ask' ):
 
-        price = self.client.quote( symbol )[ symbol ][ 'lastPrice' ]
+        if pType == 'ask':
+            item = 'askPrice'
+        elif ptype == 'bid':
+            item = 'bidPrice'
+        else:
+            item = 'lastPrice'
+            
+        price = self.client.quote( symbol )[ symbol ][ item ]
 
         return price
 
@@ -102,13 +110,13 @@ class Tdam:
                 assert float( strike ) == float( obj[ 'strikePrice' ] ), \
                     'Inconsistent strikePrices %s vs. %s!' % \
                     ( str( strike ), str( obj[ 'strikePrice' ] ) )
-                
+
                 option = { 'optionSymbol' : obj[ 'symbol' ],
                            'assetSymbol'  : symbol,
                            'strike'       : strike,
                            'expiration'   : exprDate,
                            'contractCnt'  : obj[ 'multiplier' ],                     
-                           'unitPrice'    : obj[ 'last' ],
+                           'unitPrice'    : obj[ 'ask' ],
                            'type'         : 'call'      }
                 
                 options.append( option )
@@ -135,7 +143,7 @@ class Tdam:
                            'strike'       : strike,
                            'expiration'   : exprDate,
                            'contractCnt'  : obj[ 'multiplier' ],                     
-                           'unitPrice'    : obj[ 'last' ],
+                           'unitPrice'    : obj[ 'ask' ],
                            'type'         : 'put'      }
                 
                 options.append( option )
@@ -198,7 +206,7 @@ class Tdam:
                               headers = headers,
                               json    = orderHash    )
 
-        if resp.status_code == 200:
-            self.logger.error( resp )
+        if resp.status_code != 200:
+            self.logger.error( resp.text )
         else:
-            self.logger.info( resp )
+            self.logger.info( resp.text )

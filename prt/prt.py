@@ -691,11 +691,12 @@ class MfdOptionsPrt:
                     modFile,
                     assetHash,
                     curDate,
+                    minDate,
                     maxDate,
                     maxPriceC,
                     maxPriceA,
-                    maxContracts,
                     minProb,
+                    maxCands     = None,                    
                     rfiDaily     = 0.0,
                     tradeFee     = 0.0,
                     nDayTimes    = 1140,
@@ -709,10 +710,11 @@ class MfdOptionsPrt:
         self.logger       = getLogger( logFileName, verbose, 'prt' )
         self.assetHash    = assetHash        
         self.curDate      = pd.to_datetime( curDate )
+        self.minDate      = pd.to_datetime( minDate )
         self.maxDate      = pd.to_datetime( maxDate )
         self.maxPriceC    = maxPriceC
         self.maxPriceA    = maxPriceA
-        self.maxContracts = maxContracts                
+        self.maxCands     = maxCands
         self.minProb      = minProb        
         self.nDayTimes    = nDayTimes
         self.rfiDaily     = rfiDaily
@@ -725,6 +727,7 @@ class MfdOptionsPrt:
         assert setA == setB, 'modFile and assetHash are not consistent!'
         
         self.curDate = self.curDate.replace( minute = 0,  second = 0  )
+        self.minDate = self.minDate.replace( minute = 0,  second = 0  )        
         self.maxDate = self.maxDate.replace( minute = 23, second = 59 )
         
         if minProb <= 0 or minProb >= 1:
@@ -861,6 +864,12 @@ class MfdOptionsPrt:
         options = sorted( options,
                           key     = self.getProb,
                           reverse = True          )
+
+        if self.maxCands is not None:
+            options = options[:self.maxCands]
+
+        self.logger.info( 'Selecting from a pool of %d contracts...',
+                          len( options ) )
         
         tmpHash = {}
         for asset in self.assetHash:
@@ -868,13 +877,10 @@ class MfdOptionsPrt:
 
         totVal  = cash            
         selHash = Counter()
-        selOptions = []
 
         while totVal > 0:
 
             prevVal = totVal
-            
-            self.logger.info( 'Remaining cash is %0.2f', totVal )
             
             for option in options:
                 
@@ -886,12 +892,9 @@ class MfdOptionsPrt:
                 oCnt     = option[ 'contractCnt' ]
                 uPrice   = option[ 'unitPrice' ]
                 oPrice   = uPrice * oCnt                
-                cost     = oCnt * uPrice + self.tradeFee
+                cost     = oPrice + self.tradeFee
 
                 if totVal < cost:
-                    continue
-
-                if oPrice > self.maxPriceC:
                     continue
 
                 tmpVal = tmpHash[ asset ] + oPrice
@@ -908,15 +911,18 @@ class MfdOptionsPrt:
                 tmpHash[ asset ]  += oPrice                
                 totVal            -= cost
 
-                selOptions.append( option )
-                
-                if len( selHash.keys() ) >= self.maxContracts:
-                    break
+                self.logger.info( 'Selecting %s; cost is %0.2f; win prob is %0.2f; remaining cash is %0.2f',
+                                  symbol,
+                                  cost,
+                                  prob,
+                                  totVal )
                 
             if totVal == prevVal:
                 break
 
-        self.logger.info( 'Selecting options took %0.2f seconds!' % \
+        self.logger.info( 'Total cost of selected options: %0.2f!', ( cash - totVal ) )
+        
+        self.logger.info( 'Selecting options took %0.2f seconds!',
                           ( time.time() - t0 ) )
 
         return selHash
@@ -1086,6 +1092,9 @@ class MfdOptionsPrt:
             if exprDate <= self.curDate:
                 continue
 
+            if exprDate < self.minDate:
+                continue
+            
             if exprDate > self.maxDate:
                 continue
 

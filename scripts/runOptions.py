@@ -37,11 +37,11 @@ refToken    = None
 # Input investment parameters
 # ***********************************************************************
 
-cash      = 500
-maxPriceC = 0.20 * cash
-maxPriceA = 0.33 * cash
-oMonths   = 3
-minProb   = 0.75
+cash      = 1000
+maxPriceC = 0.50 * cash
+maxPriceA = 0.50 * cash
+oMonths   = 6
+minProb   = 0.60
 
 # ***********************************************************************                                                                   
 # Input variables
@@ -193,18 +193,20 @@ print( assetHash )
 snapDate = datetime.datetime.now()
 snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
 snapDate = pd.to_datetime( snapDate )
+minDate  = snapDate + pd.DateOffset( days   = 1 )
 maxDate  = snapDate + pd.DateOffset( months = oMonths )
 
 prtObj  = MfdOptionsPrt( modFile     = modFile,
                          assetHash   = assetHash,
                          curDate     = snapDate,
+                         minDate     = minDate,
                          maxDate     = maxDate,
                          maxPriceC   = maxPriceC,
                          maxPriceA   = maxPriceA,
-                         maxContracts= 20,
                          minProb     = minProb,
+                         maxCands    = None,                         
                          rfiDaily    = 0.0,
-                         tradeFee    = 0.0,
+                         tradeFee    = 0.5,
                          nDayTimes   = 1140,
                          logFileName = None,                    
                          verbose     = 1          ) 
