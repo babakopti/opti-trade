@@ -1016,6 +1016,20 @@ class MfdOptionsPrt:
 
         return val
 
+    def getNormProb( self, option ):
+
+        oCnt   = option[ 'contractCnt' ]
+        uPrice = option[ 'unitPrice' ]
+        oPrice = uPrice * oCnt                
+        cost   = oPrice + self.tradeFee
+        prob   = self.getProb( option )
+
+        fct = 0.0
+        if cost > 0:
+            fct = 1.0 / np.log( cost )
+
+        return prob * fct
+    
     def getProb( self, option ):
 
         validFlag = self.validateOption( option )
@@ -1064,7 +1078,7 @@ class MfdOptionsPrt:
             etaVal  = strike - tmpVal * ( uPrice + fee )
             tmpVal1 = stdInv * ( etaVal - prdPrice ) 
             tmpVal2 = stdInv * prdPrice
-            prob    = 0.5 * ( erf( tmpVal1 ) - erf( tmpVal2 ) )
+            prob    = 0.5 * ( erf( tmpVal1 ) + erf( tmpVal2 ) )
         else:
             assert False, 'Only call/put options are accepted!'
 

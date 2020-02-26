@@ -38,10 +38,10 @@ refToken    = None
 # ***********************************************************************
 
 cash      = 1000
-maxPriceC = 0.50 * cash
+maxPriceC = 0.20 * cash
 maxPriceA = 0.50 * cash
 oMonths   = 6
-minProb   = 0.60
+minProb   = 0.65
 
 # ***********************************************************************                                                                   
 # Input variables

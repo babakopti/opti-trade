@@ -78,7 +78,7 @@ class Tdam:
 
         if pType == 'ask':
             item = 'askPrice'
-        elif ptype == 'bid':
+        elif pType == 'bid':
             item = 'bidPrice'
         else:
             item = 'lastPrice'
@@ -91,9 +91,9 @@ class Tdam:
 
         topHash   = self.client.options( symbol )
         callHash  = topHash[ 'callExpDateMap' ]
-        putHash   = topHash[ 'callExpDateMap' ]
+        putHash   = topHash[ 'putExpDateMap' ]
         options   = []
-        
+
         for date in callHash:
             
             stkHash  = callHash[ date ]
