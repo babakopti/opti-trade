@@ -1072,8 +1072,8 @@ class MfdOptionsPrt:
 
         if oType == 'call':
             etaVal  = strike + tmpVal * ( uPrice + fee )
-            tmpVal1 = stdInv * ( etaVal - prdPrice ) 
-            prob    = 0.5 * ( 1.0 - erf( tmpVal1 ) )
+            tmpVal1 = stdInv * ( prdPrice - etaVal ) 
+            prob    = 0.5 * ( 1.0 + erf( tmpVal1 ) )
         elif oType == 'put':
             etaVal  = strike - tmpVal * ( uPrice + fee )
             tmpVal1 = stdInv * ( etaVal - prdPrice ) 

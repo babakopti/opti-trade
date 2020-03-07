@@ -67,31 +67,32 @@ distribution, the probability of the condition
 \ref{eqn:call-option-condition} to hold is,
 
 \begin{equation}\label{eqn:call-option-prob-intg}
-Pr[ y^{i}(t) > \eta^{c}(t) ] = \int_{\eta^{c}(t)}^{\infty}
+Pr[ y^{i}(t) > \eta^{c}(t) | D ] = \int_{\eta^{c}(t)}^{\infty}
 \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
 e^{\frac{-(\zeta-\bar{y}^{i}(t))^{2}}{2\sigma_{i}^{2}}} d\zeta
 \end{equation}
 
-This yields,
+where $D$ denotes information provided by our forecast model. This
+yields,
 
 \begin{equation}\label{eqn:call-option-prob}
-Pr[ y^{i}(t) > \eta^{c}(t) ] = \frac{1}{2} [ 1 - erf(
-  \frac{\eta^{c}(t)-\bar{y}^{i}(t)}{\sqrt{2} \sigma_{i}} ) ]
+Pr[ y^{i}(t) > \eta^{c}(t) | D ] = \frac{1}{2} [ 1 + erf(
+  \frac{\bar{y}^{i}(t) - \eta^{c}(t)}{\sqrt{2} \sigma_{i}} ) ]
 \end{equation}
 
 Similary for a put option, the probability of
 condition \ref{eqn:put-option-condition} to hold is
 
 \begin{equation}\label{eqn:put-option-prob-intg}
-Pr[ y^{i}(t) < \eta^{p}(t) ] =
-\int_{-\infty}^{\eta^{p}(t)} \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
+Pr[ 0 < y^{i}(t) < \eta^{p}(t) | D ] =
+\int_{0}^{\eta^{p}(t)} \frac{1}{\sqrt{2\pi\sigma_{i}^{2}}}
 e^{\frac{-(\zeta-\bar{y}^{i}(t))^{2}}{2\sigma_{i}^{2}}} d\zeta
 \end{equation}
 
 This yields,
 
 \begin{equation}\label{eqn:put-option-prob}
-Pr[ y^{i}(t) < \eta^{p}(t) ] = \frac{1}{2} [ erf(
+Pr[ 0 < y^{i}(t) < \eta^{p}(t) | D ] = \frac{1}{2} [ erf(
   \frac{\eta^{p}(t)-\bar{y}^{i}(t)}{\sqrt{2} \sigma_{i}} ) +
   erf( \frac{\bar{y}^{i}(t)}{\sqrt{2} \sigma_{i}} ) ]
 \end{equation}
