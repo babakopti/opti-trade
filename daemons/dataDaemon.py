@@ -92,7 +92,7 @@ class DataCollector( Daemon ):
         self.logger = utl.getLogger( logFileName, verbose )
 
         devAlertHd = utl.getAlertHandler( alertLevel = logging.ERROR,
-                                          subject    = 'A message for Opti-Trade developers!',
+                                          subject    = 'A message from data collector!',
                                           mailList   = DEV_LIST )
         
         self.logger.addHandler( devAlertHd )
@@ -193,8 +193,8 @@ class DataCollector( Daemon ):
             
             newDf.to_pickle( filePath )
 
-        self.logger.info( 'Done with getting data for %d symbols...',
-                          len( symbols ) )
+        self.logger.critical( 'Done with getting data for %d symbols...',
+                              len( symbols ) )
             
         return True
  
