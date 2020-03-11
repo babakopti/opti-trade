@@ -515,6 +515,165 @@ def getMadMeanKibot( symbol,
     return mad, mean
 
 # ***********************************************************************
+# getYahooData( ): Read data from Yahoo Finance
+# ***********************************************************************
+
+def getYahooData( etfs        = [],
+                  futures     = [],
+                  stocks      = [],
+                  indexes     = [],
+                  nDays       = 5,
+                  maxTries    = 10,
+                  smoothCount = 1000,
+                  smoothConf  = 10,
+                  minRows     = 2,
+                  output      = 'price',
+                  interpolate = True,
+                  logger      = None   ):
+
+    t0       = time.time()
+    initFlag = True
+
+    # Set the logger object is None
+    
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    # Set a hash table of asset types
+    
+    typeHash = {}
+
+    for symbol in etfs:
+        typeHash[ symbol ] = 'ETFs'
+
+    for symbol in futures:
+        typeHash[ symbol ] = 'futures'
+
+    for symbol in stocks:
+        typeHash[ symbol ] = 'stocks'
+
+    for symbol in indexes:
+        typeHash[ symbol ] = 'indexes'        
+
+    # Get data 
+    
+    symbols = etfs + futures + stocks + indexes
+    df      = pd.DataFrame()
+
+    if len( symbols ) == 0:
+        logger.warning( 'No symbol is given!' )
+        return None
+    
+    for symbol in symbols:
+
+        logger.info( 'Reading symbol %s...' % symbol )
+
+        if typeHash[ symbol ] == 'futures':
+            ySymbol = symbol + '=F'
+        elif typeHash[ symbol ] == 'indexes':
+            ySymbol = '^' + symbol
+        else:
+            ySymbol = symbol
+            
+        period = str( nDays ) + 'd'
+        tmpDf  = None
+        
+        for itr in range( maxTries ):
+            try:
+                tick  = yf.Ticker( ySymbol )
+                tmpDf = tick.history( period = period, interval = '1m' )
+                break
+            except:
+                time.sleep( 5 )
+                continue
+
+        if tmpDf is None:
+            logger.warning( 'No data found for %s; skipping!', symbol )
+            continue
+
+        tmpFunc = lambda x : x.strftime( '%Y-%m-%d %H:%M:%S' )
+        
+        tmpDf[ 'Date' ] = tmpDf.index
+        tmpDf[ 'Date' ] = tmpDf.Date.apply( tmpFunc )
+        
+        cols = [ 'Date',
+                 'Open',
+                 'High',
+                 'Low',
+                 'Close',
+                 'Volume' ]
+    
+        tmpDf = tmpDf[ cols ]
+
+        if output == 'volume':
+            tmpDf = tmpDf.rename( columns = { 'Volume' : symbol } )
+        else:
+            tmpDf = tmpDf.rename( columns = { 'Open' : symbol } )
+            
+        tmpDf = tmpDf[ [ 'Date', symbol ] ]
+
+        # Remove anomalies
+        
+        logger.info( 'Checking %s for anomalies...', symbol )
+        
+        tmpDf[ 'smooth' ] = tmpDf[ symbol ].rolling( smoothCount, 
+                                                     win_type = 'blackman',
+                                                     center   = True ).mean()
+        tmpDf[ 'smooth' ] = tmpDf[ 'smooth' ].fillna( tmpDf[ symbol ] )
+        tmpDf[ 'smooth' ] = tmpDf[ symbol ] - tmpDf[ 'smooth' ]
+        
+        tmpStd  = tmpDf[ 'smooth' ].std()
+        tmpMean = tmpDf[ 'smooth' ].mean()
+        
+        tmpDf[ 'smooth' ] = ( tmpDf[ 'smooth' ] - tmpMean ).abs()
+        tmpDf[ 'smooth' ] = smoothConf * tmpStd - tmpDf[ 'smooth' ]
+
+        nAnoms = tmpDf[ tmpDf.smooth < 0 ].shape[0]
+        tmpDf  = tmpDf[ tmpDf.smooth >= 0 ]
+        nRows  = tmpDf.shape[0]
+
+        if nAnoms > 0:
+            logger.info( 'Removed %d anomalies for %s!', nAnoms, symbol )
+        elif nAnoms == 0:
+            logger.info( 'No anomalies found for %s!', symbol )
+        
+        logger.info( 'Got %d rows for %s!', nRows, symbol )
+
+        if nRows < minRows:
+            logger.warning( 'Skipping %s as it has only %d rows!',
+                            symbol,
+                            nRows  )
+            continue
+            
+        if initFlag:
+            df       = tmpDf
+            initFlag = False
+        else:
+            df = df.merge( tmpDf,
+                           how = 'outer',
+                           on  = [ 'Date' ] )
+
+    if df.shape[0] == 0:
+        logger.warning( 'Empty data frame!' )
+        return df
+    
+    df = df[ [ 'Date' ] + symbols ]
+    df = df.reset_index( drop = True )
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+
+    if interpolate:
+        df = df.interpolate( method = 'linear' )
+        df = df.dropna()
+        
+    df = df.reset_index( drop = True )
+    
+    logger.info( 'Getting %d symbols took %0.2f seconds!',
+                 len( symbols + indexes ), 
+                 time.time() - t0 )
+    
+    return df
+
+# ***********************************************************************
 # calcBacktestReturns: Calculate portfolio returns over a period
 # ***********************************************************************
 
