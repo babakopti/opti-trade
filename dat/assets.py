@@ -2,6 +2,34 @@
 # ETF Hash: values are inverse ETFs
 # ***********************************************************************
 
+ETF_HASH = {     'TQQQ' : 'SQQQ',
+                 'SPY'  : 'SH',
+                 'DDM'  : 'DXD',
+                 'MVV'  : 'MZZ',
+                 'UWM'  : 'TWM',
+                 'SAA'  : 'SDD',
+                 'UYM'  : 'SMN',
+                 'UGE'  : 'SZK',
+                 'UCC'  : 'SCC',
+                 'FINU' : 'FINZ',
+                 'RXL'  : 'RXD',
+                 'UXI'  : 'SIJ',
+                 'URE'  : 'SRS',
+                 'ROM'  : 'REW',
+                 'UJB'  : 'SJB',
+                 'AGQ'  : 'ZSL',     
+                 'DIG'  : 'DUG',
+                 'USD'  : 'SSG',
+                 'ERX'  : 'ERY',
+                 'UYG'  : 'SKF',
+                 'UCO'  : 'SCO',
+                 'BOIL' : 'KOLD',
+                 'UPW'  : 'SDP',
+                 'UGL'  : 'GLL',
+                 'BIB'  : 'BIS',
+                 'UST'  : 'PST',
+                 'UBT'  : 'TBT' }
+
 SUB_ETF_HASH = { 'TQQQ' : 'SQQQ',
                  'ROM'  : 'REW',
                  'UGL'  : 'GLL',
@@ -63,36 +91,98 @@ POP_ETF_HASH = { 'QQQ'  : 'PSQ',
                  'NUGT' : 'DUST',
                  'FREL' : 'REK'   }
 
-OLD_ETF_HASH = { 'TQQQ' : 'SQQQ',
-                 'SPY'  : 'SH',
-                 'DDM'  : 'DXD',
-                 'MVV'  : 'MZZ',
-                 'UWM'  : 'TWM',
-                 'SAA'  : 'SDD',
-                 'UYM'  : 'SMN',
-                 'UGE'  : 'SZK',
-                 'UCC'  : 'SCC',
-                 'FINU' : 'FINZ',
-                 'RXL'  : 'RXD',
-                 'UXI'  : 'SIJ',
-                 'URE'  : 'SRS',
-                 'ROM'  : 'REW',
-                 'UJB'  : 'SJB',
-                 'AGQ'  : 'ZSL',     
-                 'DIG'  : 'DUG',
-                 'USD'  : 'SSG',
-                 'ERX'  : 'ERY',
-                 'UYG'  : 'SKF',
-                 'UCO'  : 'SCO',
-                 'BOIL' : 'KOLD',
-                 'UPW'  : 'SDP',
-                 'UGL'  : 'GLL',
-                 'BIB'  : 'BIS',
-                 'UST'  : 'PST',
-                 'UBT'  : 'TBT' }
-
 # ***********************************************************************
-# Futures Hash
+# ETFs for options
 # ***********************************************************************
 
-FUTURES_HASH = {}
+OPTION_ETFS = [ 'QQQ',
+                'SPY',
+                'DIA',
+                'MDY',
+                'IWM',
+                'OIH',
+                'SMH',
+                'XLE',
+                'XLF',
+                'XLU',
+                'EWJ' ]
+
+PI_ETFS = [ 'QQQ',
+            'SPY',
+            'DIA',
+            'MDY',
+            'IWM',
+            'BBH',
+            'GDX',
+            'OIH',
+            'PPH',
+            'RTH',
+            'RSX',
+            'SMH',
+            'XLC',
+            'XLE',
+            'XLF',
+            'XLV',
+            'XLU',
+            'FXI',
+            'TLT',
+            'EEM',
+            'EWJ',
+            'IYR',
+            'FXE',
+            'SDS',
+            'VXX',
+            'SLV',
+            'GLD',
+            'USO',
+            'UNG',
+            'TNA',
+            'TZA',
+            'FAS',
+            'FAZ'  ]
+    
+# ***********************************************************************
+# Futures
+# ***********************************************************************
+
+FUTURES = [ 'ES',
+            'NQ',
+            'US',
+            'YM',
+            'RTY',
+            'EMD',
+            'QM'  ]
+
+# ***********************************************************************
+# Indexes
+# ***********************************************************************
+
+INDEXES = [ 'NDX',
+            'SPX',
+            'RUT',
+            'OEX',
+            'MID',
+            'SOX',
+            'RUI',
+            'RUA',
+            'TRAN',
+            'HGX',
+            'TYX',
+            'XAU' ]
+
+PI_INDEXES = [  'NDX',
+                'SPX',
+                'RUT',
+                'OEX',
+                'MID',
+                'SOX',
+                'RUI',
+                'RUA',
+                'TRAN',
+                'HGX',
+                'TYX',
+                'DXY',
+                'VIX',
+                'VXN',
+                'HUI',
+                'XAU' ]

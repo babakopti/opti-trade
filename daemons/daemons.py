@@ -25,8 +25,7 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from dat.assets import OLD_ETF_HASH as ETF_HASH
-from dat.assets import SUB_ETF_HASH
+from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
 
@@ -38,8 +37,6 @@ INDEXES  = []
 STOCKS   = []
 
 ETFS     = list( ETF_HASH.keys() )
-
-FUTURES  = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
 
 ASSETS   = list( SUB_ETF_HASH.keys() )
 

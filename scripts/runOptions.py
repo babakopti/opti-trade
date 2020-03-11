@@ -24,8 +24,8 @@ from brk.tdam import Tdam
 # Input parameters
 # ***********************************************************************
 
-dataFlag    = False
-modFlag     = False
+dataFlag    = True
+modFlag     = True
 baseDfFile  = 'data/dfFile_long_term_all.pkl'
 timeZone    = 'America/New_York'
 nOosMinutes = 60
@@ -41,13 +41,13 @@ cash      = 1000
 maxPriceC = 0.20 * cash
 maxPriceA = 0.50 * cash
 oMonths   = 6
-minProb   = 0.65
+minProb   = 0.70
 
 # ***********************************************************************                                                                   
 # Input variables
 # ***********************************************************************
 
-indexes = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',
+indexes = [ 'NDX', 'SPX', 'RUT', 'OEX',
             'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
             'HGX',  'TYX', 'XAU' ]
 
@@ -70,7 +70,7 @@ if dataFlag or modFlag:
     modDate = datetime.datetime.now()
     modDate = modDate.strftime( '%Y-%m-%d %H:%M:%S' )
 else:
-    modDate = '2020-02-20 03:36:26'
+    modDate = '2020-03-02 23:50:24'
 
 modDate = pd.to_datetime( modDate )
 
@@ -81,6 +81,7 @@ modDate = pd.to_datetime( modDate )
 dateStr    = modDate.strftime( '%Y-%m-%d_%H:%M:%S' )
 dfFile     = 'data/dfFile_long_term_' + dateStr + '.pkl'
 modFile    = 'models/model_long_term_' + dateStr + '.dill'
+outFile    = 'chosen_options_' + dateStr + '.csv'
 velNames   = ETFs + indexes + futures
 minTrnDate = modDate - pd.DateOffset( years = nTrnYears )
 
@@ -175,13 +176,17 @@ for symbol in ETFs:
     assetHash[ symbol ] = td.getQuote( symbol )
 
 for symbol in futures:
+    print( symbol )
     val, date = utl.getKibotLastValue( symbol,
                                        sType = 'futures' )
+    print( val, date )
     assetHash[ symbol ] = val
 
 for symbol in indexes:
+    print( symbol )
     val, date = utl.getKibotLastValue( symbol,
                                        sType = 'index' )
+    print( val, date )
     assetHash[ symbol ] = val
 
 print( assetHash )
@@ -230,4 +235,4 @@ print( actDf )
 
 print( actDf.shape )
 
-actDf.to_csv( 'actDf.csv', index = False )
+actDf.to_csv( outFile, index = False )
