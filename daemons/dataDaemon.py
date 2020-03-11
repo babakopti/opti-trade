@@ -191,7 +191,7 @@ class DataCollector( Daemon ):
 
             self.logger.info( 'Saving data to %s...', filePath )
             
-            newDf.to_pickle( filePath )
+            newDf.to_pickle( filePath, protocol = 4 )
 
         self.logger.critical( 'Done with getting data for %d symbols...',
                               len( symbols ) )
