@@ -656,6 +656,8 @@ def getYahooData( etfs        = [],
     if df.shape[0] == 0:
         logger.warning( 'Empty data frame!' )
         return df
+
+    df[ 'Date' ] = df.Date.apply( pd.to_datetime )
     
     df = df[ [ 'Date' ] + symbols ]
     df = df.reset_index( drop = True )
