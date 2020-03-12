@@ -39,7 +39,7 @@ NUM_DAYS      = 5
 SOURCE        = 'yahoo'
 DAT_DIR       = '/var/data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '23:59'
+SCHED_TIME    = '01:00'
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
