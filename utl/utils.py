@@ -668,7 +668,69 @@ def getYahooData( etfs        = [],
     df = df.reset_index( drop = True )
     
     logger.info( 'Getting %d symbols took %0.2f seconds!',
-                 len( symbols + indexes ), 
+                 len( symbols ), 
+                 time.time() - t0 )
+    
+    return df
+
+# ***********************************************************************
+# mergeSymbols( ): Assemble symbols into one data frame
+# ***********************************************************************
+
+def mergeSymbols( symbols,
+                  datDir,
+                  fileExt     = 'pkl',
+                  interpolate = True,
+                  logger      = None  ):
+
+    t0 = time.time()
+    df = pd.DataFrame()
+    
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    initFlag = True
+    
+    for symbol in symbols:
+        
+        fileName = symbol + '.' + fileExt
+        filePath = os.path.join( datDir, fileName )
+
+        logger.info( 'Reading %s...', symbol )
+
+        if not os.path.exists( filePath ):
+            logger.error( 'File %s for symbol %s not found!',
+                          filePath,
+                          symbol    )
+            return None
+        
+        if fileExt == 'pkl':
+            tmpDf = pd.read_pickle( filePath )
+        elif fileExit == 'csv' or fileExit == 'zip':
+            tmpDf = pd.read_csv( filePath )
+        else:
+            logger.error( 'Unkown file extension %s', fileExt )
+            return None
+
+        if initFlag:
+            df = tmpDf
+            initFlag = False
+        else:
+            df = df.merge( tmpDf, how = 'outer', on = [ 'Date' ] )
+            df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+            df = df.reset_index( drop = True )
+            
+    df = df[ [ 'Date' ] + symbols ]
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+
+    if interpolate:
+        df = df.interpolate( method = 'linear' )
+        df = df.dropna()
+        
+    df = df.reset_index( drop = True )    
+
+    logger.info( 'Merging %d symbols took %0.2f seconds!',
+                 len( symbols ), 
                  time.time() - t0 )
     
     return df
