@@ -197,15 +197,22 @@ class DataCollector( Daemon ):
                               len( symbols ) )
             
         return True
- 
+
+    def process( self ):
+
+        try:
+            self.updateData()
+        except Exception as e:
+            self.logger.error( e )
+            
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
 
         if not SCHED_FLAG:
-            self.updateData()
+            self.process()
         else:
-            schedule.every().day.at( self.schedTime ).do( self.updateData )
+            schedule.every().day.at( self.schedTime ).do( self.process )
             
             while True: 
                 schedule.run_pending() 
