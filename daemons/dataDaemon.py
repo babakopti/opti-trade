@@ -39,7 +39,7 @@ NUM_DAYS      = 5
 SOURCE        = 'yahoo'
 DAT_DIR       = '/var/data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '23:00'
+SCHED_TIME    = '23:59'
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
@@ -138,6 +138,7 @@ class DataCollector( Daemon ):
             oldDf = None
             if os.path.exists( filePath ):
                 oldDf = pd.read_pickle( filePath )
+                oldDf[ 'Date' ] = oldDf.Date.apply( pd.to_datetime )
             
             if self.source == 'kibot':
                 if typeHash[ symbol ] == 'ETFs':
@@ -185,7 +186,8 @@ class DataCollector( Daemon ):
                 self.logger.error( 'Unkown data source %s!', self.source )
 
             if oldDf is not None:
-                newDf = newDf[ newDf.Date > oldDf.Date.max() ]
+                maxDt = oldDf.Date.max()
+                newDf = newDf[ newDf.Date > maxDt ]
                 newDf = pd.concat( [ oldDf, newDf ] )
 
             newDf = newDf.sort_values( 'Date' )
