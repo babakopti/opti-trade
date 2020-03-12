@@ -34,11 +34,11 @@ STOCKS = []
 INDEXES = INDEXES + PI_INDEXES
 INDEXES = list( set( INDEXES ) )
 
-NUM_DAYS      = 3000
-SOURCE        = 'kibot'
+NUM_DAYS      = 5
+SOURCE        = 'yahoo'
 DAT_DIR       = '/var/data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '04:00'
+SCHED_TIME    = '23:00'
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
@@ -46,7 +46,7 @@ PID_FILE      = '/var/run/data_collector.pid'
 
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 if DEBUG_MODE:
     SCHED_FLAG = False
