@@ -681,7 +681,9 @@ def getYahooData( etfs        = [],
 
 def mergeSymbols( symbols,
                   datDir,
-                  fileExt     = 'pkl',
+                  fileExt     = 'pkl',                  
+                  minDate     = None,
+                  maxDate     = None,
                   interpolate = True,
                   logger      = None  ):
 
@@ -714,6 +716,14 @@ def mergeSymbols( symbols,
             logger.error( 'Unkown file extension %s', fileExt )
             return None
 
+        tmpDf[ 'Date' ] = tmpDf.Date.apply( pd.to_datetime )
+
+        if minDate is not None:
+            tmpDf = tmpDf[ tmpDf.Date >= pd.to_datetime( minDate ) ]
+
+        if maxDate is not None:
+            tmpDf = tmpDf[ tmpDf.Date <= pd.to_datetime( maxDate ) ]
+            
         if initFlag:
             df = tmpDf
             initFlag = False
@@ -721,7 +731,7 @@ def mergeSymbols( symbols,
             df = df.merge( tmpDf, how = 'outer', on = [ 'Date' ] )
             df = df.sort_values( [ 'Date' ], ascending = [ True ] )
             df = df.reset_index( drop = True )
-            
+
     df = df[ [ 'Date' ] + symbols ]
     df = df.sort_values( [ 'Date' ], ascending = [ True ] )
 

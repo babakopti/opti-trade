@@ -9,6 +9,8 @@ import time
 import schedule
 import pandas as pd
 
+from google.cloud import storage
+
 from daemonBase import Daemon
 
 sys.path.append( os.path.abspath( '../' ) )
@@ -19,6 +21,10 @@ from dat.assets import ETF_HASH, SUB_ETF_HASH, NEW_ETF_HASH, POP_ETF_HASH
 from dat.assets import OPTION_ETFS, PI_ETFS
 from dat.assets import INDEXES, PI_INDEXES
 from dat.assets import FUTURES
+
+GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
+GOOGLE_BUCKET = 'prt-storage'
+GOOGLE_PREFIX = 'data-backtup'
 
 # ***********************************************************************
 # Set some parameters 
@@ -106,7 +112,22 @@ class DataCollector( Daemon ):
         os.environ[ 'TZ' ] = self.timeZone
         
         self.logger.info( 'Daemon is initialized ...' )            
+
+    def backupData( self, filePath ):
+
+        self.logger.info( 'Backuping up %s on Google cloud...', filePath )            
+        
+        client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
+        bucket   = client.get_bucket( GOOGLE_BUCKET )
+        baseName = os.path.basename( filePath )
+        tmpName  = GOOGLE_PREFIX + '/' + baseName
+        blob     = bucket.blob( tmpName )
             
+        with open( filePath, 'rb' ) as fHd:
+            blob.upload_from_file( fHd )
+
+        self.logger.info( '%s was saved to bucket!', tmpName )
+
     def updateData( self ):
 
         typeHash = {}
@@ -195,6 +216,8 @@ class DataCollector( Daemon ):
             self.logger.info( 'Saving data to %s...', filePath )
             
             newDf.to_pickle( filePath, protocol = 4 )
+
+            self.backupData( filePath )
 
         self.logger.critical( 'Done with getting data for %d symbols...',
                               len( symbols ) )
