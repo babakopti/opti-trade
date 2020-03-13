@@ -312,7 +312,8 @@ class MfdPrtBuilder( Daemon ):
         oldDf = utl.mergeSymbols( symbols = symbols,
                                   datDir  = self.baseDatDir,
                                   fileExt = 'pkl',
-                                  minDate = minDate  )
+                                  minDate = minDate,
+                                  logger  = self.logger )
 
         self.logger.info( 'Getting new data...' )
 
