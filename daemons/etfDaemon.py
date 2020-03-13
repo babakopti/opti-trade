@@ -400,8 +400,7 @@ class MfdPrtBuilder( Daemon ):
 
         symbols = self.etfs + self.stocks + self.futures + self.indexes
 
-        self.logger.info( 'Reading available data...',
-                          nDays )
+        self.logger.info( 'Reading available data...' )
         
         oldDf = utl.mergeSymbols( symbols = symbols,
                                   datDir  = self.baseDatDir,
