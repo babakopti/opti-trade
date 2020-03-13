@@ -1039,9 +1039,7 @@ def evalMfdPrtPerf( modFile,
                     shortFlag = True,
                     invHash   = None,
                     minAbsWt  = 1.0e-4,
-                    interval  = 1,
                     maxTries  = 10,
-                    timeout   = 60,
                     minRows   = 2,
                     logger    = None   ):
 
@@ -1094,19 +1092,15 @@ def evalMfdPrtPerf( modFile,
         tmpAssets = assets + invAssets
     
     if sType == 'ETF':
-        df = getKibotData( etfs     = tmpAssets,
+        df = getYahooData( etfs     = tmpAssets,
                            nDays    = nDays,
-                           interval = interval,
                            maxTries = maxTries,
-                           timeout  = timeout,
                            minRows  = minRows,
                            logger   = logger   )
     elif sType == 'futures':
-        df = getKibotData( futures  = tmpAssets,
+        df = getYahooData( futures  = tmpAssets,
                            nDays    = nDays,
-                           interval = interval,
                            maxTries = maxTries,
-                           timeout  = timeout,
                            minRows  = minRows,
                            logger   = logger   )
 

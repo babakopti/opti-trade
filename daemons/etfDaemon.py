@@ -69,7 +69,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
-MAX_PERFORMANCE_DAYS = 30
+MAX_PERFORMANCE_DAYS = 7
 
 DEBUG_MODE = False
 
