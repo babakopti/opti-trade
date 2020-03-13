@@ -1092,13 +1092,13 @@ def evalMfdPrtPerf( modFile,
         tmpAssets = assets + invAssets
     
     if sType == 'ETF':
-        df = getYahooData( etfs     = tmpAssets,
+        df = getKibotData( etfs     = tmpAssets,
                            nDays    = nDays,
                            maxTries = maxTries,
                            minRows  = minRows,
                            logger   = logger   )
     elif sType == 'futures':
-        df = getYahooData( futures  = tmpAssets,
+        df = getKibotData( futures  = tmpAssets,
                            nDays    = nDays,
                            maxTries = maxTries,
                            minRows  = minRows,
