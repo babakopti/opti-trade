@@ -69,8 +69,6 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
 
-MAX_PERFORMANCE_DAYS = 7
-
 DEBUG_MODE = False
 
 if DEBUG_MODE:
@@ -189,9 +187,6 @@ class MfdPrtBuilder( Daemon ):
 
         os.environ[ 'TZ' ] = self.timeZone
 
-        perfDf   = self.getPerformance()
-        perfHash = self.getLastPerfHash( perfDf )
-        
         snapDate = datetime.datetime.now()
         snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
         snapDate = pd.to_datetime( snapDate )
@@ -289,7 +284,7 @@ class MfdPrtBuilder( Daemon ):
                           ( time.time() - t0 ) )
 
         try:
-            self.sendPrtAlert( wtHash, perfHash )
+            self.sendPrtAlert( wtHash )
         except Exception as e:
             msgStr = e + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
@@ -301,94 +296,6 @@ class MfdPrtBuilder( Daemon ):
         self.cleanBucket( NUM_DAYS_BUCKET_CLEAN )
             
         return True
-    
-    def getPerformance( self, nPerfDays = 1 ):
-
-        self.logger.info( 'Processing and sending portfolio performance data...' )
-
-        perfDf = pd.DataFrame()
-        
-        try:
-            pattern  = self.modHead + '\d+-\d+-\d+_\d+:\d+:\d+.dill'        
-            modFiles = []
-            rankHash = {}
-            for fileName in os.listdir( self.modDir ):
-                
-                if not re.search( pattern, fileName ):
-                    continue
-
-                baseName = os.path.splitext( fileName )[0]
-                dateStr  = baseName.replace( self.modHead, '' )
-                tmp      = ' '.join( dateStr.split( '_' ) )
-                date     = pd.to_datetime( tmp )
-
-                rankHash[ fileName ] = date
-                
-                modFiles.append( fileName )
-
-            modFiles = sorted( modFiles,
-                               key     = lambda x : rankHash[x],
-                               reverse = True   )
-
-            cnt = 0
-            
-            for modName in modFiles: 
-            
-                baseName = os.path.splitext( modName )[0]
-                dateStr  = baseName.replace( self.modHead, '' )
-                prtName   = self.prtHead + dateStr + '.json'
-                modFile  = os.path.join( self.modDir, modName )            
-                prtFile  = os.path.join( self.prtDir, prtName )
-
-                if not os.path.exists( prtFile ):
-                    continue
-
-                with open( prtFile, 'r' ) as fHd:
-                    wtHash  = json.load( fHd )
-
-                try:
-                    tmpDf  = utl.evalMfdPrtPerf( modFile   = modFile,
-                                                 wtHash    = wtHash,
-                                                 shortFlag = False,
-                                                 invHash   = ETF_HASH,
-                                                 logger    = self.logger   )
-                    
-                    perfDf = pd.concat( [ perfDf, tmpDf ] )
-
-                    cnt += 1
-
-                    if cnt >= nPerfDays:
-                        break
-
-                    time.sleep( 1 )
-                    
-                except Exception as err:
-                    self.logger.warning( err )
-                    pass
-
-            perfDf = perfDf.reset_index( drop = True )
-            perfDf = perfDf.sort_values( 'snapDate', ascending = False ) 
-            
-        except Exception as e:
-            self.logger.error( e )
-
-        return perfDf
-
-    def getLastPerfHash( self, perfDf ):
-
-        perfHash = defaultdict( int )
-        perfDf   = perfDf.reset_index( drop = True )
-        perfDf   = perfDf.sort_values( 'snapDate', ascending = False ) 
-
-        try:
-            perfHash[ 'snapDate' ] = list( perfDf.snapDate )[0]
-            perfHash[ 'nPrdDays' ] = list( perfDf.nPrdDays )[0]
-            perfHash[ 'prtCnt'   ] = list( perfDf.prtCnt   )[0]
-            perfHash[ 'Return'   ] = list( perfDf.Return   )[0]
-        except Exception as e:
-            self.logger.warning( e )
-
-        return perfHash
 
     def setDfFile( self, snapDate ):
 
@@ -561,7 +468,7 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             self.logger.error( e )
             
-    def sendPrtAlert( self, wtHash, perfHash ):
+    def sendPrtAlert( self, wtHash ):
 
         assets = list( wtHash.keys() )
         pars   = {}
@@ -572,10 +479,6 @@ class MfdPrtBuilder( Daemon ):
             tmpStr += '\n %10s: %0.2f %s\n' % ( asset, perc, '%' ) 
 
         pars[ 'Portfolio' ] = tmpStr
-        pars[ 'snapDate'  ] = perfHash[ 'snapDate' ]
-        pars[ 'nPrdDays'  ] = perfHash[ 'nPrdDays' ]
-        pars[ 'prtCnt'    ] = perfHash[ 'prtCnt'   ]
-        pars[ 'Return'    ] = perfHash[ 'Return'   ]
 
         tempFile = open( USR_EMAIL_TEMPLATE, 'r' )
         tempStr  = tempFile.read()
@@ -629,26 +532,14 @@ class MfdPrtBuilder( Daemon ):
                 except Exception as e:
                     self.logger.warning(e)
 
-    def sendReport( self ):
-
-        perfDf = self.getPerformance( nPerfDays = MAX_PERFORMANCE_DAYS )
-
-        tmpStr = perfDf.to_string( col_space = 25,
-                                   index     = False,
-                                   justify   = 'center' ).replace( '\n', '\n\n' )
-
-        self.logger.error( tmpStr )
-        
     def run( self ):
 
         os.environ[ 'TZ' ] = self.timeZone
         
         if not SCHED_FLAG:
-            self.sendReport()
             self.build()
         else:
             schedule.every().day.at( self.schedTime ).do( self.build )
-            schedule.every().friday.do( self.sendReport )
             
             while True: 
                 schedule.run_pending() 

@@ -7,13 +7,6 @@
 
       @Portfolio
 
- Here is performance of previous poroposed portfolio,
-
-      Snap Date      : @snapDate
-      Forecast Days  : @nPrdDays
-      Correct Trends : @prtCnt
-      Daily Return   : @Return	
-      
  Cheers,
  Opti-Trade Team
 

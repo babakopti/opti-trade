@@ -63,7 +63,7 @@ VERBOSE       = 1
 
 PID_FILE      = '/var/run/mfd_prt_builder.pid'
 
-USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email.txt'
+USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email_perf.txt'
 
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = [ 'babak.emami@gmail.com' ]
