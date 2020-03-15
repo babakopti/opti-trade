@@ -1230,7 +1230,7 @@ def evalMfdPrtPerf( modFile,
     return outDf
 
 # ***********************************************************************
-# getLastValue: Get the latest value of a symbol from Kibot
+# getKibotLastValue: Get the latest value of a symbol from Kibot
 # ***********************************************************************
 
 def getKibotLastValue( symbol, sType = 'ETF', maxDays = 3 ):
@@ -1253,6 +1253,34 @@ def getKibotLastValue( symbol, sType = 'ETF', maxDays = 3 ):
         df = getKibotData( indexes = [ symbol ],
                            nDays   = maxDays,
                            logger  = logger      )                           
+    else:
+        return None
+
+    val  = list( df[ symbol ] )[-1]
+    date = list( df.Date )[-1]
+    
+    return ( val, date )
+
+# ***********************************************************************
+# getYahooLastValue: Get the latest value of a symbol from Yahoo
+# ***********************************************************************
+
+def getYahooLastValue( symbol, sType, maxDays = 3 ):
+
+    logger = getLogger( None, 0 )
+    
+    if sType == 'ETF':
+        df = getYahooData( etfs    = [ symbol ],
+                           nDays   = maxDays     )
+    elif sType == 'futures':
+        df = getYahooData( futures = [ symbol ],
+                           nDays   = maxDays     )
+    elif sType == 'stock':
+        df = getYahooData( stocks  = [ symbol ],
+                           nDays   = maxDays     )                           
+    elif sType == 'index':
+        df = getYahooData( indexes = [ symbol ],
+                           nDays   = maxDays     )
     else:
         return None
 
