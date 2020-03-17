@@ -26,7 +26,8 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
+from dat.assets import OPTION_ETFS as ETFS
+from dat.assets import FUTURES, INDEXES
 from mod.mfdMod import MfdMod
 from prt.prt import MfdOptionsPrt
 from brk.tdam import Tdam
@@ -35,12 +36,9 @@ from brk.tdam import Tdam
 # Set some parameters 
 # ***********************************************************************
 
-INDEXES  = []
 STOCKS   = []
 
-ETFS     = list( ETF_HASH.keys() )
-
-ASSETS   = list( SUB_ETF_HASH.keys() )
+ASSETS   = ETFS
 
 NUM_TRN_YEARS = 10
 MAX_OPT_ITRS  = 500
@@ -51,7 +49,7 @@ FACTOR        = 1.0e-5
 MAX_OPTION_MONTHS  = 6
 MAX_RATIO_CONTRACT = 0.5
 MAX_RATIO_ASSET    = 0.5
-MAX_EXPOSURE_RATIO = 0.5
+MAX_RATIO_EXPOSURE = 0.5
 MIN_PROBABILITY    = 0.7
 OPTION_TRADE_FEE   = 0.5
 
@@ -110,7 +108,7 @@ class OptionPrtBuilder( Daemon ):
                     maxMonths   = MAX_OPTION_MONTHS,
                     maxRatioC   = MAX_RATIO_CONTRACT,
                     maxRatioA   = MAX_RATIO_ASSET,
-                    maxExpRatio = MAX_EXPOSURE_RATIO,
+                    maxRatioExp = MAX_RATIO_EXPOSURE,
                     minProb     = MIN_PROBABILITY,
                     tradeFee    = OPTION_TRADE_FEE,
                     modHead     = MOD_HEAD,
@@ -139,7 +137,7 @@ class OptionPrtBuilder( Daemon ):
         self.maxMonths   = maxMonths
         self.maxRatioC   = maxRatioC
         self.maxRatioA   = maxRatioA
-        self.maxExpRatio = MAX_EXPOSURE_RATIO
+        self.maxRatioExp = maxRatioExp
         self.minProb     = minProb
         self.tradeFee    = tradeFee
         self.modHead     = modHead
@@ -388,8 +386,8 @@ class OptionPrtBuilder( Daemon ):
         
         assetHash   = self.getAssetHash()
         cash        = self.getCashValue()
-        maxPriceC   = self.maxRatioC * cash
-        maxPriceA   = self.maxRatioA * cash
+        maxPriceC   = self.maxRatioC * self.maxRatioExp * cash
+        maxPriceA   = self.maxRatioA * self.maxRatioExp * cash
         options     = self.getOptions()
 
         prtObj = MfdOptionsPrt( modFile     = modFile,

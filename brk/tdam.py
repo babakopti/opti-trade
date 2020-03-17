@@ -63,7 +63,8 @@ class Tdam:
         
     def setAccounts( self ):
 
-        self.accounts = self.client.accounts()
+        self.accounts = self.client.accounts( positions = True,
+                                              orders    = True )
 
         assert len( self.accounts.keys() ) > 0, 'No accounts found!'
 
@@ -73,7 +74,36 @@ class Tdam:
             self.accountId = list( self.accounts.keys() )[0]
         else:
             self.accountId = str( accountId )
-        
+
+    def getCashBalance( self ):
+
+        account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
+        cashBal = account['currentBalances']['cashBalance']
+
+        return cashBal
+
+    def getOpenOrders( self ):
+
+        account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
+
+        if 'orderStrategies' in account.keys():
+            val = account[ 'orderStrategies' ]
+        else:
+            val = None
+
+        return val
+
+    def getPositions( self ):
+
+        account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
+
+        if 'positions' in account.keys():
+            val = account[ 'positions' ]
+        else:
+            val = None
+            
+        return val
+    
     def getQuote( self, symbol, pType = 'ask' ):
 
         if pType == 'ask':
@@ -159,7 +189,7 @@ class Tdam:
                sType     = 'EQUITY',
                action    = 'BUY' ):
 
-        self.logger.info( 'Ordering %d of %s...', quantity, symbol )
+        self.logger.info( '%s %d %s...', action, quantity, symbol )
 
         assert orderType in [ 'MARKET', 'LIMIT' ], 'Incorrect orderType!'
         assert duration in  [ 'DAY',
