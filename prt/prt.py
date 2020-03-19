@@ -693,10 +693,7 @@ class MfdOptionsPrt:
                     curDate,
                     minDate,
                     maxDate,
-                    maxPriceC,
-                    maxPriceA,
                     minProb,
-                    maxCands     = None,                    
                     rfiDaily     = 0.0,
                     tradeFee     = 0.0,
                     nDayTimes    = 1140,
@@ -712,9 +709,6 @@ class MfdOptionsPrt:
         self.curDate      = pd.to_datetime( curDate )
         self.minDate      = pd.to_datetime( minDate )
         self.maxDate      = pd.to_datetime( maxDate )
-        self.maxPriceC    = maxPriceC
-        self.maxPriceA    = maxPriceA
-        self.maxCands     = maxCands
         self.minProb      = minProb        
         self.nDayTimes    = nDayTimes
         self.rfiDaily     = rfiDaily
@@ -855,18 +849,23 @@ class MfdOptionsPrt:
         
         return ( decision, prob )
 
-    def selOptions( self, cash, options ):
+    def selOptions( self,
+                    options,
+                    cash,
+                    maxPriceC,
+                    maxPriceA,
+                    maxCands = None ):
 
         t0      = time.time()
 
-        options = self.filterOptions( options )
+        options = self.filterOptions( options, maxPriceC )
         
         options = sorted( options,
                           key     = self.getProb,
                           reverse = True          )
 
-        if self.maxCands is not None:
-            options = options[:self.maxCands]
+        if maxCands is not None:
+            options = options[:maxCands]
 
         self.logger.info( 'Selecting from a pool of %d contracts...',
                           len( options ) )
@@ -899,7 +898,7 @@ class MfdOptionsPrt:
 
                 tmpVal = tmpHash[ asset ] + oPrice
 
-                if tmpVal > self.maxPriceA:
+                if tmpVal > maxPriceA:
                     continue
                 
                 prob = self.getProb( option )
@@ -1084,7 +1083,7 @@ class MfdOptionsPrt:
 
         return prob
 
-    def filterOptions( self, options ):
+    def filterOptions( self, options, maxPriceC ):
         
         subSet = []
 
@@ -1112,7 +1111,7 @@ class MfdOptionsPrt:
             if exprDate > self.maxDate:
                 continue
 
-            if oPrice > self.maxPriceC:
+            if oPrice > maxPriceC:
                 continue
 
             prob = self.getProb( option )

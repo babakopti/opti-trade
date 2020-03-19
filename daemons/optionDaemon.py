@@ -80,8 +80,10 @@ DEBUG_MODE = False
 
 if DEBUG_MODE:
     SCHED_FLAG = False
+    DRY_RUN    = True
 else:
     SCHED_FLAG = True
+    DRY_RUN    = False
 
 NUM_DAYS_DATA_CLEAN = 2
 NUM_DAYS_MOD_CLEAN  = 30
@@ -177,7 +179,10 @@ class OptionPrtBuilder( Daemon ):
         self.logger.addHandler( devAlertHd )
         self.logger.addHandler( usrAlertHd )
         
-        self.dfFile = None        
+        self.dfFile   = None
+        self.modFile  = None
+        self.prtObj   = None
+        self.alertStr = ''
 
         if self.timeZone != 'America/New_York':
             self.logger.warning( 'Only America/New_York time zone is supported at this time!' )
@@ -202,30 +207,35 @@ class OptionPrtBuilder( Daemon ):
 
         try:
             self.setDfFile( snapDate )
-        except Exception as e:
-            self.logger.error( e )
+        except Exception as err:
+            self.logger.error( err )
 
         try:
             self.buildMod( snapDate )
-        except Exception as e:            
-            msgStr = e + '; Model build was unsuccessful!'
+        except Exception as err:            
+            msgStr = err + '; Model build was unsuccessful!'
             self.logger.error( msgStr )
 
         try:
-            self.settle()
-        except Exception as e:
-            self.logger.error( e )
+            self.setPrtObj( snapDate )
+        except Exception as err:
+            self.logger.error( err )
             
         try:
-            self.selOptions( snapDate )
-        except Exception as e:            
-            msgStr = e + '; Options selection was unsuccessful!'
+            self.settle()
+        except Exception as err:
+            self.logger.error( err )
+            
+        try:
+            self.selTradeOptions( snapDate )
+        except Exception as err:            
+            msgStr = err + '; Options selection was unsuccessful!'
             self.logger.error( msgStr )
 
         try:
             self.sendPrtAlert( wtHash )
-        except Exception as e:
-            msgStr = e + '; Portfolio alert was NOT sent!'
+        except Exception as err:
+            msgStr = err + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
 
         self.clean( self.datDir, NUM_DAYS_DATA_CLEAN )
@@ -360,11 +370,120 @@ class OptionPrtBuilder( Daemon ):
             self.logger.error( 'New model file is not written to disk!' )
             return False
 
+        self.modFile = modFile
+
         return True
 
+    def setPrtObj( self, snapDate ):
+
+        self.logger.info( 'Setting portfolio object...' )
+
+        minDate = snapDate + pd.DateOffset( days   = 1 )
+        maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
+        
+        assetHash   = self.getAssetHash()
+
+        self.prtObj = MfdOptionsPrt( modFile     = self.modFile,
+                                     assetHash   = assetHash,
+                                     curDate     = snapDate,
+                                     minDate     = minDate,
+                                     maxDate     = maxDate,
+                                     minProb     = self.minProb,
+                                     rfiDaily    = 0.0,
+                                     tradeFee    = self.tradeFee,
+                                     nDayTimes   = 1140,
+                                     logFileName = None,                    
+                                     verbose     = 1          )
+
     def settle( self ):
-        pass
-    
+
+        td = Tdam( refToken = REFRESH_TOKEN )
+        
+        positions = td.getPositions()
+
+        pattern = '(\w+)\_(\d+)(C|P)([\W|\d]+)'
+
+        for position in positions:
+
+            sType    = position[ 'instrument' ][ 'assetType' ]
+            longQty  = position[ 'longQuantity' ]
+            shortQty = position[ 'shortQuantity' ]
+
+            if sType != 'OPTION':
+                continue
+
+            if longQty == 0 or shortQty > 0:
+                continue
+
+            symbol      = position[ 'instrument' ][ 'symbol' ]            
+            assetSymbol = position[ 'instrument' ][ 'underlyingSymbol' ]
+            oType       = position[ 'instrument' ][ 'putCall' ].lower()
+            
+            tmpTuple = re.findall( pattern, symbol )[0]
+
+            if len( tmpTuple ) != 4 or\
+               tmpTuple[0] != assetSymbol or\
+               ( oType == 'call' and tmpTuple[2] != 'C' ) or\
+               ( oType == 'put' and tmpTuple[2] != 'P' ) 
+                self.logger.error( 'Incorrect option symbol %s!', symbol )
+                
+            exprDate = pd.to_datetime( tmpTuple[1], format = '%m%d%y' )
+            strike   = tmpTuple[3]
+            
+            unitPrice = td.getQuote( symbol, 'last' )
+
+            option = { 'optionSymbol' : symbol,
+                       'assetSymbol'  : assetSymbol,
+                       'strike'       : strike,
+                       'expiration'   : exprDate,
+                       'contractCnt'  : 100,
+                       'unitPrice'    : unitPrice,
+                       'type'         : oType      }
+
+            ( decision, prob ) = self.prtObj.getCurAction( option,
+                                                           unitPrice )
+
+            msgStr = 'Decision for %s is %s; Sucess probalility is %0.2f'
+
+            self.alertStr += msgStr + '\n'
+            
+            self.logger.info( msgStr,
+                              symbol,
+                              decision,
+                              prob       )
+            
+            if decision == 'sell_now':
+
+                msgStr = 'Selling %d of %s...' % ( longQty, symbol )
+
+                self.alertStr += msgStr + '\n'
+                
+                self.logger.info( msgStr )
+
+                if not DRY_RUN:
+                    td.order( symbol    = symbol,
+                              quantity  = longQty,
+                              sType     = 'OPTION',
+                              action    = 'SELL_TO_CLOSE' )
+                
+            elif decision == 'exec_now':
+
+                msgStr = 'Exercising %d of %s...' % ( longQty, symbol )
+                
+                self.alertStr += msgStr + '\n'
+                
+                self.logger.info( msgStr )
+                
+                if not DRY_RUN:                
+                    td.order( symbol    = symbol,
+                              orderType = 'EXERCISE',
+                              quantity  = longQty,
+                              sType     = 'OPTION',
+                              action    = 'SELL_TO_CLOSE' )
+                
+            else:
+                pass
+            
     def saveMod( self, mfdMod, modFile ):
 
         mfdMod.save( modFile )
@@ -372,11 +491,9 @@ class OptionPrtBuilder( Daemon ):
         if not os.path.exists( modFile ):
             self.logger.error( 'The model file was not generated!' )
 
-    def selOptions( self, snapDate ):
+    def selTradeOptions( self, snapDate ):
 
-        t0 = time.time()
-
-        self.logger.info( 'Building portfolio for snapdate %s', str( snapDate ) )        
+        self.logger.info( 'Selecting options for snapdate %s', str( snapDate ) )        
 
         prtFile  = self.prtHead + tmpStr + '.json'
         prtFile  = os.path.join( self.prtDir, prtFile )
@@ -384,33 +501,24 @@ class OptionPrtBuilder( Daemon ):
         minDate = snapDate + pd.DateOffset( days   = 1 )
         maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
         
-        assetHash   = self.getAssetHash()
         cash        = self.getCashValue()
+
+        self.logger.info( 'Amount of available cash is %0.2f; exposure is %0.2f!',
+                          cash,
+                          self.maxRatioExp * cash )
+
         maxPriceC   = self.maxRatioC * self.maxRatioExp * cash
         maxPriceA   = self.maxRatioA * self.maxRatioExp * cash
         options     = self.getOptions()
 
-        prtObj = MfdOptionsPrt( modFile     = modFile,
-                                assetHash   = assetHash,
-                                curDate     = snapDate,
-                                minDate     = minDate,
-                                maxDate     = maxDate,
-                                maxPriceC   = maxPriceC,
-                                maxPriceA   = maxPriceA,
-                                minProb     = self.minProb,
-                                maxCands    = None,                         
-                                rfiDaily    = 0.0,
-                                tradeFee    = self.tradeFee,
-                                nDayTimes   = 1140,
-                                logFileName = None,                    
-                                verbose     = 1          )
-
-        selHash = prtObj.selOptions( cash, options )
+        selHash     = self.prtObj.selOptions( options   = options,
+                                              cash      = cash,
+                                              maxPriceC = maxPriceC,
+                                              maxPriceA = maxPriceA   )
 
         self.savePrt( selHash, prtFile )
-            
-        self.logger.info( 'Building portfolio took %0.2f seconds!',
-                          ( time.time() - t0 ) )
+        
+        self.trade( selHash )
 
     def getAssetHash( self ):
 
@@ -461,18 +569,34 @@ class OptionPrtBuilder( Daemon ):
 
         if not os.path.exists( prtFile ):
             self.logger.error( 'The portfolio file was not generated!' )
+
+    def trade( self, selHash ):
+
+        self.alertStr += '\nSelected %d options!\n\n' \
+            % ( len( selHash.keys() ) )
+                                                                     
+        for symbol in selHash:
+
+            quantity = int( selHash[ symbol ] )
+            
+            msgStr = 'Buying %d of %s...' % ( quantity, symbol )
+
+            self.alertStr += msgStr + '\n'
+            
+            self.logger.info( msgStr )
+
+            if not DRY_RUN:            
+                td.order( symbol    = symbol,
+                          quantity  = quantity,
+                          sType     = 'OPTION',
+                          action    = 'BUY_TO_OPEN' )
     
     def sendPrtAlert( self, selHash ):
 
         assets = list( selHash.keys() )
         pars   = {}
-        tmpStr = ''
 
-        for asset in assets:
-            count   = selHash[ asset ]
-            tmpStr += '\n %10s: %d \n' % ( asset, count )
-
-        pars[ 'Options' ] = tmpStr
+        pars[ 'Options' ] = self.alertStr
 
         tempFile = open( USR_EMAIL_TEMPLATE, 'r' )
         tempStr  = tempFile.read()
@@ -482,7 +606,7 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.critical( msgStr )
         
-        self.logger.info( 'Selected options sent to email lists!' )
+        self.logger.info( 'Traded options info sent to email lists!' )
 
     def clean( self, fDir, nOldDays ):
 

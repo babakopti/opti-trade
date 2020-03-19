@@ -24,8 +24,8 @@ from brk.tdam import Tdam
 # Input parameters
 # ***********************************************************************
 
-dataFlag    = True
-modFlag     = True
+dataFlag    = False
+modFlag     = False
 baseDfFile  = 'data/dfFile_long_term_all.pkl'
 timeZone    = 'America/New_York'
 nOosMinutes = 60
@@ -38,10 +38,10 @@ refToken    = None
 # ***********************************************************************
 
 cash      = 1000
-maxPriceC = 0.20 * cash
+maxPriceC = 0.50 * cash
 maxPriceA = 0.50 * cash
-oMonths   = 6
-minProb   = 0.70
+oMonths   = 12
+minProb   = 0.5
 
 # ***********************************************************************                                                                   
 # Input variables
@@ -70,7 +70,7 @@ if dataFlag or modFlag:
     modDate = datetime.datetime.now()
     modDate = modDate.strftime( '%Y-%m-%d %H:%M:%S' )
 else:
-    modDate = '2020-03-02 23:50:24'
+    modDate = '2020-03-12 23:44:51'
 
 modDate = pd.to_datetime( modDate )
 
@@ -177,14 +177,14 @@ for symbol in ETFs:
 
 for symbol in futures:
     print( symbol )
-    val, date = utl.getKibotLastValue( symbol,
+    val, date = utl.getYahooLastValue( symbol,
                                        sType = 'futures' )
     print( val, date )
     assetHash[ symbol ] = val
 
 for symbol in indexes:
     print( symbol )
-    val, date = utl.getKibotLastValue( symbol,
+    val, date = utl.getYahooLastValue( symbol,
                                        sType = 'index' )
     print( val, date )
     assetHash[ symbol ] = val
@@ -206,10 +206,7 @@ prtObj  = MfdOptionsPrt( modFile     = modFile,
                          curDate     = snapDate,
                          minDate     = minDate,
                          maxDate     = maxDate,
-                         maxPriceC   = maxPriceC,
-                         maxPriceA   = maxPriceA,
                          minProb     = minProb,
-                         maxCands    = None,                         
                          rfiDaily    = 0.0,
                          tradeFee    = 0.5,
                          nDayTimes   = 1140,
@@ -220,7 +217,12 @@ prtObj  = MfdOptionsPrt( modFile     = modFile,
 # Get action 
 # ***********************************************************************
 
-selHash = prtObj.selOptions( cash, options )
+selHash = prtObj.selOptions( options   = options,
+                             cash      = cash,
+                             maxPriceC = maxPriceC,
+                             maxPriceA = maxPriceA,
+                             maxCands    = None         )
+
 
 symbols = []
 cnts    = []

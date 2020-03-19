@@ -97,11 +97,11 @@ class Tdam:
 
         account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
 
-        if 'positions' in account.keys():
-            val = account[ 'positions' ]
-        else:
+        if 'positions' not in account.keys():
             val = None
-            
+        else:
+            val =  account[ 'positions' ]
+
         return val
     
     def getQuote( self, symbol, pType = 'ask' ):
@@ -190,18 +190,23 @@ class Tdam:
                action    = 'BUY' ):
 
         self.logger.info( '%s %d %s...', action, quantity, symbol )
-
-        assert orderType in [ 'MARKET', 'LIMIT' ], 'Incorrect orderType!'
+        
         assert duration in  [ 'DAY',
                               'GOOD_TILL_CANCEL',
                               'FILL_OR_KILL' ], 'Incorrect duration!'
+        
         assert sType in [ 'EQUITY', 'OPTION' ], 'Incorrect sType!'
 
         if sType == 'EQUITY':
+            assert orderType in [ 'MARKET',
+                                  'LIMIT' ], 'Incorrect orderType!'            
             assert action in [ 'BUY',
                                'SELL',
                                'SELL_SHORT' ], 'Incorrect action!'
-        elif sType == 'OPTION': 
+        elif sType == 'OPTION':
+            assert orderType in [ 'MARKET',
+                                  'LIMIT',
+                                  'EXERCISE' ], 'Incorrect orderType!'            
             assert action in [ 'BUY_TO_OPEN',
                                'SELL_TO_CLOSE',
                                'BUY_TO_CLOSE',
@@ -236,7 +241,5 @@ class Tdam:
                               headers = headers,
                               json    = orderHash    )
 
-        if resp.status_code != 200:
-            self.logger.error( resp.text )
-        else:
-            self.logger.info( resp.text )
+        self.logger.info( resp.text )
+            
