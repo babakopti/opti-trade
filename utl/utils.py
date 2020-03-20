@@ -101,14 +101,12 @@ def combineDateTime( df ):
     assert 'Date' in df.columns, 'Date column not found!'
     assert 'Time' in df.columns, 'Time column not found!'    
 
-    df[ 'Date' ] = ( df[ 'Date' ] + \
-                     ' ' + \
-                     df[ 'Time' ] ).apply( pd.to_datetime )
+    df[ 'Date' ] = df.apply( lambda x: x.Date + ' ' + x.Time,
+                             axis = 1 )
     
     cols = set( df.columns ) - set( [ 'Date', 'Time' ] )
     cols = [ 'Date' ] + list( cols )
     df   = df[ cols ]
-    df   = df.sort_values( [ 'Date' ], ascending = [ True ] )
     
     return df
 
@@ -129,6 +127,22 @@ def convertPiTime( x ):
     minute = tmpStr[2:]
     
     ret = '%s:%s:00' % ( hour, minute )
+    
+    return ret
+
+# ***********************************************************************
+# convertPiDate: Convert pitrading Date column to proper date format
+# ***********************************************************************
+
+def convertPiDate( x ):
+
+    tmpList = str( x ).split( '/' )
+
+    month = tmpList[0]
+    day   = tmpList[1]
+    year  = tmpList[2]
+    
+    ret = '%s-%s-%s' % ( year, month, year )
     
     return ret
 
@@ -731,7 +745,7 @@ def mergeSymbols( symbols,
         
         if fileExt == 'pkl':
             tmpDf = pd.read_pickle( filePath )
-        elif fileExit == 'csv' or fileExit == 'zip':
+        elif fileExt == 'csv' or fileExt == 'zip':
             tmpDf = pd.read_csv( filePath )
         else:
             logger.error( 'Unkown file extension %s', fileExt )
@@ -739,6 +753,7 @@ def mergeSymbols( symbols,
 
         if piFlag and 'Time' in tmpDf.columns:
             tmpDf[ 'Time' ] = tmpDf.Time.apply( convertPiTime )
+            tmpDf[ 'Date' ] = tmpDf.Date.apply( convertPiDate )            
             tmpDf = combineDateTime( tmpDf )
         
         tmpDf[ 'Date' ] = tmpDf.Date.apply( pd.to_datetime )

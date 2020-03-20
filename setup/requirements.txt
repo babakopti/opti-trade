@@ -9,3 +9,5 @@ schedule
 google-cloud-storage
 ta-lib
 yfinance
+tdameritrade
+selenium

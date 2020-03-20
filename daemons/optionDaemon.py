@@ -137,7 +137,7 @@ class OptionPrtBuilder( Daemon ):
         self.futures     = futures
         self.indexes     = indexes
         self.nTrnYears   = nTrnYears
-        self.nOosMiutes  = nOosMinutes
+        self.nOosMinutes = nOosMinutes
         self.maxOptItrs  = maxOptItrs
         self.optTol      = optTol
         self.regCoef     = regCoef
@@ -264,7 +264,7 @@ class OptionPrtBuilder( Daemon ):
 
         symbols = self.etfs + self.stocks + self.futures + self.indexes
 
-        self.logger.info( 'Reading available data...' )
+        self.logger.info( 'Reading pitrading data...' )
 
         piDf  = utl.mergeSymbols( symbols = symbols,
                                   datDir  = self.piDatDir,
@@ -272,6 +272,8 @@ class OptionPrtBuilder( Daemon ):
                                   minDate = minDate,
                                   piFlag  = True,
                                   logger  = self.logger )
+
+        self.logger.info( 'Reading newer available data...' )
         
         oldDf = utl.mergeSymbols( symbols = symbols,
                                   datDir  = self.baseDatDir,
@@ -442,7 +444,7 @@ class OptionPrtBuilder( Daemon ):
             if len( tmpTuple ) != 4 or\
                tmpTuple[0] != assetSymbol or\
                ( oType == 'call' and tmpTuple[2] != 'C' ) or\
-               ( oType == 'put' and tmpTuple[2] != 'P' ) 
+               ( oType == 'put' and tmpTuple[2] != 'P' ):
                 self.logger.error( 'Incorrect option symbol %s!', symbol )
                 
             exprDate = pd.to_datetime( tmpTuple[1], format = '%m%d%y' )
@@ -664,7 +666,7 @@ class OptionPrtBuilder( Daemon ):
 
 if __name__ ==  '__main__':
 
-    daemon = MfdPrtBuilder()
+    daemon = OptionPrtBuilder()
     
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
