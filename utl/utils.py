@@ -113,6 +113,26 @@ def combineDateTime( df ):
     return df
 
 # ***********************************************************************
+# convertPiTime: Convert pitrading Time column to proper time format
+# ***********************************************************************
+
+def convertPiTime( x ):
+
+    tmpStr = str( x )
+    nTmp   = len( tmpStr )
+
+    if  nTmp < 4:
+        nTmp1  = 4 - nTmp
+        tmpStr = ''.join( ['0'] * nTmp1 ) + tmpStr
+
+    hour   = tmpStr[:2] 
+    minute = tmpStr[2:]
+    
+    ret = '%s:%s:00' % ( hour, minute )
+    
+    return ret
+
+# ***********************************************************************
 # getKibotData( ): Read data from kibot
 # ***********************************************************************
 
@@ -685,6 +705,7 @@ def mergeSymbols( symbols,
                   minDate     = None,
                   maxDate     = None,
                   interpolate = True,
+                  piFlag      = False,
                   logger      = None  ):
 
     t0 = time.time()
@@ -716,6 +737,10 @@ def mergeSymbols( symbols,
             logger.error( 'Unkown file extension %s', fileExt )
             return None
 
+        if piFlag and 'Time' in tmpDf.columns:
+            tmpDf[ 'Time' ] = tmpDf.Time.apply( convertPiTime )
+            tmpDf = combineDateTime( tmpDf )
+        
         tmpDf[ 'Date' ] = tmpDf.Date.apply( pd.to_datetime )
 
         if minDate is not None:

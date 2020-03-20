@@ -36,11 +36,13 @@ from brk.tdam import Tdam
 # Set some parameters 
 # ***********************************************************************
 
+INDEXES  = INDEXES + [ 'VIX' ]
 STOCKS   = []
 
 ASSETS   = ETFS
 
 NUM_TRN_YEARS = 10
+NUM_OOS_MINS  = 5
 MAX_OPT_ITRS  = 500
 OPT_TOL       = 1.0e-2
 REG_COEF      = 1.0e-3                    
@@ -59,8 +61,9 @@ MOD_DIR       = '/var/option_models'
 PRT_DIR       = '/var/option_prt'
 DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
+PI_DAT_DIR    = '/var/pi_data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '04:00'
+SCHED_TIME    = '14:00'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
 VERBOSE       = 1
 
@@ -103,6 +106,7 @@ class OptionPrtBuilder( Daemon ):
                     futures     = FUTURES,
                     indexes     = INDEXES,
                     nTrnYears   = NUM_TRN_YEARS,
+                    nOosMinutes = NUM_OOS_MINS,                    
                     maxOptItrs  = MAX_OPT_ITRS,
                     optTol      = OPT_TOL,
                     regCoef     = REG_COEF,                    
@@ -119,6 +123,7 @@ class OptionPrtBuilder( Daemon ):
                     prtDir      = PRT_DIR,
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
+                    piDatDir    = PI_DAT_DIR,                    
                     timeZone    = TIME_ZONE,
                     schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
@@ -132,6 +137,7 @@ class OptionPrtBuilder( Daemon ):
         self.futures     = futures
         self.indexes     = indexes
         self.nTrnYears   = nTrnYears
+        self.nOosMiutes  = nOosMinutes
         self.maxOptItrs  = maxOptItrs
         self.optTol      = optTol
         self.regCoef     = regCoef
@@ -147,7 +153,8 @@ class OptionPrtBuilder( Daemon ):
         self.modDir      = modDir
         self.prtDir      = prtDir
         self.datDir      = datDir
-        self.baseDatDir  = baseDatDir        
+        self.baseDatDir  = baseDatDir
+        self.piDatDir    = piDatDir                
         self.timeZone    = timeZone
         self.schedTime   = schedTime
         self.logFileName = logFileName        
@@ -250,20 +257,31 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.info( 'Getting data...' )
         
-        nDays   = self.nTrnDays + self.nOosDays
-        maxDate = pd.to_datetime( snapDate )
-        minDate = maxDate - datetime.timedelta( days = nDays )
+        maxDate  = pd.to_datetime( snapDate )
+        minDate  = maxDate - \
+                   datetime.timedelta( minutes = self.nOosMinutes ) - \
+                   pd.DateOffset( years = self.nTrnYears )        
 
         symbols = self.etfs + self.stocks + self.futures + self.indexes
 
         self.logger.info( 'Reading available data...' )
+
+        piDf  = utl.mergeSymbols( symbols = symbols,
+                                  datDir  = self.piDatDir,
+                                  fileExt = 'zip',
+                                  minDate = minDate,
+                                  piFlag  = True,
+                                  logger  = self.logger )
         
         oldDf = utl.mergeSymbols( symbols = symbols,
                                   datDir  = self.baseDatDir,
                                   fileExt = 'pkl',
                                   minDate = minDate,
                                   logger  = self.logger )
-
+ 
+        piDf  = piDf[ piDf.Date < oldDf.Date.min() ]
+        oldDf = pd.concat( [ piDf, oldDf ] )        
+        
         self.logger.info( 'Getting new data...' )
 
         newDf = utl.getYahooData( etfs    = self.etfs,
@@ -335,7 +353,7 @@ class OptionPrtBuilder( Daemon ):
         t0 = time.time()
         
         maxOosDt = snapDate
-        maxTrnDt = maxOosDt - datetime.timedelta( minutes = 5 )
+        maxTrnDt = maxOosDt - datetime.timedelta( minutes = self.nOosMinutes )
         minTrnDt = maxTrnDt - pd.DateOffset( years = self.nTrnYears )        
 
         tmpStr   = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )
