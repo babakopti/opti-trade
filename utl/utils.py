@@ -756,13 +756,11 @@ def mergeSymbols( symbols,
             tmpDf[ 'Date' ] = tmpDf.Date.apply( convertPiDate )            
             tmpDf = combineDateTime( tmpDf )
         
-        tmpDf[ 'Date' ] = tmpDf.Date.apply( pd.to_datetime )
-
         if minDate is not None:
-            tmpDf = tmpDf[ tmpDf.Date >= pd.to_datetime( minDate ) ]
+            tmpDf = tmpDf[ tmpDf.Date >= str( minDate ) ]
 
         if maxDate is not None:
-            tmpDf = tmpDf[ tmpDf.Date <= pd.to_datetime( maxDate ) ]
+            tmpDf = tmpDf[ tmpDf.Date <= str( maxDate ) ]
             
         if initFlag:
             df = tmpDf
