@@ -752,16 +752,18 @@ def mergeSymbols( symbols,
             return None
 
         if piFlag and 'Time' in tmpDf.columns:
+            tmpDf[ symbol ] = tmpDf.Open            
             tmpDf[ 'Time' ] = tmpDf.Time.apply( convertPiTime )
             tmpDf[ 'Date' ] = tmpDf.Date.apply( convertPiDate )            
             tmpDf = combineDateTime( tmpDf )
+            tmpDf = tmpDf[ [ 'Date', symbol ] ]
         
         if minDate is not None:
             tmpDf = tmpDf[ tmpDf.Date >= str( minDate ) ]
 
         if maxDate is not None:
             tmpDf = tmpDf[ tmpDf.Date <= str( maxDate ) ]
-            
+
         if initFlag:
             df = tmpDf
             initFlag = False

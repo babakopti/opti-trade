@@ -257,8 +257,6 @@ class OptionPrtBuilder( Daemon ):
 
         t0 = time.time()
         
-        self.logger.info( 'Getting data...' )
-        
         maxDate  = pd.to_datetime( snapDate )
         minDate  = maxDate - \
                    datetime.timedelta( minutes = self.nOosMinutes ) - \
@@ -266,6 +264,8 @@ class OptionPrtBuilder( Daemon ):
 
         symbols = self.etfs + self.stocks + self.futures + self.indexes
 
+        self.logger.info( 'Getting data for %d symbols...', len( symbols ) )
+        
         self.logger.info( 'Reading pitrading data...' )
 
         piDf  = utl.mergeSymbols( symbols = symbols,
