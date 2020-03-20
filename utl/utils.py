@@ -142,7 +142,7 @@ def convertPiDate( x ):
     day   = tmpList[1]
     year  = tmpList[2]
     
-    ret = '%s-%s-%s' % ( year, month, year )
+    ret = '%s-%s-%s' % ( year, month, day )
     
     return ret
 
