@@ -255,6 +255,8 @@ class OptionPrtBuilder( Daemon ):
 
     def setDfFile( self, snapDate ):
 
+        t0 = time.time()
+        
         self.logger.info( 'Getting data...' )
         
         maxDate  = pd.to_datetime( snapDate )
@@ -316,6 +318,9 @@ class OptionPrtBuilder( Daemon ):
         except Exception as e:
             msgStr = e + '; Could not confirm the sanity of the dfFile!'
             self.logger.error( msgStr )
+            
+        self.logger.info( 'Getting data took %0.2f seconds!',
+                          ( time.time() - t0 ) )
     
     def checkDfSanity( self ):
 
