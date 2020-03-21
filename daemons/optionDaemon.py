@@ -275,7 +275,8 @@ class OptionPrtBuilder( Daemon ):
                 self.logger.error( '%s not found in %s!',
                                    symbol,
                                    self.piDfFile  )
-
+        piDf = piDf[ [ 'Date' ] + symbols ]
+        
         self.logger.info( 'Reading newer available data...' )
         
         oldDf = utl.mergeSymbols( symbols = symbols,
