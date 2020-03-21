@@ -102,9 +102,9 @@ OPTION_ETFS = [ 'QQQ',
                 'IWM',
                 'OIH',
                 'SMH',
-                'XLE',
-                'XLF',
                 'XLU',
+                'AGQ',
+                'ERX',
                 'EWJ' ]
 
 PI_ETFS = [ 'QQQ',
