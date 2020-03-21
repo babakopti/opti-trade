@@ -271,7 +271,7 @@ class OptionPrtBuilder( Daemon ):
         piDf  = pd.read_pickle( self.piDfFile )
 
         for symbol in symbols:
-            if not in piDf.columns:
+            if symbol not in piDf.columns:
                 self.logger.error( '%s not found in %s!',
                                    symbol,
                                    self.piDfFile  )
