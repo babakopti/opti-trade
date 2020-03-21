@@ -719,7 +719,6 @@ def mergeSymbols( symbols,
                   minDate     = None,
                   maxDate     = None,
                   interpolate = True,
-                  piFlag      = False,
                   logger      = None  ):
 
     t0 = time.time()
@@ -751,13 +750,6 @@ def mergeSymbols( symbols,
             logger.error( 'Unkown file extension %s', fileExt )
             return None
 
-        if piFlag and 'Time' in tmpDf.columns:
-            tmpDf[ symbol ] = tmpDf.Open            
-            tmpDf[ 'Time' ] = tmpDf.Time.apply( convertPiTime )
-            tmpDf[ 'Date' ] = tmpDf.Date.apply( convertPiDate )            
-            tmpDf = combineDateTime( tmpDf )
-            tmpDf = tmpDf[ [ 'Date', symbol ] ]
-        
         if minDate is not None:
             tmpDf = tmpDf[ tmpDf.Date >= str( minDate ) ]
 
@@ -772,6 +764,77 @@ def mergeSymbols( symbols,
             df = df.sort_values( [ 'Date' ], ascending = [ True ] )
             df = df.reset_index( drop = True )
 
+    df = df[ [ 'Date' ] + symbols ]
+    df = df.sort_values( [ 'Date' ], ascending = [ True ] )
+
+    if interpolate:
+        df = df.interpolate( method = 'linear' )
+        df = df.dropna()
+        
+    df = df.reset_index( drop = True )    
+
+    logger.info( 'Merging %d symbols took %0.2f seconds!',
+                 len( symbols ), 
+                 time.time() - t0 )
+    
+    return df
+
+# ***********************************************************************
+# mergePiSymbols( ): Assemble pitrading symbols into one data frame
+# ***********************************************************************
+
+def mergePiSymbols( symbols,
+                    datDir,
+                    minDate     = None,
+                    maxDate     = None,
+                    interpolate = True,
+                    logger      = None  ):
+
+    t0 = time.time()
+    df = pd.DataFrame()
+    
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    initFlag = True
+    
+    for symbol in symbols:
+        
+        fileName = symbol + '.zip'
+        filePath = os.path.join( datDir, fileName )
+
+        logger.info( 'Reading %s...', symbol )
+
+        if not os.path.exists( filePath ):
+            logger.error( 'File %s for symbol %s not found!',
+                          filePath,
+                          symbol    )
+            return None
+        
+        tmpDf = pd.read_csv( filePath )
+
+        tmpDf[ symbol ] = tmpDf.Open            
+        tmpDf[ 'Time' ] = tmpDf.Time.apply( convertPiTime )
+        tmpDf[ 'Date' ] = tmpDf.Date.apply( convertPiDate )            
+    
+        tmpDf = tmpDf[ [ 'Date', 'Time', symbol ] ]
+        
+        if minDate is not None:
+            tmpDf = tmpDf[ tmpDf.Date >= str( minDate ) ]
+
+        if maxDate is not None:
+            tmpDf = tmpDf[ tmpDf.Date <= str( maxDate ) ]
+
+        if initFlag:
+            df = tmpDf
+            initFlag = False
+        else:
+            df = df.merge( tmpDf,
+                           how = 'outer',
+                           on  = [ 'Date', 'Time' ] )
+
+    df = combineDateTime( df )
+            
     df = df[ [ 'Date' ] + symbols ]
     df = df.sort_values( [ 'Date' ], ascending = [ True ] )
 

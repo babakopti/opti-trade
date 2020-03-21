@@ -268,12 +268,10 @@ class OptionPrtBuilder( Daemon ):
         
         self.logger.info( 'Reading pitrading data...' )
 
-        piDf  = utl.mergeSymbols( symbols = symbols,
-                                  datDir  = self.piDatDir,
-                                  fileExt = 'zip',
-                                  minDate = minDate,
-                                  piFlag  = True,
-                                  logger  = self.logger )
+        piDf  = utl.mergePiSymbols( symbols = symbols,
+                                    datDir  = self.piDatDir,
+                                    minDate = minDate,
+                                    logger  = self.logger )
 
         self.logger.info( 'Reading newer available data...' )
         
