@@ -61,7 +61,7 @@ MOD_DIR       = '/var/option_models'
 PRT_DIR       = '/var/option_prt'
 DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
-PI_DAT_DIR    = '/var/pi_data'
+PI_DF_FILE   = '/var/pi_data/dfFile_pitrading_option.pkl'
 TIME_ZONE     = 'America/New_York'
 SCHED_TIME    = '14:00'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
@@ -123,7 +123,7 @@ class OptionPrtBuilder( Daemon ):
                     prtDir      = PRT_DIR,
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
-                    piDatDir    = PI_DAT_DIR,                    
+                    piDfFile    = PI_DF_FILE,                    
                     timeZone    = TIME_ZONE,
                     schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
@@ -154,7 +154,7 @@ class OptionPrtBuilder( Daemon ):
         self.prtDir      = prtDir
         self.datDir      = datDir
         self.baseDatDir  = baseDatDir
-        self.piDatDir    = piDatDir                
+        self.piDfFile    = piDfFile
         self.timeZone    = timeZone
         self.schedTime   = schedTime
         self.logFileName = logFileName        
@@ -268,10 +268,13 @@ class OptionPrtBuilder( Daemon ):
         
         self.logger.info( 'Reading pitrading data...' )
 
-        piDf  = utl.mergePiSymbols( symbols = symbols,
-                                    datDir  = self.piDatDir,
-                                    minDate = minDate,
-                                    logger  = self.logger )
+        piDf  = pd.read_pickle( self.piDfFile )
+
+        for symbol in symbols:
+            if not in piDf.columns:
+                self.logger.error( '%s not found in %s!',
+                                   symbol,
+                                   self.piDfFile  )
 
         self.logger.info( 'Reading newer available data...' )
         
