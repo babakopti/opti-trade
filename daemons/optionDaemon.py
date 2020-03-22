@@ -268,9 +268,9 @@ class OptionPrtBuilder( Daemon ):
         
         self.logger.info( 'Reading pitrading data...' )
 
-        piDf = mergePiSymbols( symbols = symbols,
-                               datDir  = self.piDatDir,
-                               minDate = minDate          )
+        piDf = utl.mergePiSymbols( symbols = symbols,
+                                   datDir  = self.piDatDir,
+                                   minDate = minDate          )
         
         self.logger.info( 'Reading newer available data...' )
         
