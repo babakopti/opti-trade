@@ -270,7 +270,8 @@ class OptionPrtBuilder( Daemon ):
 
         piDf = utl.mergePiSymbols( symbols = symbols,
                                    datDir  = self.piDatDir,
-                                   minDate = minDate          )
+                                   minDate = minDate,
+                                   logger  = self.logger )
         
         self.logger.info( 'Reading newer available data...' )
         
