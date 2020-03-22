@@ -360,8 +360,10 @@ class OptionPrtBuilder( Daemon ):
     def buildMod( self, snapDate ):
 
         t0 = time.time()
-        
-        maxOosDt = snapDate
+
+        tmpDf = pd.read_pickle( self.dfFile )
+
+        maxOosDt = min( tmpDf.Date.max(), snapDate )
         maxTrnDt = maxOosDt - datetime.timedelta( minutes = self.nOosMinutes )
         minTrnDt = maxTrnDt - pd.DateOffset( years = self.nTrnYears )        
 
