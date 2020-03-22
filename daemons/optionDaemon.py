@@ -61,7 +61,7 @@ MOD_DIR       = '/var/option_models'
 PRT_DIR       = '/var/option_prt'
 DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
-PI_DF_FILE   = '/var/pi_data/dfFile_pitrading_option.pkl'
+PI_DAT_DIR    = '/var/pi_data'
 TIME_ZONE     = 'America/New_York'
 SCHED_TIME    = '14:00'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
@@ -79,7 +79,7 @@ TOKEN_FILE = '../brk/tokens/refresh_token.txt'
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 if DEBUG_MODE:
     SCHED_FLAG = False
@@ -123,7 +123,7 @@ class OptionPrtBuilder( Daemon ):
                     prtDir      = PRT_DIR,
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
-                    piDfFile    = PI_DF_FILE,                    
+                    piDatDir    = PI_DAT_DIR,                    
                     timeZone    = TIME_ZONE,
                     schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
@@ -154,7 +154,7 @@ class OptionPrtBuilder( Daemon ):
         self.prtDir      = prtDir
         self.datDir      = datDir
         self.baseDatDir  = baseDatDir
-        self.piDfFile    = piDfFile
+        self.piDatDir    = piDatDir
         self.timeZone    = timeZone
         self.schedTime   = schedTime
         self.logFileName = logFileName        
@@ -268,14 +268,9 @@ class OptionPrtBuilder( Daemon ):
         
         self.logger.info( 'Reading pitrading data...' )
 
-        piDf  = pd.read_pickle( self.piDfFile )
-
-        for symbol in symbols:
-            if symbol not in piDf.columns:
-                self.logger.error( '%s not found in %s!',
-                                   symbol,
-                                   self.piDfFile  )
-        piDf = piDf[ [ 'Date' ] + symbols ]
+        piDf = mergePiSymbols( symbols = symbols,
+                               datDir  = self.piDatDir,
+                               minDate = minDate          )
         
         self.logger.info( 'Reading newer available data...' )
         
