@@ -834,7 +834,9 @@ def mergePiSymbols( symbols,
                            on  = [ 'Date', 'Time' ] )
 
     df = combineDateTime( df )
-            
+
+    df[ 'Date' ] = df.Date.apply( pd.to_datetime )
+    
     df = df[ [ 'Date' ] + symbols ]
     df = df.sort_values( [ 'Date' ], ascending = [ True ] )
 
