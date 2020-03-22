@@ -88,10 +88,10 @@ else:
     SCHED_FLAG = True
     DRY_RUN    = False
 
-NUM_DAYS_DATA_CLEAN = 2
-NUM_DAYS_MOD_CLEAN  = 30
-NUM_DAYS_PRT_CLEAN  = 730
-NUM_DAYS_BUCKET_CLEAN = 5
+NUM_DAYS_DATA_CLEAN = 3
+NUM_DAYS_MOD_CLEAN  = 3
+NUM_DAYS_PRT_CLEAN  = 90
+NUM_DAYS_BUCKET_CLEAN = 3
 
 # ***********************************************************************
 # Class OptionPrtBuilder: Daemon to build options portfolios
