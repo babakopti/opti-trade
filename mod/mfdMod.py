@@ -34,6 +34,7 @@ class MfdMod:
                     maxTrnDate,
                     maxOosDate,
                     velNames,
+                    stepSize     = None,
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
@@ -55,6 +56,7 @@ class MfdMod:
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
+        self.stepSize    = stepSize
         self.maxOptItrs  = maxOptItrs
         self.optGTol     = optGTol
         self.optFTol     = optFTol
@@ -302,7 +304,7 @@ class MfdMod:
                               maxOptItrs   = self.maxOptItrs, 
                               optGTol      = self.optGTol,
                               optFTol      = self.optFTol,
-                              stepSize     = 1.0,
+                              stepSize     = self.stepSize,
                               factor       = self.factor,
                               regCoef      = self.regCoef,
                               regL1Wt      = 0.0,
@@ -425,7 +427,7 @@ class MfdMod:
                                  maxOptItrs   = self.maxOptItrs, 
                                  optGTol      = self.optGTol,
                                  optFTol      = self.optFTol,
-                                 stepSize     = 1.0,
+                                 stepSize     = self.stepSize,
                                  factor       = self.factor,
                                  regCoef      = regCoef,
                                  regL1Wt      = 0.0,

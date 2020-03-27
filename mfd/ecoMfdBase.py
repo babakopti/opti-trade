@@ -49,7 +49,7 @@ class EcoMfdCBase:
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
-                    stepSize     = 1.0,
+                    stepSize     = None,
                     factor       = 4.0e-5,
                     regCoef      = 0.0,
                     regL1Wt      = 0.0,
@@ -361,7 +361,13 @@ class EcoMfdCBase:
 
     def setGammaVecGD( self ):
 
-        stepSize = self.stepSize
+        if self.stepSize is None:
+            stepSize = 1.0
+            lsFlag   = True
+            self.logger.info( 'Line search enabled as step size is not set!' )
+        else:
+            stepSize = self.stepSize
+            lsFlag   = False
 
         for itr in range( self.maxOptItrs ):
                 
@@ -371,21 +377,22 @@ class EcoMfdCBase:
             if itr == 0:
                 funcVal0  = funcVal
                 norm0     = np.linalg.norm( grad )
-
-            obj  = scipy.optimize.line_search( f        = self.getObjFunc, 
-                                               myfprime = self.getGrad, 
-                                               xk       = self.GammaVec,
-                                               pk       = -grad, 
-                                               gfk      = grad,
-                                               old_fval = funcVal,
-                                               c1       = 0.1, 
-                                               c2       = 0.9, 
-                                               maxiter  = 3         )
+                
+            if lsFlag:
+                obj = scipy.optimize.line_search( f        = self.getObjFunc, 
+                                                  myfprime = self.getGrad, 
+                                                  xk       = self.GammaVec,
+                                                  pk       = -grad, 
+                                                  gfk      = grad,
+                                                  old_fval = funcVal,
+                                                  c1       = 0.1, 
+                                                  c2       = 0.9, 
+                                                  maxiter  = 3       )
             
-            if obj[0] is not None:
-                stepSize = obj[0]
-            else:
-                self.logger.warning( 'Line search did not converge! Using previous value!' )
+                if obj[0] is not None:
+                    stepSize = obj[0]
+                else:
+                    self.logger.warning( 'Line search did not converge! Using previous value!' )
 
             tmp = np.linalg.norm( grad ) / norm0
 

@@ -51,7 +51,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
-                    stepSize     = 1.0,
+                    stepSize     = None,
                     factor       = 4.0e-5,
                     regCoef      = 0.0,
                     regL1Wt      = 0.0,
