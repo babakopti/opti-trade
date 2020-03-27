@@ -43,6 +43,7 @@ ASSETS   = ETFS
 
 NUM_TRN_YEARS = 10
 NUM_OOS_MINS  = 5
+STEP_SIZE     = 1.0
 MAX_OPT_ITRS  = 500
 OPT_TOL       = 1.0e-2
 REG_COEF      = 1.0e-3                    
@@ -106,7 +107,8 @@ class OptionPrtBuilder( Daemon ):
                     futures     = FUTURES,
                     indexes     = INDEXES,
                     nTrnYears   = NUM_TRN_YEARS,
-                    nOosMinutes = NUM_OOS_MINS,                    
+                    nOosMinutes = NUM_OOS_MINS,
+                    stepSize    = STEP_SIZE,
                     maxOptItrs  = MAX_OPT_ITRS,
                     optTol      = OPT_TOL,
                     regCoef     = REG_COEF,                    
@@ -138,6 +140,7 @@ class OptionPrtBuilder( Daemon ):
         self.indexes     = indexes
         self.nTrnYears   = nTrnYears
         self.nOosMinutes = nOosMinutes
+        self.stepSize    = stepSize
         self.maxOptItrs  = maxOptItrs
         self.optTol      = optTol
         self.regCoef     = regCoef
@@ -372,6 +375,7 @@ class OptionPrtBuilder( Daemon ):
                            maxTrnDate   = maxTrnDt,
                            maxOosDate   = maxOosDt,
                            velNames     = self.velNames,
+                           stepSize     = self.stepSize,
                            maxOptItrs   = self.maxOptItrs,
                            optGTol      = self.optTol,
                            optFTol      = self.optTol,
