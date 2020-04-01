@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
+import gc
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
@@ -199,7 +200,13 @@ class EcoMfdConst( EcoMfdCBase ):
                     gammaId += 1
 
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
-                           time.time() - t0 ) 
+                           time.time() - t0 )
+        
+        del sol
+        del adjSol
+        del tmpVec
+        
+        gc.collect()
 
         return grad
 

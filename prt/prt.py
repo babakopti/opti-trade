@@ -700,7 +700,7 @@ class MfdOptionsPrt:
                     logFileName  = None,                    
                     verbose      = 1          ):
 
-        self.mfdMod       = dill.load( open( modFile, 'rb' ) ) 
+        self.mfdMod       = dill.load( open( modFile, 'rb' ) )
         self.ecoMfd       = self.mfdMod.ecoMfd
         self.logFileName  = logFileName
         self.verbose      = verbose
@@ -719,11 +719,11 @@ class MfdOptionsPrt:
         setB = set( self.ecoMfd.velNames )
         
         assert setA == setB, 'modFile and assetHash are not consistent!'
-        
+
         self.curDate = self.curDate.replace( minute = 0,  second = 0  )
         self.minDate = self.minDate.replace( minute = 0,  second = 0  )        
         self.maxDate = self.maxDate.replace( minute = 23, second = 59 )
-        
+
         if minProb <= 0 or minProb >= 1:
             self.logger.error( 'minProb should be in (0,1)!' )
             assert False, 'minProb should be in (0,1)!'
@@ -731,9 +731,9 @@ class MfdOptionsPrt:
         if rfiDaily < 0 or rfiDaily > 1:
             self.logger.error( 'rfiDaily should be in [0,1]!' )
             assert False, 'rfiDaily should be in [0,1]!'
- 
+            
         self.setPrdDf()
-
+        
     def setPrdDf( self ):
 
         t0        = time.time()
@@ -743,7 +743,7 @@ class MfdOptionsPrt:
         bcVec     = np.zeros( shape = ( nDims ), dtype = 'd' )
         dateList  = []
         date      = self.curDate
-        
+
         while date <= self.maxDate:
                 
             while True:
@@ -777,7 +777,7 @@ class MfdOptionsPrt:
                 slopeInv = 1.0 / slopeInv
 
             bcVec[m] = slopeInv * ( self.assetHash[ asset ] - intercept )
-                
+
         odeObj = OdeGeoConst( Gamma    = Gamma,
                               bcVec    = bcVec,
                               bcTime   = 0.0,
@@ -844,9 +844,11 @@ class MfdOptionsPrt:
             prob    = 1.0
         elif decision == 'exec_maturity':
             prob = self.getProb( curOption )
+        elif decision == 'no_action':
+            prob = self.getProb( curOption )
         else:
-            prob = 1.0
-        
+            self.logger.error( 'Unknown decision %s' % decision )
+
         return ( decision, prob )
 
     def selOptions( self,
@@ -938,7 +940,7 @@ class MfdOptionsPrt:
             
             retHash[ decision ] = ret
 
-        maxRet = max( retHash.value() )
+        maxRet = max( retHash.values() )
 
         if maxRet < 0:
             decision = 'no_action'
@@ -960,7 +962,7 @@ class MfdOptionsPrt:
                       mode = 'exec_maturity' ):
 
         validFlag = self.validateOption( option )
-        
+
         if not validFlag:
             return None
 
@@ -971,7 +973,7 @@ class MfdOptionsPrt:
         uPrice   = option[ 'unitPrice' ]
         oType    = option[ 'type' ]        
         oCnt     = option[ 'contractCnt' ]
-        
+
         prdDf    = self.prdDf        
         dateStr  = exprDate.strftime( '%Y-%m-%d' )
         prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
@@ -979,19 +981,19 @@ class MfdOptionsPrt:
 
         curPrice = self.assetHash[ asset ]
 
-        fee      = self.tradeFee / oCnt        
+        fee      = self.tradeFee / oCnt
 
         nDays    = ( exprDate - self.curDate ).days
         tmpVal   = ( 1.0 + self.rfiDaily )**nDays
         uCost    = tmpVal * ( uPrice + fee )
-        
+
         if oType == 'call':
             etaVal  = strike + uCost
         elif oType == 'put':
             etaVal  = strike - uCost
         else:
             return None
-            
+
         if mode == 'exec_maturity':
             prob = self.getProb( option )
             if oType == 'call':
@@ -1125,9 +1127,14 @@ class MfdOptionsPrt:
     
     def validateOption( self, option ):
 
+        oCnt      = option[ 'contractCnt' ]
         asset     = option[ 'assetSymbol' ]
         exprDate  = pd.to_datetime( option[ 'expiration' ] )
 
+        if oCnt <= 1:
+            self.logger.error( 'Contract size should be >= 1!' )
+            return False
+        
         if asset not in self.assetHash.keys():
             self.logger.error( 'Asset %s not found in assetHash!', asset )
             return False

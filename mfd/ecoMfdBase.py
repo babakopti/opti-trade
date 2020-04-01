@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
+import gc
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
@@ -412,6 +413,8 @@ class EcoMfdCBase:
 
             self.GammaVec = self.GammaVec - stepSize * grad
 
+        gc.collect()
+        
         return False
 
     def setConstStdVec( self ): 
@@ -455,6 +458,11 @@ class EcoMfdCBase:
         tmp1  = np.linalg.norm( GammaVec, 1 )
         tmp2  = np.linalg.norm( GammaVec )
         val  += regCoef * ( regL1Wt * tmp1 + ( 1.0 - regL1Wt ) * tmp2**2 )
+
+        del sol
+        del tmpVec
+        
+        gc.collect()
 
         return val
 

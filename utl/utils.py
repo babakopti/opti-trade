@@ -1370,22 +1370,27 @@ def getKibotLastValue( symbol, sType = 'ETF', maxDays = 3 ):
 # getYahooLastValue: Get the latest value of a symbol from Yahoo
 # ***********************************************************************
 
-def getYahooLastValue( symbol, sType, maxDays = 3 ):
+def getYahooLastValue( symbol, sType, maxDays = 3, logger = None ):
 
-    logger = getLogger( None, 0 )
+    if logger is None:
+        logger = getLogger( None, 1 )
     
     if sType == 'ETF':
         df = getYahooData( etfs    = [ symbol ],
-                           nDays   = maxDays     )
+                           nDays   = maxDays,
+                           logger  = logger     )
     elif sType == 'futures':
         df = getYahooData( futures = [ symbol ],
-                           nDays   = maxDays     )
+                           nDays   = maxDays,
+                           logger  = logger     )
     elif sType == 'stock':
         df = getYahooData( stocks  = [ symbol ],
-                           nDays   = maxDays     )                           
+                           nDays   = maxDays,
+                           logger  = logger     )                           
     elif sType == 'index':
         df = getYahooData( indexes = [ symbol ],
-                           nDays   = maxDays     )
+                           nDays   = maxDays,
+                           logger  = logger     )
     else:
         return None
 

@@ -78,7 +78,8 @@ class Tdam:
     def getCashBalance( self ):
 
         account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
-        cashBal = account['currentBalances']['cashBalance']
+        cashBal = account['currentBalances']['cashBalance'] + \
+                  account['currentBalances']['moneyMarketFund']
 
         return cashBal
 

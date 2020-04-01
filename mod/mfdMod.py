@@ -332,16 +332,10 @@ class MfdMod:
 
         ecoMfd  = self.ecoMfd
         nDims   = ecoMfd.nDims
-        biasVec = []
-
-        for m in range( nDims ):
-            bias = ecoMfd.getRelBias( m )
-            biasVec.append( bias )
 
         self.logger.info( 'Manifold Error    : %0.6f', ecoMfd.getError() )
         self.logger.info( 'Manifold oos Error: %0.6f', ecoMfd.getOosError() )
         self.logger.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
-        self.logger.info( 'Manifold max bias: %0.6f', max( biasVec ) )            
 
         self.logger.info( '\n' + str( ecoMfd.getTimeDf() ) )
 

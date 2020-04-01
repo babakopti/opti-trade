@@ -18,8 +18,6 @@ import pandas as pd
 
 from collections import defaultdict
 
-from google.cloud import storage
-
 from daemonBase import Daemon, EmailTemplate
 
 sys.path.append( os.path.abspath( '../' ) )
@@ -41,20 +39,20 @@ STOCKS   = []
 
 ASSETS   = ETFS
 
-NUM_TRN_YEARS = 10
+NUM_TRN_YEARS = 5
 NUM_OOS_MINS  = 5
-STEP_SIZE     = 1.0
+STEP_SIZE     = None
 MAX_OPT_ITRS  = 500
-OPT_TOL       = 1.0e-2
+OPT_TOL       = 5.0e-2
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
 MAX_OPTION_MONTHS  = 6
 MAX_RATIO_CONTRACT = 0.5
 MAX_RATIO_ASSET    = 0.5
-MAX_RATIO_EXPOSURE = 0.5
-MIN_PROBABILITY    = 0.7
-OPTION_TRADE_FEE   = 0.5
+MAX_RATIO_EXPOSURE = 1.0
+MIN_PROBABILITY    = 0.70
+OPTION_TRADE_FEE   = 0.75
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'                    
@@ -92,7 +90,6 @@ else:
 NUM_DAYS_DATA_CLEAN = 3
 NUM_DAYS_MOD_CLEAN  = 3
 NUM_DAYS_PRT_CLEAN  = 90
-NUM_DAYS_BUCKET_CLEAN = 3
 
 # ***********************************************************************
 # Class OptionPrtBuilder: Daemon to build options portfolios
@@ -223,8 +220,7 @@ class OptionPrtBuilder( Daemon ):
         try:
             self.buildMod( snapDate )
         except Exception as err:            
-            msgStr = err + '; Model build was unsuccessful!'
-            self.logger.error( msgStr )
+            self.logger.error( err )
 
         try:
             self.setPrtObj( snapDate )
@@ -239,21 +235,17 @@ class OptionPrtBuilder( Daemon ):
         try:
             self.selTradeOptions( snapDate )
         except Exception as err:            
-            msgStr = err + '; Options selection was unsuccessful!'
-            self.logger.error( msgStr )
+            self.logger.error( err )
 
         try:
-            self.sendPrtAlert( wtHash )
+            self.sendPrtAlert()
         except Exception as err:
-            msgStr = err + '; Portfolio alert was NOT sent!'
-            self.logger.error( msgStr )
+            self.logger.error( err )
 
         self.clean( self.datDir, NUM_DAYS_DATA_CLEAN )
         self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
         self.clean( self.prtDir, NUM_DAYS_PRT_CLEAN  )
 
-        self.cleanBucket( NUM_DAYS_BUCKET_CLEAN )
-            
         return True
 
     def setDfFile( self, snapDate ):
@@ -409,9 +401,13 @@ class OptionPrtBuilder( Daemon ):
 
         minDate = snapDate + pd.DateOffset( days   = 1 )
         maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
-        
-        assetHash   = self.getAssetHash()
 
+        self.logger.info( 'Setting assetHash...' )
+        
+        assetHash = self.getAssetHash()
+        
+        self.logger.info( 'Done with setting assetHash...' )
+        
         self.prtObj = MfdOptionsPrt( modFile     = self.modFile,
                                      assetHash   = assetHash,
                                      curDate     = snapDate,
@@ -424,8 +420,12 @@ class OptionPrtBuilder( Daemon ):
                                      logFileName = None,                    
                                      verbose     = 1          )
 
+        self.logger.info( 'The prt object was set!' )
+
     def settle( self ):
 
+        self.logger.info( 'Settling the current options holdings...' )
+        
         td = Tdam( refToken = REFRESH_TOKEN )
         
         positions = td.getPositions()
@@ -457,7 +457,7 @@ class OptionPrtBuilder( Daemon ):
                 self.logger.error( 'Incorrect option symbol %s!', symbol )
                 
             exprDate = pd.to_datetime( tmpTuple[1], format = '%m%d%y' )
-            strike   = tmpTuple[3]
+            strike   = float( tmpTuple[3] )
             
             unitPrice = td.getQuote( symbol, 'last' )
 
@@ -469,17 +469,17 @@ class OptionPrtBuilder( Daemon ):
                        'unitPrice'    : unitPrice,
                        'type'         : oType      }
 
+            self.logger.info( 'Evaluating option %s...' % symbol )
+            
             ( decision, prob ) = self.prtObj.getCurAction( option,
                                                            unitPrice )
 
-            msgStr = 'Decision for %s is %s; Sucess probalility is %0.2f'
+            msgStr = 'Decision for %s is %s; Sucess probalility is %0.2f' % \
+                     ( symbol, decision, prob )
 
             self.alertStr += msgStr + '\n'
             
-            self.logger.info( msgStr,
-                              symbol,
-                              decision,
-                              prob       )
+            self.logger.info( msgStr )
             
             if decision == 'sell_now':
 
@@ -524,13 +524,14 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.info( 'Selecting options for snapdate %s', str( snapDate ) )        
 
+        tmpStr   = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )        
         prtFile  = self.prtHead + tmpStr + '.json'
         prtFile  = os.path.join( self.prtDir, prtFile )
         
         minDate = snapDate + pd.DateOffset( days   = 1 )
         maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
         
-        cash        = self.getCashValue()
+        cash = self.getCashValue()
 
         self.logger.info( 'Amount of available cash is %0.2f; exposure is %0.2f!',
                           cash,
@@ -562,11 +563,15 @@ class OptionPrtBuilder( Daemon ):
             assetHash[ symbol ] = td.getQuote( symbol )            
 
         for symbol in self.futures:
-            val, date = utl.getYahooLastValue( symbol, 'futures' )
+            val, date = utl.getYahooLastValue( symbol,
+                                               'futures',
+                                               logger = self.logger )
             assetHash[ symbol ] = val
 
         for symbol in self.indexes:
-            val, date = utl.getYahooLastValue( symbol, 'index' )
+            val, date = utl.getYahooLastValue( symbol,
+                                               'index',
+                                               logger = self.logger )
             assetHash[ symbol ] = val
     
         return assetHash
@@ -574,6 +579,10 @@ class OptionPrtBuilder( Daemon ):
     def getCashValue( self ):
 
         td = Tdam( refToken = REFRESH_TOKEN )
+
+        cash = td.getCashBalance()
+
+        return cash
 
     def getOptions( self ):
  
@@ -620,9 +629,8 @@ class OptionPrtBuilder( Daemon ):
                           sType     = 'OPTION',
                           action    = 'BUY_TO_OPEN' )
     
-    def sendPrtAlert( self, selHash ):
+    def sendPrtAlert( self ):
 
-        assets = list( selHash.keys() )
         pars   = {}
 
         pars[ 'Options' ] = self.alertStr
@@ -676,7 +684,7 @@ class OptionPrtBuilder( Daemon ):
 if __name__ ==  '__main__':
 
     daemon = OptionPrtBuilder()
-    
+
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             daemon.start()
