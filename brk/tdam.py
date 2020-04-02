@@ -105,7 +105,7 @@ class Tdam:
 
         return val
     
-    def getQuote( self, symbol, pType = 'ask' ):
+    def getQuote( self, symbol, pType = 'last' ):
 
         if pType == 'ask':
             item = 'askPrice'

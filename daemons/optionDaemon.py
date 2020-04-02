@@ -52,7 +52,7 @@ MAX_RATIO_CONTRACT = 0.5
 MAX_RATIO_ASSET    = 0.5
 MAX_RATIO_EXPOSURE = 1.0
 MIN_PROBABILITY    = 0.70
-OPTION_TRADE_FEE   = 0.75
+OPTION_TRADE_FEE   = 0.65
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'                    
@@ -78,7 +78,7 @@ TOKEN_FILE = '../brk/tokens/refresh_token.txt'
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 if DEBUG_MODE:
     SCHED_FLAG = False
@@ -459,7 +459,7 @@ class OptionPrtBuilder( Daemon ):
             exprDate = pd.to_datetime( tmpTuple[1], format = '%m%d%y' )
             strike   = float( tmpTuple[3] )
             
-            unitPrice = td.getQuote( symbol, 'last' )
+            unitPrice = td.getQuote( symbol, 'bid' )
 
             option = { 'optionSymbol' : symbol,
                        'assetSymbol'  : assetSymbol,
@@ -557,10 +557,10 @@ class OptionPrtBuilder( Daemon ):
         assetHash = {}
         
         for symbol in self.etfs:
-            assetHash[ symbol ] = td.getQuote( symbol )
+            assetHash[ symbol ] = td.getQuote( symbol, 'last' )
 
         for symbol in self.stocks:
-            assetHash[ symbol ] = td.getQuote( symbol )            
+            assetHash[ symbol ] = td.getQuote( symbol, 'last' )            
 
         for symbol in self.futures:
             val, date = utl.getYahooLastValue( symbol,
