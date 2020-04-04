@@ -71,7 +71,7 @@ PID_FILE      = '/var/run/option_prt_builder.pid'
 USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email_option.txt'
 
 DEV_LIST = [ 'babak.emami@gmail.com' ]
-USR_LIST = [ 'babak.emami@gmail.com' ]
+USR_LIST = []
 
 TOKEN_FILE = '../brk/tokens/refresh_token.txt'
 
