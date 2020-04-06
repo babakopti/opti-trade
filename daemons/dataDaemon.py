@@ -206,6 +206,11 @@ class DataCollector( Daemon ):
             else:
                 self.logger.error( 'Unkown data source %s!', self.source )
 
+            if newDf is None or newDf.shape[0] == 0:
+                self.logger.error( 'No new data found for symbol %s!',
+                                   symbol )
+                continue
+                
             if oldDf is not None:
                 maxDt = oldDf.Date.max()
                 newDf = newDf[ newDf.Date > maxDt ]

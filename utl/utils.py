@@ -621,7 +621,7 @@ def getYahooData( etfs        = [],
                 time.sleep( 5 )
                 continue
 
-        if tmpDf is None:
+        if tmpDf is None or tmpDf.shape[0] == 0:
             logger.warning( 'No data found for %s; skipping!', symbol )
             continue
 

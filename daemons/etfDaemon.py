@@ -317,19 +317,25 @@ class MfdPrtBuilder( Daemon ):
 
         self.logger.info( 'Getting new data...' )
 
-        newDf = utl.getYahooData( etfs    = self.etfs,
-                                  stocks  = self.stocks,
-                                  futures = self.futures,
-                                  indexes = self.indexes,
-                                  nDays   = 5,
-                                  logger  = self.logger  )
+        try:
+            newDf = utl.getYahooData( etfs    = self.etfs,
+                                      stocks  = self.stocks,
+                                      futures = self.futures,
+                                      indexes = self.indexes,
+                                      nDays   = 5,
+                                      logger  = self.logger  )
         
-        self.logger.info( 'Done with getting new data!' )
+            self.logger.info( 'Done with getting new data!' )
 
-        self.logger.info( 'Merging old and new data...' )
+            self.logger.info( 'Merging old and new data...' )
         
-        newDf = newDf[ newDf.Date > oldDf.Date.max() ]
-        newDf = pd.concat( [ oldDf, newDf ] )
+            newDf = newDf[ newDf.Date > oldDf.Date.max() ]
+            newDf = pd.concat( [ oldDf, newDf ] )
+        except Exception as e:
+            msgStr = 'Could not get new data, old data max date is %s!' \
+                     % str( oldDf.Date.max() )
+            self.logger.error( msgStr )
+            newDf = oldDf
             
         fileName = 'dfFile_' + str( snapDate ) + '.pkl'
         filePath = os.path.join( self.datDir, fileName )
