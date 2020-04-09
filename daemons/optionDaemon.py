@@ -62,7 +62,7 @@ DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
 PI_DAT_DIR    = '/var/pi_data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '14:00'
+SCHED_TIME    = '12:30'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
 VERBOSE       = 1
 
@@ -644,6 +644,8 @@ class OptionPrtBuilder( Daemon ):
         self.logger.critical( msgStr )
         
         self.logger.info( 'Traded options info sent to email lists!' )
+
+        self.alertStr = ''
 
     def clean( self, fDir, nOldDays ):
 
