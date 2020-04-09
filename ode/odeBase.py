@@ -19,6 +19,7 @@ class OdeBaseConst:
                   bcTime,
                   timeInc,
                   nSteps,
+                  odeElast = 0.0,
                   intgType = 'LSODA',
                   actSol   = None,
                   adjSol   = None,
@@ -73,6 +74,7 @@ class OdeBaseConst:
         self.nDims    = nDims
         self.timeInc  = timeInc
         self.nSteps   = nSteps
+        self.odeElast = odeElast
         self.intgType = intgType
         self.actSol   = actSol
         self.adjSol   = adjSol

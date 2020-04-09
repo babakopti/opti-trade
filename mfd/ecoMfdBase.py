@@ -81,8 +81,7 @@ class EcoMfdCBase:
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
         self.trmFuncDict = trmFuncDict 
-        self.optType     = optType,
-        self.optType     = self.optType[0]
+        self.optType     = optType
         self.maxOptItrs  = maxOptItrs
         self.optGTol     = optGTol
         self.optFTol     = optFTol
@@ -336,11 +335,17 @@ class EcoMfdCBase:
                          'maxiter'    : self.maxOptItrs, 
                          'disp'       : True              }
 
+            optCons = self.getOptCons( self.GammaVec )
+            optBnds = self.getOptBounds( self.GammaVec )
+
             try:
                 optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
                                                   x0       = self.GammaVec, 
                                                   method   = self.optType, 
                                                   jac      = self.getGrad,
+                                                  tol      = 1.0e-5,
+                                                  #constraints = optCons,
+                                                  bounds   = optBnds,
                                                   options  = options          )
                 sFlag   = optObj.success
     
@@ -348,7 +353,8 @@ class EcoMfdCBase:
 
                 self.logger.info( 'Success: %s', str( sFlag ) )
 
-            except:
+            except Exception as err:
+                self.logger.error( err )
                 sFlag = False
 
         self.statHash[ 'totTime' ] = time.time() - t0
@@ -359,6 +365,38 @@ class EcoMfdCBase:
         self.setConstStdVec()
         
         return sFlag
+
+    def getOptCons( self, GammaVec ):
+
+        nDims   = self.nDims
+        cons    = []
+
+        #cons.append( { 'type' : 'ineq',
+        #             'fun'  : lambda vec : (vec[gammaId]-1.0) } )
+                        
+        return cons
+
+    def getOptBounds( self, GammaVec ):
+
+        nDims   = self.nDims
+        bounds  = []
+        
+        gammaId = 0
+        for r in range( nDims ):
+            for p in range( nDims ):
+                for q in range( p, nDims ):
+
+                    if r != p and r != q and p != q:
+                        continue
+                    
+                    if r == p and r == q:
+                        bounds.append( ( 0.0, None ) )
+                    else:
+                        bounds.append( ( None, None ) )
+                        
+                    gammaId += 1
+
+        return bounds    
 
     def setGammaVecGD( self ):
 

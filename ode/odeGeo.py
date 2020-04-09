@@ -38,13 +38,13 @@ class OdeGeoConst( OdeBaseConst ):
                 srcVec[m] = srcTerm[m][tsId]
 
         for m in range( nDims ):
-            
             for a in range( nDims ):
                 for b in range( nDims ):
                     vals[m]  = vals[m] - Gamma[m][a][b] * y[a] * y[b]
 
                 vals[m] = vals[m] + srcCoefs[m][a] * y[a]
 
+            vals[m] = vals[m] + self.odeElast * y[m]
             vals[m] = vals[m] + srcCoefs[m][nDims]
             vals[m] = vals[m] + srcVec[m]
             
@@ -63,8 +63,10 @@ class OdeGeoConst( OdeBaseConst ):
                 for q in range( nDims ):
                     vals[m][l]  = vals[m][l] - 2.0 * Gamma[m][l][q] * y[q] 
 
-            vals[m][l] = vals[m][l] + srcCoefs[m][l]
+                vals[m][l] = vals[m][l] + srcCoefs[m][l]
 
+            vals[m][m] = vals[m][m] + self.odeElast
+            
         return vals
 
 # ***********************************************************************
@@ -101,7 +103,8 @@ class OdeAdjConst( OdeBaseConst ):
             vals[r]  = vals[r] +\
                        2.0 * np.dot( tmpVec2, v ) +\
                        varCoefs[r] * atnCoefs[tsId] *\
-                       ( adjSol[r][tsId] - actSol[r][tsId] )
+                       ( adjSol[r][tsId] - actSol[r][tsId] ) -\
+                       self.odeElast * v[r]
 
         return vals
 
@@ -127,6 +130,7 @@ class OdeAdjConst( OdeBaseConst ):
             for l in range( nDims ):
                 vals[r][l]  = vals[r][l] +\
                     2.0 * np.dot( Gamma[l][r][:], tmpVec1 )
+            vals[r][r] = vals[r][r] - self.odeElast
 
         return vals
 

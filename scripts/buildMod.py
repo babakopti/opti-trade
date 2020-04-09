@@ -14,17 +14,16 @@ from utils import getDf
 sys.path.append( os.path.abspath( '../' ) )
 
 from mod.mfdMod import MfdMod
-from dat.assets import OLD_ETF_HASH
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-dfFile      = 'data/dfFile_long_term_all.pkl'
+dfFile      = 'data/dfFile_2016plus.pkl'
 
-minTrnDate  = pd.to_datetime( '2003-01-01 09:00:00' )
-maxTrnDate  = pd.to_datetime( '2020-01-31 09:00:00' )
-maxOosDate  = pd.to_datetime( '2020-02-10 23:59:00' )
+minTrnDate  = pd.to_datetime( '2017-02-01 09:00:00' )
+maxTrnDate  = pd.to_datetime( '2018-01-31 09:00:00' )
+maxOosDate  = pd.to_datetime( '2018-02-10 23:59:00' )
 
 indices     = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',  
                 'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
@@ -39,10 +38,8 @@ velNames    = ETFs + indices + futures
 
 pType       = 'vel'
 
-modFileName = 'models/model_long_term_snap_2020_01_31.dill'
+modFileName = 'models/model.dill'
 
-factor      = 1.0e-5
-    
 # ***********************************************************************
 # Build model
 # ***********************************************************************
@@ -52,11 +49,15 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 500,
+                    optType      = 'SLSQP',
+                    maxOptItrs   = 100,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
-                    factor       = factor,
+                    factor       = 4.0e-5,
                     regCoef      = 1.0e-3,
+                    diagFlag     = True,
+                    elastFlag    = False,
+                    elastCoef    = 0.05,
                     smoothCount  = None,
                     logFileName  = None,
                     verbose      = 1          )
@@ -66,7 +67,20 @@ validFlag = mfdMod.build()
 print( 'Success :', validFlag )
 
 mfdMod.save( modFileName )
-
 #mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
-mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
+#mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
 
+gammaId = 0
+nDims = mfdMod.ecoMfd.nDims
+
+for r in range( nDims ):
+    for p in range( nDims ):
+        for q in range( p, nDims ):
+
+            if r != p and r != q and p != q:
+                continue
+                    
+            if r == p and r == q:
+                print(mfdMod.ecoMfd.GammaVec[gammaId])
+
+            gammaId += 1

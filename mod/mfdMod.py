@@ -20,7 +20,8 @@ from utl.utils import getLogger
 # Some definitions
 # ***********************************************************************
 
-DIAG_FLAG = True
+DIAG_FLAG  = True
+ELAST_FLAG = False
 
 # ***********************************************************************
 # Class MfdMod: Model object that builds a manifold based model
@@ -35,11 +36,15 @@ class MfdMod:
                     maxOosDate,
                     velNames,
                     stepSize     = None,
+                    optType      = 'GD',                     
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
                     factor       = 4.0e-5,
                     regCoef      = None,
+                    diagFlag     = DIAG_FLAG,
+                    elastFlag    = ELAST_FLAG,
+                    elastCoef    = 0.0,
                     minMerit     = 0.0,
                     minTrend     = 0.0,
                     maxBias      = 1.0,
@@ -57,9 +62,13 @@ class MfdMod:
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
         self.stepSize    = stepSize
+        self.optType     = optType
         self.maxOptItrs  = maxOptItrs
         self.optGTol     = optGTol
         self.optFTol     = optFTol
+        self.diagFlag    = diagFlag
+        self.elastFlag   = elastFlag
+        self.elastCoef   = elastCoef
         self.minMerit    = minMerit
         self.minTrend    = minTrend
         self.maxBias     = maxBias
@@ -79,7 +88,7 @@ class MfdMod:
         else:
             self.regCoef    = regCoef
             self.optRegFlag = False
-        
+
         self.factor   = factor
 
         assert atnFct >= 0, 'atnFct should be positive!'
@@ -300,7 +309,7 @@ class MfdMod:
                               maxTrnDate   = self.maxTrnDate,
                               maxOosDate   = self.maxOosDate,
                               trmFuncDict  = self.trmFuncDict,
-                              optType      = 'GD', 
+                              optType      = self.optType, 
                               maxOptItrs   = self.maxOptItrs, 
                               optGTol      = self.optGTol,
                               optFTol      = self.optFTol,
@@ -309,7 +318,9 @@ class MfdMod:
                               regCoef      = self.regCoef,
                               regL1Wt      = 0.0,
                               nPca         = None,
-                              diagFlag     = DIAG_FLAG,
+                              diagFlag     = self.diagFlag,
+                              elastFlag    = self.elastFlag,
+                              elastCoef    = self.elastCoef,
                               endBcFlag    = True,
                               atnFct       = self.atnFct,
                               mode         = self.mode,
@@ -417,7 +428,7 @@ class MfdMod:
                                  maxTrnDate   = maxTrnDate,
                                  maxOosDate   = maxOosDate,
                                  trmFuncDict  = self.trmFuncDict,
-                                 optType      = 'GD', 
+                                 optType      = self.optType, 
                                  maxOptItrs   = self.maxOptItrs, 
                                  optGTol      = self.optGTol,
                                  optFTol      = self.optFTol,
@@ -426,7 +437,9 @@ class MfdMod:
                                  regCoef      = regCoef,
                                  regL1Wt      = 0.0,
                                  nPca         = None,
-                                 diagFlag     = DIAG_FLAG,
+                                 diagFlag     = self.diagFlag,
+                                 elastFlag    = self.elastFlag,
+                                 elastCoef    = self.elastCoef,                                 
                                  endBcFlag    = True,
                                  atnFct       = self.atnFct,
                                  mode         = self.mode,

@@ -58,6 +58,8 @@ class EcoMfdConst( EcoMfdCBase ):
                     regL1Wt      = 0.0,
                     nPca         = None,
                     diagFlag     = True,
+                    elastFlag    = True,
+                    elastCoef    = 0.0,
                     endBcFlag    = True,
                     varCoefs     = None,
                     srcCoefs     = None,
@@ -95,15 +97,26 @@ class EcoMfdConst( EcoMfdCBase ):
                                verbose      = verbose     )
 
         self.diagFlag    = diagFlag
+        self.elastFlag   = elastFlag
 
-        nDims            = self.nDims
+        if elastFlag:
+            self.elastCoef = elastCoef
+            self.odeElast  = 0.5 * elastCoef * factor
+        else:
+            self.elastCoef = 0.0
+            self.odeElast  = 0.0
+            
+        nDims  = self.nDims
 
         if diagFlag:
             self.nGammaVec = nDims * ( 2 * nDims - 1 ) 
         else:
             self.nGammaVec = int( nDims * nDims * ( nDims + 1 ) / 2 )
 
-        self.GammaVec    = np.zeros( shape = ( self.nGammaVec ),   dtype = 'd' ) 
+        if elastFlag:
+            self.nGammaVec -= nDims
+
+        self.GammaVec = np.zeros( shape = ( self.nGammaVec ),   dtype = 'd' ) 
 
         self.setBcs()
         self.setActs()
@@ -190,6 +203,9 @@ class EcoMfdConst( EcoMfdCBase ):
                     if self.diagFlag and r != p and r != q and p != q:
                         continue
 
+                    if self.elastFlag and r == p and r == q:
+                        continue
+
                     tmpVec  = xi(p,q) * np.multiply( sol[p][:], sol[q][:] )
                     tmpVec  = np.multiply(tmpVec, adjSol[r][:] )
 
@@ -232,6 +248,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                 bcTime   = bcTime,
                                 timeInc  = 1.0,
                                 nSteps   = self.nSteps,
+                                odeElast = self.odeElast,                                
                                 intgType = 'LSODA',
                                 tol      = GEO_TOL,
                                 srcCoefs = self.srcCoefs,
@@ -264,11 +281,12 @@ class EcoMfdConst( EcoMfdCBase ):
 
         self.logger.debug( 'Solving adjoint geodesic equation...' )
 
-        adjOdeObj = OdeAdjConst( Gamma    = Gamma,
-                                 bcVec    = bcVec,
+        adjOdeObj = OdeAdjConst( Gamma     = Gamma,
+                                 bcVec     = bcVec,
                                  bcTime    = 0.0,
                                  timeInc   = 1.0,
                                  nSteps    = self.nSteps,
+                                 odeElast  = self.odeElast,                                 
                                  intgType  = 'RK45',
                                  actSol    = self.actSol,
                                  adjSol    = sol,
@@ -303,10 +321,15 @@ class EcoMfdConst( EcoMfdCBase ):
                     if self.diagFlag and m != a and m != b and a != b:
                         Gamma[m][a][b] = 0.0
                         Gamma[m][b][a] = 0.0
-                    else:
-                        Gamma[m][a][b] = GammaVec[gammaId]
-                        Gamma[m][b][a] = GammaVec[gammaId]
-                        gammaId += 1
+                        continue
+                    
+                    if self.elastFlag and m == a and m == b:
+                        Gamma[m][a][b] = self.elastCoef
+                        continue
+                    
+                    Gamma[m][a][b] = GammaVec[gammaId]
+                    Gamma[m][b][a] = GammaVec[gammaId]
+                    gammaId += 1
 
         return Gamma
 
@@ -332,6 +355,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                 bcTime   = 0.0,
                                 timeInc  = 1.0,
                                 nSteps   = nOosTimes - 1,
+                                odeElast = self.odeElast,                                
                                 intgType = 'LSODA',
                                 tol      = GEO_TOL,
                                 srcCoefs = srcCoefs,
@@ -401,6 +425,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                 bcTime   = 0.0,
                                 timeInc  = 1.0,
                                 nSteps   = nTimes - 1,
+                                odeElast = self.odeElast,                                
                                 intgType = 'LSODA',
                                 tol      = GEO_TOL,
                                 verbose  = self.verbose       )
