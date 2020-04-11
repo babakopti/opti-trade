@@ -610,6 +610,8 @@ class OptionPrtBuilder( Daemon ):
 
     def trade( self, selHash ):
 
+        td = Tdam( refToken = REFRESH_TOKEN )
+        
         self.alertStr += '\nSelected %d options!\n\n' \
             % ( len( selHash.keys() ) )
                                                                      
