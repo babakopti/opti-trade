@@ -80,6 +80,7 @@ class OdeAdjConst( OdeBaseConst ):
         timeInc  = self.timeInc
         nTimes   = self.nTimes
         actSol   = self.actSol
+        actSolAcl= self.actSolAcl        
         adjSol   = self.adjSol
         varCoefs = self.varCoefs
         atnCoefs = self.atnCoefs
@@ -99,9 +100,9 @@ class OdeAdjConst( OdeBaseConst ):
             for m in range( nDims ):
                 tmpVec2[m] = np.dot( Gamma[m][r][:], tmpVec1 )
             vals[r]  = vals[r] +\
-                       2.0 * np.dot( tmpVec2, v ) +\
+                       2.0 * np.dot( tmpVec2, v ) -\
                        varCoefs[r] * atnCoefs[tsId] *\
-                       ( adjSol[r][tsId] - actSol[r][tsId] )
+                       actSolAcl[r][tsId]
 
         return vals
 

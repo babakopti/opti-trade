@@ -448,10 +448,20 @@ class EcoMfdCBase:
 
         sol     = odeObj.getSol()
 
+        solVel = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+        actSolVel = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+        
+        for m in range( nDims ):
+            for tsId in range( 1, nTimes ):
+                solVel[m][tsId] = sol[m][tsId] - sol[m][tsId-1]
+                actSolVel[m][tsId] = actSol[m][tsId] - actSol[m][tsId-1]
+            solVel[m][0] = solVel[m][1]
+            actSolVel[m][0] = actSolVel[m][1] 
+
         tmpVec.fill( 0.0 )
         for varId in range( nDims ):
             tmpVec += varCoefs[varId] * atnCoefs[:] *\
-                ( sol[varId][:] - actSol[varId][:] )**2 
+                solVel[varId][:] * actSolVel[varId][:]
 
         val = 0.5 * trapz( tmpVec, dx = 1.0 )
 

@@ -43,6 +43,18 @@ class OdeBaseConst:
             assert actSol.shape[0] == nDims,  'Incorrect actSol size!'
             assert actSol.shape[1] == nTimes, 'Incorrect actSol size!'
 
+            actSolAcl = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+
+            for m in range( nDims ):
+                for tsId in range( 1, nTimes-1 ):
+                    actSolAcl[m][tsId] = actSol[m][tsId-1] -\
+                        2 * actSol[m][tsId] +\
+                        actSol[m][tsId+1]
+                actSolAcl[m][0] = actSolAcl[m][1]
+                actSolAcl[m][nTimes-1] = actSolAcl[m][nTimes-2]
+                
+            self.actSolAcl = actSolAcl
+
         if adjSol is not None:
             assert adjSol.shape[0] == nDims,  'Incorrect adjSol size!'
             assert adjSol.shape[1] == nTimes, 'Incorrect adjSol size!'
