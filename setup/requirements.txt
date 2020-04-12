@@ -11,3 +11,4 @@ ta-lib
 yfinance
 tdameritrade
 selenium
+pandas_market_calendars

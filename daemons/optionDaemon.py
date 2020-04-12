@@ -15,6 +15,7 @@ import schedule
 import re
 import numpy as np
 import pandas as pd
+import pandas_market_calendars as pmc
 
 from collections import defaultdict
 
@@ -208,6 +209,12 @@ class OptionPrtBuilder( Daemon ):
 
         if not DEBUG_MODE:
             if snapDate.isoweekday() in [ 6, 7 ]:
+                return
+
+            holidays = pmc.get_calendar('NYSE').holidays().holidays
+            
+            if snapDate in holidays:
+                self.logger.critical( 'Not running as today is a NYSE holiday!' )
                 return
         
         self.logger.info( 'Processing snapDate %s ...' % str( snapDate ) )
