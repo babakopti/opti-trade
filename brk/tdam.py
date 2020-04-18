@@ -134,13 +134,19 @@ class Tdam:
                 
                 obj = stkHash[ strike ][0]
                 
-                assert symbol == obj[ 'symbol' ].split( '_' )[0], \
-                    'Inconsistent underlying symbol %s vs. %s!' % \
-                    ( symbol, obj[ 'symbol' ].split( '_' )[0] ) 
+                if symbol != obj[ 'symbol' ].split( '_' )[0]:
+                    self.logger.warning ( 'Skipping %s: inconsistent underlying symbol %s vs. %s!',
+                                          obj[ 'symbol' ],
+                                          symbol,
+                                          obj[ 'symbol' ].split( '_' )[0] )
+                    continue
 
-                assert float( strike ) == float( obj[ 'strikePrice' ] ), \
-                    'Inconsistent strikePrices %s vs. %s!' % \
-                    ( str( strike ), str( obj[ 'strikePrice' ] ) )
+                if float( strike ) != float( obj[ 'strikePrice' ] ):
+                    self.logger.warning( 'Skipping %s: inconsistent strikePrices %s vs. %s!',
+                                         obj[ 'symbol' ],
+                                         str( strike ),
+                                         str( obj[ 'strikePrice' ] ) )
+                    continue
 
                 option = { 'optionSymbol' : obj[ 'symbol' ],
                            'assetSymbol'  : symbol,
@@ -161,13 +167,19 @@ class Tdam:
                 
                 obj = stkHash[ strike ][0]
 
-                assert symbol == obj[ 'symbol' ].split( '_' )[0], \
-                    'Inconsistent underlying symbol %s vs. %s!' % \
-                    ( symbol, obj[ 'symbol' ].split( '_' )[0] ) 
+                if symbol != obj[ 'symbol' ].split( '_' )[0]:
+                    self.logger.warning( 'Skipping %s: inconsistent underlying symbol %s vs. %s!',
+                                         obj[ 'symbol' ],
+                                         symbol,
+                                         obj[ 'symbol' ].split( '_' )[0] )
+                    continue                    
 
-                assert float( strike ) == float( obj[ 'strikePrice' ] ), \
-                    'Inconsistent strikePrices %s vs. %s!' % \
-                    ( str( strike ), str( obj[ 'strikePrice' ] ) )
+                if float( strike ) != float( obj[ 'strikePrice' ] ):
+                    self.logger.warning( 'Skipping %s: inconsistent strikePrices %s vs. %s!',
+                                         obj[ 'symbol' ],
+                                         str( strike ),
+                                         str( obj[ 'strikePrice' ] ) )
+                    continue                
                 
                 option = { 'optionSymbol' : obj[ 'symbol' ],
                            'assetSymbol'  : symbol,
