@@ -46,7 +46,7 @@ class EcoMfdCBase:
                     maxTrnDate,
                     maxOosDate,
                     trmFuncDict  = {},
-                    optType      = 'L-BFGS-B',
+                    optType      = 'GD',
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
@@ -56,6 +56,7 @@ class EcoMfdCBase:
                     regL1Wt      = 0.0,
                     nPca         = None,
                     endBcFlag    = True,
+                    atnCoefs     = None,
                     varCoefs     = None,
                     srcCoefs     = None,
                     srcTerm      = None,
@@ -81,8 +82,7 @@ class EcoMfdCBase:
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
         self.trmFuncDict = trmFuncDict 
-        self.optType     = optType,
-        self.optType     = self.optType[0]
+        self.optType     = optType
         self.maxOptItrs  = maxOptItrs
         self.optGTol     = optGTol
         self.optFTol     = optFTol
@@ -150,9 +150,12 @@ class EcoMfdCBase:
 
         self.trnEndDate  = list( self.trnDf[ dateName ] )[-1]
 
-        self.atnCoefs = np.ones( shape = ( nTimes ) )
-
-        self.setAtnCoefs( atnFct )
+        if atnCoefs is None:
+            self.atnCoefs = np.ones( shape = ( nTimes ) )
+            self.setAtnCoefs( atnFct )
+        else:
+            assert len( atnCoefs ) == nTimes, 'Incorrect size for atnCoefs!'
+            self.atnCoefs = atnCoefs
 
     def setDf( self ):
 
@@ -331,7 +334,7 @@ class EcoMfdCBase:
             sFlag = self.setGammaVecGD()
         else:
 
-            options  = { 'gtol'       : self.optGTol, 
+            options  = { #'gtol'       : self.optGTol, 
                          'ftol'       : self.optFTol, 
                          'maxiter'    : self.maxOptItrs, 
                          'disp'       : True              }
@@ -506,6 +509,33 @@ class EcoMfdCBase:
 
         return varStdVec
 
+    def getError2( self ): 
+
+        varNames = self.varNames
+        nTimes   = self.nTimes
+        nDims    = self.nDims
+        actSol   = self.actSol
+        varCoefs = self.varCoefs
+        atnCoefs = self.atnCoefs
+        odeObj   = self.getSol( self.GammaVec )
+        
+        if odeObj is None:
+            return -np.inf
+
+        sol = odeObj.getSol()        
+
+        error = 0.0
+        for tsId in range( nTimes ):
+            for varId in range( nDims ):
+                fct  = actSol[varId][tsId]
+                if fct != 0.0:
+                    fct = 1.0 / fct
+                error += varCoefs[varId] * \
+                    atnCoefs[tsId] * \
+                    ( 1.0 - fct * sol[varId][tsId] )**2
+
+        return error
+    
     def getError( self, varNames = None ): 
 
         if varNames is None:

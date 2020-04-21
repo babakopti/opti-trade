@@ -22,7 +22,7 @@ from mod.mfdMod import MfdMod
 # Get model and process
 # ***********************************************************************
 
-modFile  = 'models/model_2019-03-18 09:00:00.dill'
+modFile  = 'models/model.dill'
 
 t0       = time.time()
 print( 'Reading model file...' )
@@ -149,7 +149,6 @@ for m in range( nDims ):
 # ***********************************************************************
 # Plot
 # ***********************************************************************
-
 
 for m in range( nDims ): 
 

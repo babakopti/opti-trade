@@ -34,6 +34,7 @@ class MfdMod:
                     maxTrnDate,
                     maxOosDate,
                     velNames,
+                    optType      = 'GD',                     
                     stepSize     = None,
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
@@ -47,6 +48,7 @@ class MfdMod:
                     validFlag    = False,
                     selParams    = None,
                     smoothCount  = None,
+                    atnCoefs     = None,                    
                     atnFct       = 1.0,
                     mode         = 'intraday',
                     logFileName  = None,                    
@@ -56,6 +58,7 @@ class MfdMod:
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
+        self.optType     = optType
         self.stepSize    = stepSize
         self.maxOptItrs  = maxOptItrs
         self.optGTol     = optGTol
@@ -82,6 +85,8 @@ class MfdMod:
         
         self.factor   = factor
 
+        self.atnCoefs = atnCoefs
+        
         assert atnFct >= 0, 'atnFct should be positive!'
         assert atnFct <= 1.0, 'atnFct should be less than or equal to 1.0!'
 
@@ -300,7 +305,7 @@ class MfdMod:
                               maxTrnDate   = self.maxTrnDate,
                               maxOosDate   = self.maxOosDate,
                               trmFuncDict  = self.trmFuncDict,
-                              optType      = 'GD', 
+                              optType      = self.optType, 
                               maxOptItrs   = self.maxOptItrs, 
                               optGTol      = self.optGTol,
                               optFTol      = self.optFTol,
@@ -311,6 +316,7 @@ class MfdMod:
                               nPca         = None,
                               diagFlag     = DIAG_FLAG,
                               endBcFlag    = True,
+                              atnCoefs     = self.atnCoefs,
                               atnFct       = self.atnFct,
                               mode         = self.mode,
                               logFileName  = self.logFileName,                              
@@ -417,7 +423,7 @@ class MfdMod:
                                  maxTrnDate   = maxTrnDate,
                                  maxOosDate   = maxOosDate,
                                  trmFuncDict  = self.trmFuncDict,
-                                 optType      = 'GD', 
+                                 optType      = self.optType, 
                                  maxOptItrs   = self.maxOptItrs, 
                                  optGTol      = self.optGTol,
                                  optFTol      = self.optFTol,
@@ -428,6 +434,7 @@ class MfdMod:
                                  nPca         = None,
                                  diagFlag     = DIAG_FLAG,
                                  endBcFlag    = True,
+                                 atnCoefs     = self.atnCoefs,
                                  atnFct       = self.atnFct,
                                  mode         = self.mode,
                                  logFileName  = self.logFileName,                                 
