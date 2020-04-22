@@ -135,11 +135,10 @@ class Tdam:
                 obj = stkHash[ strike ][0]
                 
                 if symbol != obj[ 'symbol' ].split( '_' )[0]:
-                    self.logger.warning ( 'Skipping %s: inconsistent underlying symbol %s vs. %s!',
+                    self.logger.warning ( 'Inconsistent underlying symbol %s vs. %s!',
                                           obj[ 'symbol' ],
                                           symbol,
                                           obj[ 'symbol' ].split( '_' )[0] )
-                    continue
 
                 if float( strike ) != float( obj[ 'strikePrice' ] ):
                     self.logger.warning( 'Skipping %s: inconsistent strikePrices %s vs. %s!',
@@ -168,11 +167,10 @@ class Tdam:
                 obj = stkHash[ strike ][0]
 
                 if symbol != obj[ 'symbol' ].split( '_' )[0]:
-                    self.logger.warning( 'Skipping %s: inconsistent underlying symbol %s vs. %s!',
+                    self.logger.warning( 'Inconsistent underlying symbol %s vs. %s!',
                                          obj[ 'symbol' ],
                                          symbol,
                                          obj[ 'symbol' ].split( '_' )[0] )
-                    continue                    
 
                 if float( strike ) != float( obj[ 'strikePrice' ] ):
                     self.logger.warning( 'Skipping %s: inconsistent strikePrices %s vs. %s!',
