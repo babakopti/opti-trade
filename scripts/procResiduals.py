@@ -22,9 +22,10 @@ from mod.mfdMod import MfdMod
 # Get model and process
 # ***********************************************************************
 
-modFile  = 'models/model_2019-03-18 09:00:00.dill'
+modFile  = 'models/model.dill'
 
 t0       = time.time()
+
 print( 'Reading model file...' )
 
 mfdMod   = dill.load( open( modFile, 'rb' ) )
@@ -50,7 +51,7 @@ odeObj   = ecoMfd.getSol( ecoMfd.GammaVec )
 sol      = odeObj.getSol()
 Gamma    = ecoMfd.getGammaArray( ecoMfd.GammaVec )
 
-nTimes   = int( nTimes / 10 )
+#nTimes   = int( nTimes / 10 )
 res      = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
 times    = np.linspace( 0, nSteps, nTimes )
 tmpVec   = np.zeros( shape = ( nDims ), dtype = 'd' )
@@ -83,7 +84,28 @@ for tsId in range( nTimes - 1 ):
 
 t = round( time.time()-t0, 1 )
 
-print( 'Calculating residuals took', t, 'seconds!' )
+print( 'Calculating residuls took', t, 'seconds!' )
+
+# ***********************************************************************
+# Plot ODE residuals
+# ***********************************************************************
+
+df = pd.DataFrame()
+
+for m in range( nDims ):
+    df[velNames[m]] = actSol[m][:]
+    
+for m in range( nDims ):
+    df['res_'+velNames[m]] = res[m][:]
+
+df.to_pickle('res_df.pkl')
+
+sys.exit()
+
+for m in range( nDims ):
+    plt.plot(res[m])
+    plt.ylabel(velNames[m])
+    plt.show()
 
 # ***********************************************************************
 # Plot f(s) = residual[m] / y[m]
@@ -98,6 +120,11 @@ for tsId in range( nTimes ):
             tmp = 1.0 / tmp
         y[m][tsId] = res[m][tsId] * tmp
 
+for m in range( nDims ):
+    plt.plot(y[m])
+    plt.show()
+
+sys.exit()
 y_avg = np.zeros( shape = ( nTimes ), dtype = 'd' )
 for tsId in range( nTimes ):
     y_avg[tsId] = 0.0
