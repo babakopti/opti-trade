@@ -24,7 +24,7 @@ from mod.mfdMod import MfdMod
 modFileName = 'model.dill'
 resFileName = 'res_df.pkl'
 
-srcFct      = 0.2
+srcFct      = 1.0
 dfFile      = '../data/dfFile_2016plus.pkl'
 
 minTrnDate  = pd.to_datetime( '2017-02-01 09:00:00' )
@@ -54,7 +54,7 @@ def buildMod( srcTerm ):
                         maxOosDate   = maxOosDate,
                         velNames     = velNames,
                         optType      = 'SLSQP',
-                        maxOptItrs   = 100,
+                        maxOptItrs   = 200,
                         optGTol      = 1.0e-2,
                         optFTol      = 1.0e-2,
                         factor       = 4.0e-5,
@@ -70,6 +70,18 @@ def buildMod( srcTerm ):
 
     return mfdMod
 
+def getGradient( vec ):
+
+    q1 = np.gradient( vec )
+    q2 = np.gradient( q1 )
+    q3 = np.gradient( q2 )    
+    q4 = np.gradient( q3 )
+    q5 = np.gradient( q4 )
+
+    ret = q1 + (1.0 / 2) * q2 #+ ( 1.0 / 6 ) * q3 + ( 1.0 / 24 ) * q4 + ( 1.0 / 120 ) * q5
+
+    return ret
+    
 def getSrcTerm( mfdMod ):
 
     ecoMfd   = mfdMod.ecoMfd
@@ -80,31 +92,37 @@ def getSrcTerm( mfdMod ):
     nDims    = ecoMfd.nDims
     nTimes   = ecoMfd.nTimes
     nSteps   = ecoMfd.nSteps
+    sol      = ecoMfd.getSol( ecoMfd.GammaVec ).getSol()
     actSol   = ecoMfd.actSol
     Gamma    = ecoMfd.getGammaArray( ecoMfd.GammaVec )
 
-    res      = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
-    tmpVec   = np.zeros( shape = ( nDims, nDims, nTimes ), dtype = 'd' )
+    src      = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+    tmpVec1  = np.zeros( shape = ( nDims, nDims, nTimes ), dtype = 'd' )
+    tmpVec2  = np.zeros( shape = ( nDims, nDims, nTimes ), dtype = 'd' )    
 
     for a in range( nDims ):
         for b in range( nDims ):
-            tmpVec[a][b] = actSol[a] * actSol[b]
-
+            tmpVec1[a][b] = 2.0 * ( sol[a] - actSol[a] ) * actSol[b]
+            tmpVec2[a][b] = ( sol[a] - actSol[a] ) * ( sol[b] - actSol[b] ) 
+            
     for m in range( nDims ):
-        res[m] = np.concatenate( ( np.array( [ 0 ] ),
-                                   np.diff( actSol[m] ) ) )
+        src[m] = np.gradient( sol[m], edge_order = 2 ) - \
+                 np.gradient( actSol[m], edge_order = 2 )
         
-    res = res + np.tensordot( Gamma, tmpVec, ( ( 1, 2 ), ( 0, 1 ) ) )
-
-    return res
+    src += np.tensordot( Gamma, tmpVec1, ( ( 1, 2 ), ( 0, 1 ) ) ) +\
+           np.tensordot( Gamma, tmpVec2, ( ( 1, 2 ), ( 0, 1 ) ) )
+                                   
+    src = -src
+        
+    return src
 
 # ***********************************************************************
 # Build original model
 # ***********************************************************************
 
-#mfdMod = buildMod( None )
+mfdMod = buildMod( None )
 #mfdMod.save( modFileName )    
-mfdMod = dill.load( open( modFileName, 'rb' ) )
+#mfdMod = dill.load( open( modFileName, 'rb' ) )
 ecoMfd = mfdMod.ecoMfd
 nDims  = ecoMfd.nDims
 nTimes = ecoMfd.nTimes
