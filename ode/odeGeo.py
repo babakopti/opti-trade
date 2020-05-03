@@ -26,44 +26,27 @@ class OdeGeoConst( OdeBaseConst ):
         Gamma    = self.Gamma
         timeInc  = self.timeInc
         nTimes   = self.nTimes
-        srcCoefs = self.srcCoefs
         srcTerm  = self.srcTerm
-        vals     = np.zeros( shape = ( nDims ) , dtype = 'd' )
         srcVec   = np.zeros( shape = ( nDims ) , dtype = 'd' )
-
         tsId     = int( t / timeInc )
 
         if srcTerm is not None and tsId < nTimes:
             for m in range( nDims ):
                 srcVec[m] = srcTerm[m][tsId]
-
-        for m in range( nDims ):
-            
-            for a in range( nDims ):
-                for b in range( nDims ):
-                    vals[m]  = vals[m] - Gamma[m][a][b] * y[a] * y[b]
-
-                vals[m] = vals[m] + srcCoefs[m][a] * y[a]
-
-            vals[m] = vals[m] + srcCoefs[m][nDims]
-            vals[m] = vals[m] + srcVec[m]
-            
+                
+        vals = -np.tensordot( Gamma,
+                              np.tensordot( y, y, axes = 0 ),
+                              ( ( 1, 2 ), ( 0, 1 ) ) )
+        vals += srcVec
+        
         return vals
 
     def jac( self, t, y ):
                        
         nDims    = self.nDims
         Gamma    = self.Gamma
-        srcCoefs = self.srcCoefs
-        vals     = np.zeros( shape = ( nDims, nDims ), dtype = 'd' )
-        
-        for m in range( nDims ):
-            for l in range( nDims ):
 
-                for q in range( nDims ):
-                    vals[m][l]  = vals[m][l] - 2.0 * Gamma[m][l][q] * y[q] 
-
-            vals[m][l] = vals[m][l] + srcCoefs[m][l]
+        vals = -2.0 * np.tensordot( Gamma, y, axes = ( (2), (0) ) )
 
         return vals
 
@@ -89,20 +72,19 @@ class OdeAdjConst( OdeBaseConst ):
 
         assert tsId < nTimes, 'tsId should be smaller than nTimes!'
 
-        tmpVec1  = np.zeros( shape = ( nDims ), dtype = 'd' )
-        tmpVec2  = np.zeros( shape = ( nDims ), dtype = 'd' )
+        adjVec  = np.zeros( shape = ( nDims ), dtype = 'd' )
+        actVec  = np.zeros( shape = ( nDims ), dtype = 'd' )        
 
         for a in range( nDims ):
-            tmpVec1[a] = adjSol[a][tsId]
-        
-        for r in range( nDims ):
-            for m in range( nDims ):
-                tmpVec2[m] = np.dot( Gamma[m][r][:], tmpVec1 )
-            vals[r]  = vals[r] +\
-                       2.0 * np.dot( tmpVec2, v ) +\
-                       varCoefs[r] * atnCoefs[tsId] *\
-                       ( adjSol[r][tsId] - actSol[r][tsId] )
+            adjVec[a] = adjSol[a][tsId]
+            actVec[a] = actSol[a][tsId]
 
+        vals = 2.0 * np.tensordot( Gamma,
+                                   np.tensordot( v, adjVec, axes = 0 ),
+                                   ( ( 0, 2 ), ( 0, 1 ) ) ) + \
+                                   atnCoefs[tsId] * varCoefs * \
+                                   ( adjVec - actVec )
+        
         return vals
 
     def jac( self, t, v ):
@@ -118,15 +100,13 @@ class OdeAdjConst( OdeBaseConst ):
  
         assert tsId < nTimes, 'tsId should be smaller than nTimes!'
 
-        tmpVec1  = np.zeros( shape = ( nDims ), dtype = 'd' )
+        adjVec  = np.zeros( shape = ( nDims ), dtype = 'd' )
 
         for a in range( nDims ):
-            tmpVec1[a] = adjSol[a][tsId]
+            adjVec[a] = adjSol[a][tsId]
 
-        for r in range( nDims ):
-            for l in range( nDims ):
-                vals[r][l]  = vals[r][l] +\
-                    2.0 * np.dot( Gamma[l][r][:], tmpVec1 )
+        vals = 2.0 * np.tensordot( Gamma, adjVec, ( (2), (0) ) )
+        vals = np.transpose( vals )
 
         return vals
 

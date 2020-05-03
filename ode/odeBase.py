@@ -125,8 +125,11 @@ class OdeBaseConst:
                                           t_span   = timeSpan,
                                           t_eval   = timeEval,
                                           method   = self.intgType, 
-                                          rtol     = self.tol            )            
-        sFlag    = res.success
+                                          rtol     = self.tol            )
+            
+        sFlag = res.success
+
+        assert sFlag, 'Failed to solve the ODE!'
         
         assert res.y.shape[0] == nDims,  'Internal error!'
         assert res.y.shape[1] == nTimes, 'Internal error!'
@@ -135,8 +138,6 @@ class OdeBaseConst:
             self.sol = np.flip( res.y, 1 )
         else:
             self.sol = res.y.copy()
-
-#        print( res )
 
         return sFlag 
 
