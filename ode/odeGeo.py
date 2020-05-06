@@ -22,22 +22,29 @@ class OdeGeoConst( OdeBaseConst ):
 
     def fun( self, t, y ):
 
-        nDims    = self.nDims
+        nDims    = self.nDims        
         Gamma    = self.Gamma
+        srcCoefs = self.srcCoefs        
         timeInc  = self.timeInc
         nTimes   = self.nTimes
         srcTerm  = self.srcTerm
-        srcVec   = np.zeros( shape = ( nDims ) , dtype = 'd' )
+        src      = np.zeros( shape = ( nDims ) , dtype = 'd' )        
         tsId     = int( t / timeInc )
 
         if srcTerm is not None and tsId < nTimes:
             for m in range( nDims ):
-                srcVec[m] = srcTerm[m][tsId]
-                
+                src[m] += srcTerm[m][tsId]
+
+        if srcCoefs is not None:
+            for m in range( nDims ):
+                tmp = 2.0 * np.pi * t * srcCoefs[m][2]
+                src[m] += np.sum( srcCoefs[m][0] * np.sin( tmp ) +\
+                                  srcCoefs[m][1] * np.cos( tmp ) )
+                    
         vals = -np.tensordot( Gamma,
                               np.tensordot( y, y, axes = 0 ),
                               ( ( 1, 2 ), ( 0, 1 ) ) )
-        vals += srcVec
+        vals += src
         
         return vals
 

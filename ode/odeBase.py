@@ -15,6 +15,7 @@ class OdeBaseConst:
 
     def __init__( self,
                   Gamma,
+                  srcCoefs,
                   bcVec,
                   bcTime,
                   timeInc,
@@ -25,19 +26,28 @@ class OdeBaseConst:
                   tol      = 1.0e-4,
                   nMaxItrs = 20,
                   varCoefs = None,
-                  srcCoefs = None,
                   srcTerm  = None,
                   atnCoefs = None,                  
                   verbose  = 1           ):
 
         nDims   = len( bcVec )
         nTimes  = nSteps + 1
-
+        
         assert bcTime >= 0, 'BC time should be >= 0!'
 
-        assert Gamma.shape[0] == nDims,  'Incorrect Gamma size!'
-        assert Gamma.shape[1] == nDims,  'Incorrect Gamma size!'
-        assert Gamma.shape[2] == nDims,  'Incorrect Gamma size!'
+        assert Gamma.shape[0] == nDims, 'Incorrect Gamma size!'
+        assert Gamma.shape[1] == nDims, 'Incorrect Gamma size!'
+        assert Gamma.shape[2] == nDims, 'Incorrect Gamma size!'
+
+        if srcCoefs is not None:
+            
+            assert srcCoefs.shape[0] == nDims, 'Incorrect srcCoefs size!'
+            assert srcCoefs.shape[1] == 3, 'Incorrect srcCoefs size!'
+            
+            nFreqs   = srcCoefs.shape[2]
+            srcCoefs = np.zeros( shape = ( nDims, 3, nFreqs ), dtype = 'd' )
+        else:
+            nFreqs   = 0
         
         if actSol is not None:
             assert actSol.shape[0] == nDims,  'Incorrect actSol size!'
@@ -56,18 +66,14 @@ class OdeBaseConst:
             assert srcTerm.shape[0] == nDims,  'Incorrect srcTerm size!'
             assert srcTerm.shape[1] == nTimes, 'Incorrect srcTerm size!'
 
-        if srcCoefs is not None:
-            assert srcCoefs.shape[0] == nDims,     'Incorrect srcCoefs size!'
-            assert srcCoefs.shape[1] == nDims + 1, 'Incorrect srcCoefs size!'
-        else:
-            srcCoefs = np.zeros( shape = ( nDims, nDims + 1 ), dtype = 'd' )
-
         if atnCoefs is not None:
             assert len( atnCoefs ) == nTimes, 'Incorrect atnCoefs size!'
         else:
             atnCoefs = np.ones( shape = ( nTimes ), dtype = 'd' )
             
         self.Gamma    = Gamma
+        self.srcCoefs = srcCoefs
+        self.nFreqs   = nFreqs
         self.bcVec    = bcVec
         self.bcTime   = bcTime
         self.nDims    = nDims
@@ -77,7 +83,6 @@ class OdeBaseConst:
         self.actSol   = actSol
         self.adjSol   = adjSol
         self.varCoefs = varCoefs
-        self.srcCoefs = srcCoefs
         self.srcTerm  = srcTerm
         self.atnCoefs = atnCoefs                
         self.tol      = tol
@@ -85,7 +90,7 @@ class OdeBaseConst:
         self.verbose  = verbose
         self.nTimes   = nTimes
 
-        self.sol      = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+        self.sol = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
 
     def fun( self, t, y ):
         pass

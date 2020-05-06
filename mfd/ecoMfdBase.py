@@ -57,7 +57,6 @@ class EcoMfdCBase:
                     nPca         = None,
                     endBcFlag    = True,
                     varCoefs     = None,
-                    srcCoefs     = None,
                     srcTerm      = None,
                     atnFct       = 1.0,
                     mode         = 'intraday',
@@ -130,7 +129,6 @@ class EcoMfdCBase:
             assert len( varCoefs ) == self.nDims, 'Incorrect size for varCoefs!'
             self.varCoefs = varCoefs
 
-        self.srcCoefs    = srcCoefs
         self.srcTerm     = srcTerm
 
         nDims            = self.nDims
@@ -321,14 +319,14 @@ class EcoMfdCBase:
 
         return
 
-    def setGammaVec( self ):
+    def setParms( self ):
 
         self.logger.info( 'Running continuous adjoint optimization to set Christoffel symbols...' )
 
         t0 = time.time()
 
         if self.optType == 'GD':
-            sFlag = self.setGammaVecGD()
+            sFlag = self.setParmsGD()
         else:
 
             options  = { 'gtol'       : self.optGTol, 
@@ -337,18 +335,22 @@ class EcoMfdCBase:
                          'disp'       : True              }
 
             try:
+                vec = np.concatenate( [ self.GammaVec, self.srcVec ] )                    
+                    
                 optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
-                                                  x0       = self.GammaVec, 
+                                                  x0       = vec, 
                                                   method   = self.optType, 
                                                   jac      = self.getGrad,
                                                   options  = options          )
                 sFlag   = optObj.success
     
-                self.GammaVec = optObj.x
+                self.GammaVec = optObj.x[:self.nGammaVec]
+                self.srcVec   = optObj.x[self.nGammaVec:]
 
                 self.logger.info( 'Success: %s', str( sFlag ) )
 
-            except:
+            except Exception as exc:
+                self.logger.error( exc )
                 sFlag = False
 
         self.statHash[ 'totTime' ] = time.time() - t0
@@ -360,7 +362,7 @@ class EcoMfdCBase:
         
         return sFlag
 
-    def setGammaVecGD( self ):
+    def setParmsGD( self ):
 
         if self.stepSize is None:
             stepSize = 1.0
@@ -370,10 +372,12 @@ class EcoMfdCBase:
             stepSize = self.stepSize
             lsFlag   = False
 
+        vec = np.concatenate( [ self.GammaVec, self.srcVec ] )            
+
         for itr in range( self.maxOptItrs ):
                 
-            grad     = self.getGrad( self.GammaVec )
-            funcVal  = self.getObjFunc( self.GammaVec )   
+            grad     = self.getGrad( vec )
+            funcVal  = self.getObjFunc( vec )   
 
             if itr == 0:
                 funcVal0  = funcVal
@@ -382,7 +386,7 @@ class EcoMfdCBase:
             if lsFlag:
                 obj = scipy.optimize.line_search( f        = self.getObjFunc, 
                                                   myfprime = self.getGrad, 
-                                                  xk       = self.GammaVec,
+                                                  xk       = vec,
                                                   pk       = -grad, 
                                                   gfk      = grad,
                                                   old_fval = funcVal,
@@ -411,7 +415,10 @@ class EcoMfdCBase:
                 self.logger.info( 'Converged at iteration %d; rel. func. val. = %.8f', itr + 1, tmp )
                 return True
 
-            self.GammaVec = self.GammaVec - stepSize * grad
+            vec = vec - stepSize * grad
+
+            self.GammaVec = vec[:self.nGammaVec]
+            self.srcVec   = vec[self.nGammaVec:]
 
         gc.collect()
         
@@ -421,16 +428,19 @@ class EcoMfdCBase:
 
         nDims  = self.nDims
         actSol = self.actSol
-        odeObj  = self.getSol( self.GammaVec )
+        odeObj  = self.getSol( self.GammaVec, self.srcVec )
         sol     = odeObj.getSol()
 
         for varId in range( nDims ):
             tmpVec = ( sol[varId][:] - actSol[varId][:] )**2
             self.stdVec[varId] = np.sqrt( np.mean( tmpVec ) )
 
-    def getObjFunc( self, GammaVec ):
+    def getObjFunc( self, vec ):
 
         self.statHash[ 'funCnt' ] += 1
+
+        GammaVec = vec[:self.nGammaVec]
+        srcVec   = vec[self.nGammaVec:]
 
         nDims    = self.nDims
         nTimes   = self.nTimes
@@ -441,12 +451,12 @@ class EcoMfdCBase:
         atnCoefs = self.atnCoefs        
         tmpVec   = self.tmpVec.copy()
 
-        odeObj  = self.getSol( GammaVec )
+        odeObj  = self.getSol( GammaVec, srcVec )
         
         if odeObj is None:
             return np.inf
 
-        sol     = odeObj.getSol()
+        sol = odeObj.getSol()
 
         tmpVec.fill( 0.0 )
         for varId in range( nDims ):
@@ -455,8 +465,8 @@ class EcoMfdCBase:
 
         val = 0.5 * trapz( tmpVec, dx = 1.0 )
 
-        tmp1  = np.linalg.norm( GammaVec, 1 )
-        tmp2  = np.linalg.norm( GammaVec )
+        tmp1  = np.linalg.norm( vec, 1 )
+        tmp2  = np.linalg.norm( vec )
         val  += regCoef * ( regL1Wt * tmp1 + ( 1.0 - regL1Wt ) * tmp2**2 )
 
         del sol
@@ -533,7 +543,7 @@ class EcoMfdCBase:
         if  funcValFct > 0:
             funcValFct = 1.0 / funcValFct
 
-        odeObj  = self.getSol( self.GammaVec )
+        odeObj  = self.getSol( self.GammaVec, self.srcVec )
         
         if odeObj is None:
             return -np.inf
@@ -674,7 +684,7 @@ class EcoMfdCBase:
 
         t0 = time.time()
         
-        odeObj = self.getSol( self.GammaVec )
+        odeObj = self.getSol( self.GammaVec, self.srcVec )
 
         if odeObj is None:
             return np.inf
@@ -703,7 +713,7 @@ class EcoMfdCBase:
         times   = np.linspace( 0, nSteps, nTimes )
         bcTime  = times[-1]
         actSol  = self.actSol
-        odeObj  = self.getSol( self.GammaVec )
+        odeObj  = self.getSol( self.GammaVec, self.srcVec )
         sol     = odeObj.getSol()
         coefs   = np.zeros( shape = ( nDims ), dtype = 'd' )
 
@@ -739,7 +749,7 @@ class EcoMfdCBase:
 
         if rType == 'trn':
             actSol  = self.actSol
-            odeObj  = self.getSol( self.GammaVec )
+            odeObj  = self.getSol( self.GammaVec, self.srcVec )
             trnFlag = True
         elif rType == 'oos':
             actSol  = self.actOosSol
@@ -802,7 +812,7 @@ class EcoMfdCBase:
         
         nDims    = self.nDims
         velNames = self.velNames
-        odeObj   = self.getSol( self.GammaVec )
+        odeObj   = self.getSol( self.GammaVec, self.srcVec )
         sol      = odeObj.getSol()
         actSol   = self.actSol
 
@@ -886,11 +896,11 @@ class EcoMfdCBase:
     def setActs( self ):
         pass
 
-    def getSol( self, GammaVec ):
+    def getSol( self, GammaVec, srcVec ):
         pass
 
-    def getAdjSol( self, GammaVec ):
+    def getAdjSol( self, GammaVec, odeObj ):
         pass
 
-    def getGrad( self, GammaVec ):
+    def getGrad( self, vec ):
         pass

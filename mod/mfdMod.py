@@ -40,6 +40,7 @@ class MfdMod:
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
                     factor       = 4.0e-5,
+                    nSrcFreqs    = 0,
                     regCoef      = None,
                     minMerit     = 0.0,
                     minTrend     = 0.0,
@@ -84,8 +85,10 @@ class MfdMod:
             self.regCoef    = regCoef
             self.optRegFlag = False
         
-        self.factor   = factor
+        self.factor = factor
 
+        self.nSrcFreqs = nSrcFreqs
+        
         assert atnFct >= 0, 'atnFct should be positive!'
         assert atnFct <= 1.0, 'atnFct should be less than or equal to 1.0!'
 
@@ -310,6 +313,7 @@ class MfdMod:
                               optFTol      = self.optFTol,
                               stepSize     = self.stepSize,
                               factor       = self.factor,
+                              nSrcFreqs    = self.nSrcFreqs,
                               regCoef      = self.regCoef,
                               regL1Wt      = 0.0,
                               nPca         = None,
@@ -321,7 +325,7 @@ class MfdMod:
                               logFileName  = self.logFileName,                              
                               verbose      = self.verbose        )        
 
-        sFlag = self.ecoMfd.setGammaVec()
+        sFlag = self.ecoMfd.setParms()
 
         if not sFlag:
             self.logger.warning( 'Did not converge!' )
@@ -428,6 +432,7 @@ class MfdMod:
                                  optFTol      = self.optFTol,
                                  stepSize     = self.stepSize,
                                  factor       = self.factor,
+                                 nSrcFreqs    = self.nSrcFreqs,
                                  regCoef      = regCoef,
                                  regL1Wt      = 0.0,
                                  nPca         = None,
