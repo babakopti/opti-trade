@@ -54,7 +54,6 @@ class EcoMfdConst( EcoMfdCBase ):
                     optFTol      = 1.0e-8,
                     stepSize     = None,
                     factor       = 4.0e-5,
-                    nSrcFreqs    = 0,
                     regCoef      = 0.0,
                     regL1Wt      = 0.0,
                     nPca         = None,
@@ -94,7 +93,6 @@ class EcoMfdConst( EcoMfdCBase ):
                                verbose      = verbose     )
 
         self.diagFlag  = diagFlag
-        self.nSrcFreqs = nSrcFreqs
 
         nDims = self.nDims
 
@@ -103,7 +101,7 @@ class EcoMfdConst( EcoMfdCBase ):
         else:
             self.nGammaVec = int( nDims * nDims * ( nDims + 1 ) / 2 )
 
-        self.nSrcVec = 3 * nDims * nSrcFreqs
+        self.nSrcVec = 3 * nDims 
         self.nParms  = self.nGammaVec + self.nSrcVec
         
         self.GammaVec = np.zeros( shape = ( self.nGammaVec ), dtype = 'd' )
@@ -111,19 +109,17 @@ class EcoMfdConst( EcoMfdCBase ):
 
         self.setBcs()
         self.setActs()
-
-        if self.nSrcVec > 0:
-            srcId = 0
-            for m in range( nDims ):
-                for j in range( 3 ):
-                    for k in range( nSrcFreqs ):
-                        if j == 0:
-                            self.srcVec[srcId] = 0
-                        if j == 1:
-                            self.srcVec[srcId] = 0
-                        if j == 2:
-                            self.srcVec[srcId] = 0.25
-                        srcId += 1
+        
+        # srcId = 0
+        # for m in range( nDims ):
+        #     for j in range( 2 ):
+        #         if j == 0:
+        #             self.srcVec[srcId] = -1.0e-3
+        #         elif j == 1:
+        #             self.srcVec[srcId] = 0
+                    
+        #         srcId += 1
+        
         self.trnDf = None
         self.oosDf = None
 
@@ -192,7 +188,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         sol      = odeObj.getSol()
 
-        adjOdeObj = self.getAdjSol( GammaVec, odeObj )
+        adjOdeObj = self.getAdjSol( GammaVec, srcVec, odeObj )
 
         if adjOdeObj is None:
             sys.exit()
@@ -219,53 +215,37 @@ class EcoMfdConst( EcoMfdCBase ):
 
                     parmId += 1
 
-        if self.nSrcFreqs > 0:
+        if self.nSrcVec > 0:
             
             srcCoefs = self.getSrcCoefs( srcVec )
             times    = np.linspace( 0, nTimes * timeInc, nTimes )
-            tmpVec1  = None
             srcId    = 0
-            freqFct  = 1.0e5
-            coefFct  = 1.0 / nTimes
             
             for r in range( nDims ):
-                for j in range( 3 ):
-                    for k in range( self.nSrcFreqs ):
-
-                        sinCoef = srcCoefs[r][0][k]
-                        cosCoef = srcCoefs[r][1][k]
-                        freq    = srcCoefs[r][2][k]
-                        tmp     = 2.0 * np.pi * freqFct * freq 
-                        
-                        if j == 0:
-                            tmpVec = adjSol[r] * np.sin( tmp * times )
-                        elif j == 1:
-                            tmpVec = adjSol[r] * np.cos( tmp * times )
-                        elif j == 2:
-
-                            tmpVec1 = 2.0 * np.pi * freqFct * times 
-                                                
-                            tmpVec = adjSol[r] * tmpVec1 * ( sinCoef * np.cos( tmp * times ) - \
-                                                             cosCoef * np.sin( tmp * times ) )
-                            
-#                            print('Babak', r, 'sinCoef =', sinCoef, 'cosCoef =', cosCoef)
-                        else:
-                            assert False, 'Internal error!'
-
-                        tmpVec = coefFct * tmpVec
-                        
-                        grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc ) #+\
-#                            regCoef * ( regL1Wt * np.sign( srcVec[srcId] ) +\
-#                                        ( 1.0 - regL1Wt ) * 2.0 * srcVec[srcId] )                            
+                for j in range( 2 ):
                     
-                        srcId += 1
-
-            del tmpVec1
+                    if j == 0:
+                        tmpVec = ( sol[r] - \
+                                   srcCoefs[1][r] * times / nTimes - \
+                                   srcCoefs[2][r] )**3 * adjSol[r]
+                    elif j == 1:
+                        tmpVec = -3 * ( times / nTimes ) * srcCoefs[0][r] * \
+                            ( sol[r] - \
+                              srcCoefs[1][r] * times / nTimes - \
+                              srcCoefs[2][r] )**2 * adjSol[r]
+                    elif j == 2:
+                        tmpVec = -3 * srcCoefs[0][r] * \
+                            ( sol[r] - \
+                              srcCoefs[1][r] * times / nTimes - \
+                              srcCoefs[2][r] )**2 * adjSol[r]                        
+                        
+                    grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc )
+                            
+                    srcId += 1
 
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
                            time.time() - t0 )
-#        print('Babak srcVec grad:', grad[self.nGammaVec:])
-#        sys.exit()
+
         del sol
         del adjSol
         del tmpVec
@@ -316,21 +296,22 @@ class EcoMfdConst( EcoMfdCBase ):
 
         return odeObj
 
-    def getAdjSol( self, GammaVec, odeObj ):
+    def getAdjSol( self, GammaVec, srcVec, odeObj ):
 
         self.statHash[ 'adjOdeCnt' ] += 1
 
         t0       = time.time()
         nDims    = self.nDims
         Gamma    = self.getGammaArray( GammaVec )
+        srcCoefs  = self.getSrcCoefs( srcVec )        
         sol      = odeObj.getSol()
         bcVec    = np.zeros( shape = ( nDims ), dtype = 'd' )
-        bkFlag   = not self.endBcFlag
+        bkFlag   = not self.endBcFlag        
 
         self.logger.debug( 'Solving adjoint geodesic equation...' )
 
         adjOdeObj = OdeAdjConst( Gamma    = Gamma,
-                                 srcCoefs = None,
+                                 srcCoefs = srcCoefs,
                                  bcVec    = bcVec,
                                  bcTime    = 0.0,
                                  timeInc   = 1.0,
@@ -382,16 +363,14 @@ class EcoMfdConst( EcoMfdCBase ):
             return None
 
         nDims     = self.nDims
-        nSrcFreqs = self.nSrcFreqs
-        srcCoefs  = np.zeros( shape = ( nDims, 3, nSrcFreqs ),
+        srcCoefs  = np.zeros( shape = ( 3, nDims ),
                               dtype = 'd' )
 
         srcId = 0
         for m in range( nDims ):
             for j in range( 3 ):
-                for k in range( nSrcFreqs ):
-                    srcCoefs[m][j][k] = srcVec[srcId]
-                    srcId += 1
+                srcCoefs[j][m] = srcVec[srcId]
+                srcId += 1
                     
         return srcCoefs
     

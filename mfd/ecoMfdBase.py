@@ -899,7 +899,7 @@ class EcoMfdCBase:
     def getSol( self, GammaVec, srcVec ):
         pass
 
-    def getAdjSol( self, GammaVec, odeObj ):
+    def getAdjSol( self, GammaVec, srcVec, odeObj ):
         pass
 
     def getGrad( self, vec ):

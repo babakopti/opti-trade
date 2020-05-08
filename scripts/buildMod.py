@@ -51,7 +51,6 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     velNames     = velNames,
                     optType      = 'SLSQP',
                     maxOptItrs   = 100,
-                    nSrcFreqs    = 1,                    
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-4,
                     factor       = 4.0e-5,
@@ -64,7 +63,10 @@ validFlag = mfdMod.build()
 
 print( 'Success :', validFlag )
 
-print(mfdMod.ecoMfd.srcVec)
+srcCoefs = mfdMod.ecoMfd.getSrcCoefs(mfdMod.ecoMfd.srcVec)
+print('A =', srcCoefs[0])
+print('B =', srcCoefs[1])
+print('C =', srcCoefs[2])
 #mfdMod.save( modFileName )
 mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
 #mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )

@@ -41,12 +41,8 @@ class OdeBaseConst:
 
         if srcCoefs is not None:
             
-            assert srcCoefs.shape[0] == nDims, 'Incorrect srcCoefs size!'
-            assert srcCoefs.shape[1] == 3, 'Incorrect srcCoefs size!'
-            
-            nFreqs   = srcCoefs.shape[2]
-        else:
-            nFreqs   = 0
+            assert srcCoefs.shape[0] == 3, 'Incorrect srcCoefs size!'
+            assert srcCoefs.shape[1] == nDims, 'Incorrect srcCoefs size!'
         
         if actSol is not None:
             assert actSol.shape[0] == nDims,  'Incorrect actSol size!'
@@ -72,7 +68,6 @@ class OdeBaseConst:
             
         self.Gamma    = Gamma
         self.srcCoefs = srcCoefs
-        self.nFreqs   = nFreqs
         self.bcVec    = bcVec
         self.bcTime   = bcTime
         self.nDims    = nDims
