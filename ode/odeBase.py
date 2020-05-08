@@ -45,7 +45,6 @@ class OdeBaseConst:
             assert srcCoefs.shape[1] == 3, 'Incorrect srcCoefs size!'
             
             nFreqs   = srcCoefs.shape[2]
-            srcCoefs = np.zeros( shape = ( nDims, 3, nFreqs ), dtype = 'd' )
         else:
             nFreqs   = 0
         

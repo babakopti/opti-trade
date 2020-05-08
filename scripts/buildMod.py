@@ -49,11 +49,11 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    optType      = 'GD',
+                    optType      = 'SLSQP',
                     maxOptItrs   = 100,
-                    nSrcFreqs    = 0,                    
-                    optGTol      = 1.0e-2,
-                    optFTol      = 1.0e-2,
+                    nSrcFreqs    = 1,                    
+                    optGTol      = 1.0e-4,
+                    optFTol      = 1.0e-4,
                     factor       = 4.0e-5,
                     regCoef      = 1.0e-3,
                     smoothCount  = None,
@@ -64,7 +64,8 @@ validFlag = mfdMod.build()
 
 print( 'Success :', validFlag )
 
-mfdMod.save( modFileName )
-#mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
+print(mfdMod.ecoMfd.srcVec)
+#mfdMod.save( modFileName )
+mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
 #mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
 

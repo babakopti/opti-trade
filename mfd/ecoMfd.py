@@ -112,6 +112,18 @@ class EcoMfdConst( EcoMfdCBase ):
         self.setBcs()
         self.setActs()
 
+        if self.nSrcVec > 0:
+            srcId = 0
+            for m in range( nDims ):
+                for j in range( 3 ):
+                    for k in range( nSrcFreqs ):
+                        if j == 0:
+                            self.srcVec[srcId] = 0
+                        if j == 1:
+                            self.srcVec[srcId] = 0
+                        if j == 2:
+                            self.srcVec[srcId] = 0.25
+                        srcId += 1
         self.trnDf = None
         self.oosDf = None
 
@@ -212,36 +224,48 @@ class EcoMfdConst( EcoMfdCBase ):
             srcCoefs = self.getSrcCoefs( srcVec )
             times    = np.linspace( 0, nTimes * timeInc, nTimes )
             tmpVec1  = None
-            tmpVec2  = None
-        
+            srcId    = 0
+            freqFct  = 1.0e5
+            coefFct  = 1.0 / nTimes
+            
             for r in range( nDims ):
                 for j in range( 3 ):
                     for k in range( self.nSrcFreqs ):
 
-                        tmp = 2.0 * np.pi * srcCoefs[r][2][k]
-                    
+                        sinCoef = srcCoefs[r][0][k]
+                        cosCoef = srcCoefs[r][1][k]
+                        freq    = srcCoefs[r][2][k]
+                        tmp     = 2.0 * np.pi * freqFct * freq 
+                        
                         if j == 0:
                             tmpVec = adjSol[r] * np.sin( tmp * times )
                         elif j == 1:
                             tmpVec = adjSol[r] * np.cos( tmp * times )
                         elif j == 2:
-                            tmpVec1 = 2.0 * np.pi * srcCoefs[r][0][k] * times
-                            tmpVec2 = 2.0 * np.pi * srcCoefs[r][1][k] * times
-                            tmpVec = adjSol[r] * ( tmpVec1 * np.cos( tmp * times ) - \
-                                                   tmpVec2 * np.sin( tmp * times ) )
+
+                            tmpVec1 = 2.0 * np.pi * freqFct * times 
+                                                
+                            tmpVec = adjSol[r] * tmpVec1 * ( sinCoef * np.cos( tmp * times ) - \
+                                                             cosCoef * np.sin( tmp * times ) )
+                            
+#                            print('Babak', r, 'sinCoef =', sinCoef, 'cosCoef =', cosCoef)
                         else:
                             assert False, 'Internal error!'
+
+                        tmpVec = coefFct * tmpVec
                         
-                        grad[parmId] = -trapz( tmpVec, dx = timeInc )
+                        grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc ) #+\
+#                            regCoef * ( regL1Wt * np.sign( srcVec[srcId] ) +\
+#                                        ( 1.0 - regL1Wt ) * 2.0 * srcVec[srcId] )                            
                     
-                        parmId += 1
+                        srcId += 1
 
             del tmpVec1
-            del tmpVec2
 
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
                            time.time() - t0 )
-        
+#        print('Babak srcVec grad:', grad[self.nGammaVec:])
+#        sys.exit()
         del sol
         del adjSol
         del tmpVec

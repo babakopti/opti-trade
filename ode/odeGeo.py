@@ -36,10 +36,12 @@ class OdeGeoConst( OdeBaseConst ):
                 src[m] += srcTerm[m][tsId]
 
         if srcCoefs is not None:
+            coefFct = 1.0 / self.nTimes
+            freqFct = 1.0e5
             for m in range( nDims ):
-                tmp = 2.0 * np.pi * t * srcCoefs[m][2]
-                src[m] += np.sum( srcCoefs[m][0] * np.sin( tmp ) +\
-                                  srcCoefs[m][1] * np.cos( tmp ) )
+                tmp = 2.0 * np.pi * t * srcCoefs[m][2] * freqFct
+                src[m] += coefFct * np.sum( srcCoefs[m][0] * np.sin( tmp ) +\
+                                            srcCoefs[m][1] * np.cos( tmp ) )
                     
         vals = -np.tensordot( Gamma,
                               np.tensordot( y, y, axes = 0 ),

@@ -24,13 +24,19 @@ Gamma[1][0][0] = 0
 Gamma[0][1][0] = Gamma[0][0][1]
 Gamma[1][1][0] = Gamma[1][0][1]
 
+FCT = -0.01
+
 def fun( t, y ):
     return -np.tensordot( Gamma,
                           np.tensordot( y, y, axes = 0 ),
-                          ( (1,2), (0,1) ) ) + np.sin( 2.0 * np.pi * 3.0 * t ) + 2.0 * np.cos( 2.0 * np.pi * 1.0 * t )
+                          ( (1,2), (0,1) ) ) + FCT * (y-0.5)**3
+                          
+                          
+
+#np.sin( 2.0 * np.pi * 3.0 * t ) + 2.0 * np.cos( 2.0 * np.pi * 1.0 * t )
 
 def jac( t, y ):
-    return -2.0 * np.tensordot( Gamma, y, axes = ( (2), (0) ) )
+    return -2.0 * np.tensordot( Gamma, y, axes = ( (2), (0) ) ) + 3.0*FCT *(y-0.5)**2
 
 timeSpan = ( bcTime, endTime )        
 timeEval = np.linspace( bcTime, endTime, nTimes )
