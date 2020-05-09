@@ -60,6 +60,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     regL1Wt      = 0.0,
                     nPca         = None,
                     diagFlag     = True,
+                    srelFlag     = True,                    
                     endBcFlag    = True,
                     varCoefs     = None,
                     srcTerm      = None,
@@ -95,6 +96,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                verbose      = verbose     )
 
         self.diagFlag  = diagFlag
+        self.srelFlag  = srelFlag        
         self.nSrcFreqs = nSrcFreqs
 
         nDims = self.nDims
@@ -103,6 +105,9 @@ class EcoMfdConst( EcoMfdCBase ):
             self.nGammaVec = nDims * ( 2 * nDims - 1 ) 
         else:
             self.nGammaVec = int( nDims * nDims * ( nDims + 1 ) / 2 )
+
+        if srelFlag:
+            self.nGammaVec -= nDims
 
         self.nSrcVec = 3 * nDims * nSrcFreqs
         self.nParms  = self.nGammaVec + self.nSrcVec
@@ -218,6 +223,9 @@ class EcoMfdConst( EcoMfdCBase ):
                     if self.diagFlag and r != p and r != q and p != q:
                         continue
 
+                    if self.srelFlag and r == p and p == q:
+                        continue                    
+
                     tmpVec  = xi(p,q) * np.multiply( sol[p][:], sol[q][:] )
                     tmpVec  = np.multiply(tmpVec, adjSol[r][:] )
 
@@ -258,9 +266,9 @@ class EcoMfdConst( EcoMfdCBase ):
                         else:
                             assert False, 'Internal error!'
 
-                        grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc ) #+\
-#                            regCoef * ( regL1Wt * np.sign( srcVec[srcId] ) +\
-#                                        ( 1.0 - regL1Wt ) * 2.0 * srcVec[srcId] )                            
+                        grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc ) +\
+                            regCoef * ( regL1Wt * np.sign( srcVec[srcId] ) +\
+                                        ( 1.0 - regL1Wt ) * 2.0 * srcVec[srcId] )                            
                     
                         srcId += 1
 
@@ -268,8 +276,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
                            time.time() - t0 )
-#        print('Babak srcVec grad:', grad[self.nGammaVec:])
-#        sys.exit()
+
         del sol
         del adjSol
         del tmpVec
@@ -373,6 +380,9 @@ class EcoMfdConst( EcoMfdCBase ):
                     if self.diagFlag and m != a and m != b and a != b:
                         Gamma[m][a][b] = 0.0
                         Gamma[m][b][a] = 0.0
+                    elif self.srelFlag and m == a and a == b:
+                        Gamma[m][a][b] = 0.0
+                        Gamma[m][b][a] = 0.0                        
                     else:
                         Gamma[m][a][b] = GammaVec[gammaId]
                         Gamma[m][b][a] = GammaVec[gammaId]

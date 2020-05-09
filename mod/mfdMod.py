@@ -17,12 +17,6 @@ from mfd.ecoMfd import EcoMfdConst as EcoMfd
 from utl.utils import getLogger
 
 # ***********************************************************************
-# Some definitions
-# ***********************************************************************
-
-DIAG_FLAG = True
-
-# ***********************************************************************
 # Class MfdMod: Model object that builds a manifold based model
 # ***********************************************************************
 
@@ -42,6 +36,8 @@ class MfdMod:
                     factor       = 4.0e-5,
                     nSrcFreqs    = 0,
                     regCoef      = None,
+                    diagFlag     = True,
+                    srelFlag     = False,
                     minMerit     = 0.0,
                     minTrend     = 0.0,
                     maxBias      = 1.0,
@@ -84,6 +80,9 @@ class MfdMod:
         else:
             self.regCoef    = regCoef
             self.optRegFlag = False
+
+        self.diagFlag = diagFlag
+        self.srelFlag = srelFlag
         
         self.factor = factor
 
@@ -317,7 +316,8 @@ class MfdMod:
                               regCoef      = self.regCoef,
                               regL1Wt      = 0.0,
                               nPca         = None,
-                              diagFlag     = DIAG_FLAG,
+                              diagFlag     = self.diagFlag,
+                              srelFlag     = self.srelFlag,                              
                               endBcFlag    = True,
                               srcTerm      = self.srcTerm,
                               atnFct       = self.atnFct,
@@ -436,7 +436,8 @@ class MfdMod:
                                  regCoef      = regCoef,
                                  regL1Wt      = 0.0,
                                  nPca         = None,
-                                 diagFlag     = DIAG_FLAG,
+                                 diagFlag     = self.diagFlag,
+                                 srelFlag     = self.srelFlag,                                                               
                                  endBcFlag    = True,
                                  srcTerm      = self.srcTerm,                                 
                                  atnFct       = self.atnFct,
