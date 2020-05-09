@@ -34,6 +34,7 @@ class MfdMod:
                     maxTrnDate,
                     maxOosDate,
                     velNames,
+                    nPoly        = -1,
                     stepSize     = None,
                     optType      = 'GD',
                     maxOptItrs   = 100, 
@@ -58,6 +59,7 @@ class MfdMod:
         self.minTrnDate  = minTrnDate
         self.maxTrnDate  = maxTrnDate
         self.maxOosDate  = maxOosDate
+        self.nPoly       = nPoly
         self.stepSize    = stepSize
         self.optType     = optType
         self.maxOptItrs  = maxOptItrs
@@ -304,6 +306,7 @@ class MfdMod:
                               maxTrnDate   = self.maxTrnDate,
                               maxOosDate   = self.maxOosDate,
                               trmFuncDict  = self.trmFuncDict,
+                              nPoly        = self.nPoly,                              
                               optType      = self.optType, 
                               maxOptItrs   = self.maxOptItrs, 
                               optGTol      = self.optGTol,
@@ -422,6 +425,7 @@ class MfdMod:
                                  maxTrnDate   = maxTrnDate,
                                  maxOosDate   = maxOosDate,
                                  trmFuncDict  = self.trmFuncDict,
+                                 nPoly        = self.nPoly,                                                               
                                  optType      = self.optType, 
                                  maxOptItrs   = self.maxOptItrs, 
                                  optGTol      = self.optGTol,

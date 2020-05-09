@@ -335,7 +335,7 @@ class EcoMfdCBase:
                          'disp'       : True              }
 
             try:
-                vec = np.concatenate( [ self.GammaVec, self.srcVec ] )                    
+                vec = np.concatenate( [ self.GammaVec, self.srcCoefs ] )                    
                     
                 optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
                                                   x0       = vec, 
@@ -345,7 +345,7 @@ class EcoMfdCBase:
                 sFlag   = optObj.success
     
                 self.GammaVec = optObj.x[:self.nGammaVec]
-                self.srcVec   = optObj.x[self.nGammaVec:]
+                self.srcCoefs = optObj.x[self.nGammaVec:]
 
                 self.logger.info( 'Success: %s', str( sFlag ) )
 
@@ -372,7 +372,7 @@ class EcoMfdCBase:
             stepSize = self.stepSize
             lsFlag   = False
 
-        vec = np.concatenate( [ self.GammaVec, self.srcVec ] )            
+        vec = np.concatenate( [ self.GammaVec, self.srcCoefs ] )            
 
         for itr in range( self.maxOptItrs ):
                 
@@ -418,7 +418,7 @@ class EcoMfdCBase:
             vec = vec - stepSize * grad
 
             self.GammaVec = vec[:self.nGammaVec]
-            self.srcVec   = vec[self.nGammaVec:]
+            self.srcCoefs = vec[self.nGammaVec:]
 
         gc.collect()
         
@@ -428,7 +428,7 @@ class EcoMfdCBase:
 
         nDims  = self.nDims
         actSol = self.actSol
-        odeObj  = self.getSol( self.GammaVec, self.srcVec )
+        odeObj  = self.getSol( self.GammaVec, self.srcCoefs )
         sol     = odeObj.getSol()
 
         for varId in range( nDims ):
@@ -440,7 +440,7 @@ class EcoMfdCBase:
         self.statHash[ 'funCnt' ] += 1
 
         GammaVec = vec[:self.nGammaVec]
-        srcVec   = vec[self.nGammaVec:]
+        srcCoefs = vec[self.nGammaVec:]
 
         nDims    = self.nDims
         nTimes   = self.nTimes
@@ -451,7 +451,7 @@ class EcoMfdCBase:
         atnCoefs = self.atnCoefs        
         tmpVec   = self.tmpVec.copy()
 
-        odeObj  = self.getSol( GammaVec, srcVec )
+        odeObj  = self.getSol( GammaVec, srcCoefs )
         
         if odeObj is None:
             return np.inf
@@ -543,7 +543,7 @@ class EcoMfdCBase:
         if  funcValFct > 0:
             funcValFct = 1.0 / funcValFct
 
-        odeObj  = self.getSol( self.GammaVec, self.srcVec )
+        odeObj  = self.getSol( self.GammaVec, self.srcCoefs )
         
         if odeObj is None:
             return -np.inf
@@ -684,7 +684,7 @@ class EcoMfdCBase:
 
         t0 = time.time()
         
-        odeObj = self.getSol( self.GammaVec, self.srcVec )
+        odeObj = self.getSol( self.GammaVec, self.srcCoefs )
 
         if odeObj is None:
             return np.inf
@@ -713,7 +713,7 @@ class EcoMfdCBase:
         times   = np.linspace( 0, nSteps, nTimes )
         bcTime  = times[-1]
         actSol  = self.actSol
-        odeObj  = self.getSol( self.GammaVec, self.srcVec )
+        odeObj  = self.getSol( self.GammaVec, self.srcCoefs )
         sol     = odeObj.getSol()
         coefs   = np.zeros( shape = ( nDims ), dtype = 'd' )
 
@@ -749,7 +749,7 @@ class EcoMfdCBase:
 
         if rType == 'trn':
             actSol  = self.actSol
-            odeObj  = self.getSol( self.GammaVec, self.srcVec )
+            odeObj  = self.getSol( self.GammaVec, self.srcCoefs )
             trnFlag = True
         elif rType == 'oos':
             actSol  = self.actOosSol
@@ -812,7 +812,7 @@ class EcoMfdCBase:
         
         nDims    = self.nDims
         velNames = self.velNames
-        odeObj   = self.getSol( self.GammaVec, self.srcVec )
+        odeObj   = self.getSol( self.GammaVec, self.srcCoefs )
         sol      = odeObj.getSol()
         actSol   = self.actSol
 
@@ -896,10 +896,10 @@ class EcoMfdCBase:
     def setActs( self ):
         pass
 
-    def getSol( self, GammaVec, srcVec ):
+    def getSol( self, GammaVec, srcCoefs ):
         pass
 
-    def getAdjSol( self, GammaVec, srcVec, odeObj ):
+    def getAdjSol( self, GammaVec, srcCoefs, odeObj ):
         pass
 
     def getGrad( self, vec ):

@@ -16,6 +16,7 @@ class OdeBaseConst:
     def __init__( self,
                   Gamma,
                   srcCoefs,
+                  srcFct,
                   bcVec,
                   bcTime,
                   timeInc,
@@ -39,11 +40,9 @@ class OdeBaseConst:
         assert Gamma.shape[1] == nDims, 'Incorrect Gamma size!'
         assert Gamma.shape[2] == nDims, 'Incorrect Gamma size!'
 
-        if srcCoefs is not None:
-            
-            assert srcCoefs.shape[0] == 3, 'Incorrect srcCoefs size!'
-            assert srcCoefs.shape[1] == nDims, 'Incorrect srcCoefs size!'
-        
+        if len( srcCoefs ) == 0:
+            srcCoefs = None
+
         if actSol is not None:
             assert actSol.shape[0] == nDims,  'Incorrect actSol size!'
             assert actSol.shape[1] == nTimes, 'Incorrect actSol size!'
@@ -68,6 +67,7 @@ class OdeBaseConst:
             
         self.Gamma    = Gamma
         self.srcCoefs = srcCoefs
+        self.srcFct   = srcFct
         self.bcVec    = bcVec
         self.bcTime   = bcTime
         self.nDims    = nDims

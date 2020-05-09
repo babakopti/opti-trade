@@ -49,6 +49,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
+                    nPoly        = 20,
                     optType      = 'SLSQP',
                     maxOptItrs   = 100,
                     optGTol      = 1.0e-4,
@@ -63,10 +64,8 @@ validFlag = mfdMod.build()
 
 print( 'Success :', validFlag )
 
-srcCoefs = mfdMod.ecoMfd.getSrcCoefs(mfdMod.ecoMfd.srcVec)
-print('A =', srcCoefs[0])
-print('B =', srcCoefs[1])
-print('C =', srcCoefs[2])
+print(mfdMod.ecoMfd.srcCoefs)
+
 #mfdMod.save( modFileName )
 mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
 #mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
