@@ -17,6 +17,7 @@ import gc
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
+from scipy.signal import welch
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
 
@@ -115,14 +116,21 @@ class EcoMfdConst( EcoMfdCBase ):
         if self.nSrcVec > 0:
             srcId = 0
             for m in range( nDims ):
+                vec = np.gradient( self.actSol[m], 2 )
+                freqs, psVec = welch( vec,
+                                      fs              = 1.0,
+                                      window          = 'blackman',
+                                      nperseg         = int( self.nTimes / 1000 ),
+                                      detrend         = 'linear',
+                                      return_onesided = True,
+                                      scaling         = 'spectrum' )
+
+                domFreqs = freqs[1:][np.argsort(-psVec[1:])[:nSrcFreqs]]
+                 
                 for j in range( 3 ):
                     for k in range( nSrcFreqs ):
-                        if j == 0:
-                            self.srcVec[srcId] = 0
-                        if j == 1:
-                            self.srcVec[srcId] = 0
                         if j == 2:
-                            self.srcVec[srcId] = 0.25
+                            self.srcVec[srcId] = domFreqs[k]
                         srcId += 1
         self.trnDf = None
         self.oosDf = None
@@ -225,7 +233,7 @@ class EcoMfdConst( EcoMfdCBase ):
             times    = np.linspace( 0, nTimes * timeInc, nTimes )
             tmpVec1  = None
             srcId    = 0
-            freqFct  = 1.0e5
+            freqFct  = 1.0
             coefFct  = 1.0 / nTimes
             
             for r in range( nDims ):
@@ -238,22 +246,18 @@ class EcoMfdConst( EcoMfdCBase ):
                         tmp     = 2.0 * np.pi * freqFct * freq 
                         
                         if j == 0:
-                            tmpVec = adjSol[r] * np.sin( tmp * times )
+                            tmpVec = coefFct * adjSol[r] * np.sin( tmp * times )
                         elif j == 1:
-                            tmpVec = adjSol[r] * np.cos( tmp * times )
+                            tmpVec = coefFct * adjSol[r] * np.cos( tmp * times )
                         elif j == 2:
 
-                            tmpVec1 = 2.0 * np.pi * freqFct * times 
+                            tmpVec1 = 2.0 * np.pi * freqFct * coefFct * times 
                                                 
                             tmpVec = adjSol[r] * tmpVec1 * ( sinCoef * np.cos( tmp * times ) - \
                                                              cosCoef * np.sin( tmp * times ) )
-                            
-#                            print('Babak', r, 'sinCoef =', sinCoef, 'cosCoef =', cosCoef)
                         else:
                             assert False, 'Internal error!'
 
-                        tmpVec = coefFct * tmpVec
-                        
                         grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc ) #+\
 #                            regCoef * ( regL1Wt * np.sign( srcVec[srcId] ) +\
 #                                        ( 1.0 - regL1Wt ) * 2.0 * srcVec[srcId] )                            

@@ -51,7 +51,7 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     velNames     = velNames,
                     optType      = 'SLSQP',
                     maxOptItrs   = 100,
-                    nSrcFreqs    = 1,                    
+                    nSrcFreqs    = 20,                    
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-4,
                     factor       = 4.0e-5,
@@ -64,7 +64,7 @@ validFlag = mfdMod.build()
 
 print( 'Success :', validFlag )
 
-print(mfdMod.ecoMfd.srcVec)
+#print(mfdMod.ecoMfd.srcVec)
 #mfdMod.save( modFileName )
 mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
 #mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )

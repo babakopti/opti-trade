@@ -37,7 +37,7 @@ class OdeGeoConst( OdeBaseConst ):
 
         if srcCoefs is not None:
             coefFct = 1.0 / self.nTimes
-            freqFct = 1.0e5
+            freqFct = 1.0
             for m in range( nDims ):
                 tmp = 2.0 * np.pi * t * srcCoefs[m][2] * freqFct
                 src[m] += coefFct * np.sum( srcCoefs[m][0] * np.sin( tmp ) +\
