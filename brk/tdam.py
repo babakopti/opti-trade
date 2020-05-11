@@ -8,6 +8,8 @@ import requests
 import tdameritrade
 import tdameritrade.auth as auth
 
+from collections import defaultdict
+
 from tdameritrade import TDClient
 
 sys.path.append( os.path.abspath( '../' ) )
@@ -75,6 +77,13 @@ class Tdam:
         else:
             self.accountId = str( accountId )
 
+    def getTotalValue( self ):
+        
+        account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
+        totVal  = account['currentBalances']['liquidationValue']
+
+        return totVal
+        
     def getCashBalance( self ):
 
         account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
@@ -256,7 +265,7 @@ class Tdam:
             
     def getPortfolio( self, sType = 'EQUITY' ):
         
-        positions = td.getPositions()
+        positions = self.getPositions()
         prtHash   = defaultdict( int )
         
         for position in positions:
@@ -325,8 +334,12 @@ class Tdam:
         for symbol in wtHash:
             totWt += abs( wtHash[ symbol ] )
 
+        totWtInv = totWt
+        if totWtInv > 0:
+            totWtInv = 1.0 / totWtInv
+            
         for symbol in wtHash:
-            wtHash[ symbol ] = wtHash[ symbol ] / totWt
+            wtHash[ symbol ] = wtHash[ symbol ] * totWtInv
 
         # Get total value
         
