@@ -254,3 +254,165 @@ class Tdam:
 
         self.logger.info( resp.text )
             
+    def getPortfolio( self, sType = 'EQUITY' ):
+        
+        positions = td.getPositions()
+        prtHash   = defaultdict( int )
+        
+        for position in positions:
+
+            if sType != position[ 'instrument' ][ 'assetType' ]:
+                continue
+
+            symbol   = position[ 'instrument' ][ 'symbol' ]
+            longQty  = position[ 'longQuantity' ]
+            shortQty = position[ 'shortQuantity' ]
+            quantity = abs( longQty ) - abs( shortQty )
+            
+            prtHash[ symbol ] += quantity
+
+        
+        return prtHash
+
+    def setPortfolio( self, orderQtyHash, sType = 'EQUITY' ):
+
+        for symbol in orderQtyHash:
+            
+            currPrice = self.getQuote( symbol )
+            quantity  = orderQtyHash[ symbol ]
+
+            if quantity > 0:
+                orderAction = 'BUY'
+            elif quantity < 0:
+                orderAction = 'SELL'
+                quantity = -quantity
+            else:
+                continue
+
+            self.order( symbol,
+                        orderType = 'MARKET',
+                        duration  = 'DAY',
+                        price     = None,
+                        quantity  = quantity,
+                        sType     = sType,
+                        action    = orderAction )            
+
+    def adjWeights( self, wtHash, invHash, totVal = None ):
+
+        # Echo some info
+
+        tmpStr = ''
+        for asset in wtHash:
+            perc    = 100.0 * wtHash[ asset ]
+            tmpStr += '%10s: %0.2f %s\n' % ( asset, perc, '%' )
+
+        self.logger.info( 'Implementing the following portfolio weights: \n %s',
+                          tmpStr )
+        
+        # Check sanity of the inverse ETF hash
+        
+        for symbol in wtHash:
+            assert symbol in invHash.keys(),\
+                'Error: no inverse found for %s!' % symbol
+
+            assert invHash[ symbol ] not in wtHash.keys(),\
+                'Error: weight hash should not contain both asset %s and its inverse %s!' \
+                % ( symbol, invHash[ symbol ] )
+
+        # Normalize weight hash
+        
+        totWt = 0.0
+        for symbol in wtHash:
+            totWt += abs( wtHash[ symbol ] )
+
+        for symbol in wtHash:
+            wtHash[ symbol ] = wtHash[ symbol ] / totWt
+
+        # Get total value
+        
+        totValAll = self.getTotalValue()
+
+        if totVal is None:
+            totVal = totValAll
+        else:
+            assert totVal <= totValAll, \
+                'Total value specified cannot be larger than total value of account!'
+
+        assert totVal > 0, 'Total value should be positive'
+
+        # Get current portfolio
+        
+        currPrtHash  = self.getPortfolio()
+
+        # Initialize order hash
+        
+        orderQtyHash = defaultdict( int )        
+
+        # Close any postions of irrelevant symbols
+
+        symbols = []
+        for symbol in wtHash:
+            symbols.append( symbol )
+            symbols.append( invHash[ symbol ] )
+
+        for symbol in currPrtHash:
+            
+            if symbol in symbols:
+                continue
+
+            orderQtyHash[ symbol ] += -currPrtHash[ symbol ]
+
+        # Adjust to meet target weights
+        
+        for symbol in wtHash:
+
+            invSymbol  = invHash[ symbol ]
+            currQty    = currPrtHash[ symbol ]
+            currInvQty = currPrtHash[ invSymbol ]
+
+            if currQty * currInvQty != 0:
+                self.logger.warning( '%d of %s and %d of its inverse %s are in current portfolio!',
+                                     currQty,
+                                     symbol,
+                                     currInvQty,
+                                     invSymbol ) 
+        
+            targWt = wtHash[ symbol ]
+
+            if targWt >= 0:
+
+                if currInvQty != 0:
+                    orderQtyHash[ invSymbol ] += -currInvQty
+                
+                price = self.getQuote( symbol )
+                
+                assert price > 0, 'Price of %s should be positive' % symbol
+
+                targQty = int( targWt * totVal / price )
+
+                assert targQty >= 0, 'Target quantity for symbol shoul;d be positive!' \
+                    % symbol
+                
+                orderQtyHash[ symbol ] += targQty - currQty
+                
+            elif targWt < 0:
+
+                if currQty != 0:
+                    orderQtyHash[ symbol ] += -currQty
+
+                invPrice = self.getQuote( invSymbol )
+                
+                assert invPrice > 0, 'Price of %s should be positive' % invSymbol
+
+                targInvQty = int( -targWt * totVal / invPrice )
+
+                assert targInvQty > 0, 'Taget quantity for inverse symbol %s should be positive!' % \
+                    invSymbol
+                
+                orderQtyHash[ invSymbol ] += targInvQty - currInvQty
+
+        # Implement the orders
+        
+        self.logger.info( str(orderQtyHash) )
+
+        self.setPortfolio( orderQtyHash )    
