@@ -58,6 +58,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     regL1Wt      = 0.0,
                     nPca         = None,
                     diagFlag     = True,
+                    srelFlag     = False,                    
                     endBcFlag    = True,
                     varCoefs     = None,
                     srcCoefs     = None,
@@ -95,6 +96,7 @@ class EcoMfdConst( EcoMfdCBase ):
                                verbose      = verbose     )
 
         self.diagFlag    = diagFlag
+        self.srelFlag    = srelFlag        
 
         nDims            = self.nDims
 
@@ -102,6 +104,9 @@ class EcoMfdConst( EcoMfdCBase ):
             self.nGammaVec = nDims * ( 2 * nDims - 1 ) 
         else:
             self.nGammaVec = int( nDims * nDims * ( nDims + 1 ) / 2 )
+
+        if srelFlag:
+            self.nGammaVec -= nDims
 
         self.GammaVec    = np.zeros( shape = ( self.nGammaVec ),   dtype = 'd' ) 
 
@@ -189,6 +194,9 @@ class EcoMfdConst( EcoMfdCBase ):
 
                     if self.diagFlag and r != p and r != q and p != q:
                         continue
+
+                    if self.srelFlag and r == p and and p == q:
+                        continue                    
 
                     tmpVec  = xi(p,q) * np.multiply( sol[p][:], sol[q][:] )
                     tmpVec  = np.multiply(tmpVec, adjSol[r][:] )
@@ -303,6 +311,8 @@ class EcoMfdConst( EcoMfdCBase ):
                     if self.diagFlag and m != a and m != b and a != b:
                         Gamma[m][a][b] = 0.0
                         Gamma[m][b][a] = 0.0
+                    elif self.srelFlag and m == a and a == b:
+                        Gamma[m][a][b] = 0.0
                     else:
                         Gamma[m][a][b] = GammaVec[gammaId]
                         Gamma[m][b][a] = GammaVec[gammaId]

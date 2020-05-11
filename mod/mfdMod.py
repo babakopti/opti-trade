@@ -21,6 +21,7 @@ from utl.utils import getLogger
 # ***********************************************************************
 
 DIAG_FLAG = True
+SREL_FLAG = False
 
 # ***********************************************************************
 # Class MfdMod: Model object that builds a manifold based model
@@ -314,6 +315,7 @@ class MfdMod:
                               regL1Wt      = 0.0,
                               nPca         = None,
                               diagFlag     = DIAG_FLAG,
+                              srelFlag     = SREL_FLAG,                              
                               endBcFlag    = True,
                               srcTerm      = self.srcTerm,
                               atnFct       = self.atnFct,
@@ -432,6 +434,7 @@ class MfdMod:
                                  regL1Wt      = 0.0,
                                  nPca         = None,
                                  diagFlag     = DIAG_FLAG,
+                                 srelFlag     = SREL_FLAG,                                 
                                  endBcFlag    = True,
                                  srcTerm      = self.srcTerm,                                 
                                  atnFct       = self.atnFct,
