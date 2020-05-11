@@ -336,20 +336,50 @@ class EcoMfdCBase:
                          'maxiter'    : self.maxOptItrs, 
                          'disp'       : True              }
 
-            try:
-                optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
-                                                  x0       = self.GammaVec, 
-                                                  method   = self.optType, 
-                                                  jac      = self.getGrad,
-                                                  options  = options          )
-                sFlag   = optObj.success
+            def tmp_func( GammaVec, m ):
+                
+                nDims  = self.nDims
+                actSol = self.actSol
+                Gamma  = self.getGammaArray( GammaVec )
+                tmpVec = np.zeros( shape =( nDims, nDims ), dtype = 'd' )
+
+                val = 0.0
+                for a in range( nDims ):
+                    for b in range( nDims ):
+                        val += Gamma[m][a][b] * actSol[a][-1] * actSol[b][-1]
+
+                val += actSol[m][-1] - actSol[m][-2]
+
+                fct = actSol[m][-1] - actSol[m][-2]
+                
+                if fct != 0:
+                    fct = 1.0 / fct
+                    
+                val = abs( fct * val )
+                
+                return val
+
+            cons = []
+
+            for m in range( self.nDims ):
+                cons.append( { 'type': 'ineq',
+                               'fun': lambda v: 0.1 - tmp_func(v, m) } )
+            
+#            try:
+            optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
+                                              x0       = self.GammaVec, 
+                                              method   = self.optType, 
+                                              jac      = self.getGrad,
+                                              constraints = cons,
+                                              options  = options          )
+            sFlag   = optObj.success
     
-                self.GammaVec = optObj.x
+            self.GammaVec = optObj.x
 
-                self.logger.info( 'Success: %s', str( sFlag ) )
+            self.logger.info( 'Success: %s', str( sFlag ) )
 
-            except:
-                sFlag = False
+#            except:
+#                sFlag = False
 
         self.statHash[ 'totTime' ] = time.time() - t0
 
