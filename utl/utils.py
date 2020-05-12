@@ -956,8 +956,8 @@ def calcBacktestReturns( prtWtsHash,
         elif itr == nDates - 1:
             tmp1    = pd.to_datetime( dates[nDates-1] )
             tmp2    = pd.to_datetime( dates[nDates-2] )
-            nDays   = ( tmp1 - tmp2 ).days
-            endDate = begDate + datetime.timedelta( days = nDays )
+            nMins   = ( tmp1 - tmp2 ).minutes
+            endDate = begDate + datetime.timedelta( minutes = nMins )
 
         tmpDf = dataDf[ dataDf.Date >= begDate ]
         tmpDf = tmpDf[ tmpDf.Date <= endDate ]
