@@ -59,7 +59,7 @@ PRT_DIR       = '/var/prt_weights'
 DAT_DIR       = '/var/mfd_data'
 BASE_DAT_DIR  = '/var/data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '14:30'
+SCHED_TIME    = '05:30'
 LOG_FILE_NAME = '/var/log/mfd_prt_builder.log'
 VERBOSE       = 1
 

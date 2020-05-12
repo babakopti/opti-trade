@@ -10,24 +10,27 @@ import datetime
 import pytz
 import numpy as np
 import pandas as pd
-
-from google.cloud import storage
+import scipy
+from scipy.optimize import line_search
+import matplotlib.pyplot as plt
 
 sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from dat.assets import SUB_ETF_HASH
+from dat.assets import ETF_HASH, SUB_ETF_HASH
 
 # ***********************************************************************
-# Import libraries
+# Set some parameters
 # ***********************************************************************
 
-dataFlag = True
+dataFlag = False
 baseDir  = '/var/data'
 prtDir   = '/var/prt_weights'
 dfFile   = 'exposure_opt_dfFile.pkl' 
-symbols  = list( SUB_ETF_HASH.keys() ) + list( SUB_ETF_HASH.values() )
+symbols  = list( ETF_HASH.keys() ) + \
+           list( ETF_HASH.values() ) + \
+           [ 'VIX' ]
 minDate  = pd.to_datetime( '2020-01-22' )
 maxDate  = pd.to_datetime( '2020-05-08' )
 
@@ -52,17 +55,7 @@ if dataFlag:
 # getPrtWtsHash()
 # ***********************************************************************
 
-def getPrtWtsHash( longExprCoefs, shortExprCoefs ):
-
-    df = pd.read_pickle( dfFile )
-    df = df[ [ 'Date', 'VIX' ] ]
-    
-    vixHash = {}
-    dates   = list( df.Date )
-    vixes   = list( df.VIX )
-    
-    for i in range( len( dates ) ):
-        vixHash[ dates[i] ] = vixes[i]
+def getPrtWtsHash():
     
     prtWtsHash = {}
 
@@ -91,44 +84,164 @@ def getPrtWtsHash( longExprCoefs, shortExprCoefs ):
 
         snapDate = snapDate.strftime( '%Y-%m-%d %H:%M:%S' )
         
-        wtHash = json.load( os.path.join( prtDir, fileName ) )
-
-        vix = vixHash[ snapDate ]
-
-        longCoef = 0.0
-        for k in range( len( longExprCoefs ) ):
-            longCoef += longExprCoefs[k] * vix**k
+        wtHash = json.load( open( os.path.join( prtDir, fileName ), 'r' ) )
             
-        shortCoef = 0.0
-        for k in range( len( shortExprCoefs ) ):
-            shortCoef += shortExprCoefs[k] * vix**k
-            
-        for item in wtHash:
-            if wtHash[ item ] > 0:
-                wtHash[ item ] = longCoef * wtHash[ item ]
-            elif wtHash[ item ] < 0:
-                wtHash[ item ] = shortCoef * wtHash[ item ]                
-            
-        wtHash = defaultdict( float, wtHash )
-        
         prtWtsHash[ snapDate ] = wtHash
 
     return prtWtsHash
 
 # ***********************************************************************
-# getReturns
+# getVix()
 # ***********************************************************************
 
-def getReturns( longExprCoefs = [ 1.0 ], shortExprCoefs = [ 1.0 ] ):
+def getVixHash():
 
-    prtWtsHash = getPrtWtsHash( longExprCoefs, shortExprCoefs )
+    prtWtsHash = getPrtWtsHash()
+    
+    wtDf = pd.DataFrame( { 'Date': list( prtWtsHash.keys() ) } )
+    df = pd.read_pickle( dfFile )
+    df = df[ [ 'Date', 'VIX' ] ]
+    
+    df[ 'Date' ] = df.Date.apply( lambda x: x.strftime( '%Y-%m-%d %H:%M:%S' ) )
+    
+    df = df.merge( wtDf, how = 'outer', on = 'Date' )
+    df = df.interpolate( method = 'linear' )
+    
+    vixHash = {}
+    dates   = list( df.Date )
+    vixes   = list( df.VIX )
+
+    for i in range( len( dates ) ):
+        vixHash[ dates[i] ] = vixes[i] 
+
+    return vixHash
+
+# ***********************************************************************
+# Storing vix and prt wts hash 
+# ***********************************************************************
+
+vixHash = getVixHash()
+prtWtsHash = getPrtWtsHash()
+
+# ***********************************************************************
+# getExprReturn
+# ***********************************************************************
+
+def getExprHash( coefs ):
+
+    assert len( coefs ) % 2 == 0, 'Incorrect input size!'
+
+    nTmp = int( len( coefs ) / 2 )
+    
+    longExprCoefs  = coefs[:nTmp]
+    shortExprCoefs = coefs[nTmp:]
+
+    longHash  = {}
+    shortHash = {}
+
+    for snapDate in prtWtsHash:
+
+        wtHash = prtWtsHash[ snapDate ]
+        vix    = vixHash[ snapDate ]
+
+        longExpr = 0.0
+        for k in range( len( longExprCoefs ) ):
+            longExpr += longExprCoefs[k] * vix**k
+            
+        shortExpr = 0.0
+        for k in range( len( shortExprCoefs ) ):
+            shortExpr += shortExprCoefs[k] * vix**k
+
+        longHash[ snapDate ]  = longExpr
+        shortHash[ snapDate ] = shortExpr
+
+    return longHash, shortHash
+
+# ***********************************************************************
+# getObjFunc
+# ***********************************************************************
+
+def getObjFunc( coefs ):
+
+    longHash, shortHash = getExprHash( coefs )    
+
+    for snapDate in prtWtsHash:
+
+        wtHash = prtWtsHash[ snapDate ]
+
+        longExpr = longHash[ snapDate ]
+        shortExpr = shortHash[ snapDate ]
+            
+        for item in wtHash:
+            if wtHash[ item ] > 0:
+                wtHash[ item ] = longExpr * wtHash[ item ]
+            elif wtHash[ item ] < 0:
+                wtHash[ item ] = shortExpr * wtHash[ item ]                
     
     retDf = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                      dfFile     = dfFile,
                                      initTotVal = initTotVal,
                                      shortFlag  = False,
-                                     invHash    = SUB_ETF_HASH   )
+                                     invHash    = ETF_HASH   )
 
-    return float( retDf.Return.mean() )
+    return 1.0 - float( retDf.Return.mean() )
+
+# ***********************************************************************
+# longFunc
+# ***********************************************************************
+
+def longFunc( coefs, snapDate ):
+
+    longHash, shortHash = getExprHash( coefs )    
+
+    return longHash[ snapDate ]
+
+# ***********************************************************************
+# shortFunc
+# ***********************************************************************
+
+def shortFunc( coefs, snapDate ):
+
+    longHash, shortHash = getExprHash( coefs )    
+
+    return shortHash[ snapDate ]
+
+# ***********************************************************************
+# getCons
+# ***********************************************************************
+
+cons = []
     
+for snapDate in prtWtsHash:
+
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: longFunc( x, snapDate ) } )
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: shortFunc( x, snapDate ) } )
+
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: 1.0 - longFunc( x, snapDate ) } )
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: 1.0 - shortFunc( x, snapDate ) } )
     
+# ***********************************************************************
+# Optimize
+# ***********************************************************************
+
+options  = { 'ftol'       : 0.001,
+             'maxiter'    : 100,
+             'disp'       : True  }
+
+optObj = scipy.optimize.minimize( fun         = getObjFunc, 
+                                  x0          = [ 1.0, 0.5 ], 
+                                  method      = 'SLSQP',
+                                  constraints = cons,
+                                  options     = options    )
+
+print( 'Success:', optObj.success )
+    
+print( optObj.x )
+                
+#print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 1.0, 1.0 ] ) )
+
+#print( 'Optimized average daily return:', 1.0 - getObjFunc( optObj.x ) )

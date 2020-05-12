@@ -948,16 +948,13 @@ def calcBacktestReturns( prtWtsHash,
 
         begDate = pd.to_datetime( dates[itr] )
 
-        begDates.append( begDate )
-        begTotVals.append( begTotVal )
-
         if itr < nDates - 1:
             endDate = pd.to_datetime( dates[itr+1] )
         elif itr == nDates - 1:
             tmp1    = pd.to_datetime( dates[nDates-1] )
             tmp2    = pd.to_datetime( dates[nDates-2] )
-            nMins   = ( tmp1 - tmp2 ).minutes
-            endDate = begDate + datetime.timedelta( minutes = nMins )
+            nSecs   = ( tmp1 - tmp2 ).seconds
+            endDate = begDate + datetime.timedelta( seconds = nSecs )
 
         tmpDf = dataDf[ dataDf.Date >= begDate ]
         tmpDf = tmpDf[ tmpDf.Date <= endDate ]
@@ -967,7 +964,7 @@ def calcBacktestReturns( prtWtsHash,
             continue
 
         tmpDf.sort_values( 'Date', inplace = True )
-
+        
         wtHash = defaultdict( float )
 
         tmpStr = ''
@@ -977,6 +974,8 @@ def calcBacktestReturns( prtWtsHash,
             if abs( weight ) > minAbsWt:
                 tmpStr += asset + ' '
 
+        begDates.append( begDate )
+        begTotVals.append( begTotVal )
         usedAssets.append( tmpStr )
                 
         tmp1 = 0.0
