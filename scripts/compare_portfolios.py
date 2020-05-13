@@ -5,6 +5,7 @@
 import sys
 import datetime
 import ast
+import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,21 +14,21 @@ sys.path.append( '../' )
 
 import utl.utils as utl
 
+from dat.assets import ETF_HASH
+
 # ***********************************************************************
 # Input
 # ***********************************************************************
 
-prtFiles    = [ 'portfolios/sorted_ETFs_portfolio_30_eval_days.txt',
-                'portfolios/sorted_ETFs_portfolio_60_eval_days.txt',
-                'portfolios/sorted_ETFs_portfolio_90_eval_days.txt' ]
-legends     = [ '5 sorted ETFs, abs_sharpe, 30 eval. days',
-                '5 sorted ETFs, abs_sharpe, 60 eval. days',
-                '5 sorted ETFs, abs_sharpe, 90 eval. days' ]
+prtFiles    = [ 'portfolio_once_a_day_2020.json',
+                'portfolio_once_a_day_2020_srel.json' ]
+legends     = [ '5 sorted ETFs, abs_sharpe, 60 eval. days, srelFlag = False',
+                '5 sorted ETFs, abs_sharpe, 60 eval. days, srelFlag = True' ]
 
-dfFile      = 'data/dfFile_kibot_2016plus.pkl'
-initTotVal  = 1000000.0
+dfFile      = 'data/dfFile_2020.pkl'
+initTotVal  = 20000.0
 
-outFile     = 'analysis-results/compare_sorted_ETFs_sharpe_eval_days.csv'
+outFile     = 'analysis-results/compare_sorted_ETFs_srel.csv'
 
 invHash = {   'TQQQ' : 'SQQQ',
               'SPY'  : 'SH',
@@ -64,7 +65,11 @@ invHash = {   'TQQQ' : 'SQQQ',
 minDates = []
 maxDates = []
 for prtFile in prtFiles:
-    prtWtsHash = ast.literal_eval( open( prtFile, 'r' ).read() )
+
+    if prtFile.split( '.' )[-1] == 'json':
+        prtWtsHash = json.load( open( prtFile, 'r' ) )
+    else:
+        prtWtsHash = ast.literal_eval( open( prtFile, 'r' ).read() )
     
     minDates.append( min( prtWtsHash.keys() ) )
     maxDates.append( max( prtWtsHash.keys() ) )
@@ -86,7 +91,7 @@ for prtFile in prtFiles:
                                      dfFile     = dfFile,
                                      initTotVal = initTotVal,
                                      shortFlag  = False,
-                                     invHash    = invHash,
+                                     invHash    = ETF_HASH,
                                      minDate    = minDate,
                                      maxDate    = maxDate   )
 

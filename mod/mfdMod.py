@@ -21,7 +21,7 @@ from utl.utils import getLogger
 # ***********************************************************************
 
 DIAG_FLAG = True
-SREL_FLAG = False
+SREL_FLAG = True
 
 # ***********************************************************************
 # Class MfdMod: Model object that builds a manifold based model
