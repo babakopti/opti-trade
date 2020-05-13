@@ -9,6 +9,7 @@ import datetime
 import dill
 import pickle
 import logging
+import json
 import numpy as np
 import pandas as pd
 
@@ -18,68 +19,62 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
+from dat.assets import SUB_ETF_HASH as ETF_HASH
+from dat.assets import FUTURES
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt 
+
+# ***********************************************************************
+# Main input params
+# ***********************************************************************
+
+prtFile     = 'portfolio_once_a_day_2020.json'
+hourIncs    = [ 24 ]
+bkBegDate   = pd.to_datetime( '2020-01-02 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-05-12 09:30:00' )
+nTrnDays    = 360
+nOosDays    = 3
+nPrdMinutes = 24 * 60
+minModTime  = '09:30:00'
+maxModTime  = '15:30:00'
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-diffFlag    = False
-modFlag     = False
+modFlag  = True
+dataFlag = False
+numCores = 2
 
-if diffFlag:
-    dfFile  = 'data/dfFile_2017plus_diff.pkl'
-else:
-    dfFile  = 'data/dfFile_kibot_2016plus.pkl'
+baseDir  = '/var/data'
+dfFile   = 'data/dfFile_2020.pkl'
 
-nTrnDays    = 360
-nOosDays    = 3
-nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2019-01-01 09:00:00' )
-bkEndDate   = pd.to_datetime( '2019-03-31 09:00:00' )
+symbols  = list( ETF_HASH.keys() ) + \
+           list( ETF_HASH.values() ) + \
+           FUTURES + \
+           [ 'VIX' ]
+velNames = list( ETF_HASH.keys() ) + FUTURES
+allETFs  = list( ETF_HASH.keys() )
 
-# indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
-#                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-#                 'TYX',  'HUI', 'XAU'                       ] 
-# indices     = [ 'INDU', 'NDX', 'SPX', 'COMPQ', 'RUT',  'OEX',  
-#                 'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-#                 'TYX',  'XAU'                      ]
+factor = 4.0e-05
+vType  = 'vel'
 
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
+# ***********************************************************************
+# build data file if needed
+# ***********************************************************************
 
-# ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-#                 'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
-#ETFs        = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM', 'DIG', 'USD',
-#                'ERX',  'UYG', 'UPW', 'UGL', 'BIB', 'UST', 'UBT'  ]
-# allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
-#                 'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
-#                 'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
-#                 'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
-#                 'TZA', 'FAS'                               ]
-
-allETFs     = [ 'TQQQ', 'SPY', 'DDM', 'MVV', 'UWM',  'SAA',
-                'UYM',  'UGE', 'UCC', 'FINU', 'RXL', 'UXI',
-                'URE',  'ROM', 'UJB', 'AGQ',  'DIG', 'USD',
-                'ERX',  'UYG', 'UCO', 'BOIL', 'UPW', 'UGL',
-                'BIB', 'UST', 'UBT'  ]
-
-velNames    = allETFs + futures
-
-if diffFlag:
-    nDims = len( velNames )
-    for m in range( nDims ):
-        velNames[m] = velNames[m] + '_Diff'
-
-if diffFlag:
-    factor = 1.0e-6
-    vType  = 'var'
-else:
-    factor = 4.0e-05
-    vType  = 'vel'
-
-#assets      = ETFs
-
+if dataFlag:
+    nDays   = nTrnDays + nOosDays + 7
+    minDate = bkBegDate - datetime.timedelta( days = nDays )
+    
+    dataDf = utl.mergeSymbols( symbols = symbols,
+                               datDir  = baseDir,
+                               fileExt = 'pkl',
+                               minDate = minDate,
+                               logger  = None     )
+    
+    dataDf.to_pickle( dfFile )
+    
 # ***********************************************************************
 # Utility functions
 # ***********************************************************************
@@ -93,12 +88,9 @@ def buildModPrt( snapDate ):
     wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
     if modFlag:
-        print( 'Building model for snapdate', snapDate )
 
         t0     = time.time()
 
-        logging.shutdown()
-        
         mfdMod = MfdMod( dfFile       = dfFile,
                          minTrnDate   = minTrnDt,
                          maxTrnDate   = maxTrnDt,
@@ -114,11 +106,9 @@ def buildModPrt( snapDate ):
         
         sFlag = mfdMod.build()
 
-        if sFlag:
-            print( 'Building model took %d seconds!' % ( time.time() - t0 ) )
-        else:
-            print( 'Warning: Model build was unsuccessful!' )
-            print( 'Warning: Not building a portfolio based on this model!!' )
+        if not sFlag:
+            logging.warning( 'Warning: Model build was unsuccessful!' )
+            logging.warning( 'Warning: Not building a portfolio based on this model!!' )
             return False
 
         mfdMod.save( modFilePath )
@@ -129,12 +119,12 @@ def buildModPrt( snapDate ):
 
     t0     = time.time()
     wtHash = {}
-    curDt  = snapDate
-    endDt  = snapDate + datetime.timedelta( days = nPrdDays )
-    nDays  = ( endDt - curDt ).days
+#    curDt  = snapDate
+#    endDt  = snapDate + datetime.timedelta( days = nPrdDays )
+#    nDays  = ( endDt - curDt ).days
 
-    nPrdTimes = int( nDays * 19 * 60 )
-    nRetTimes = int( 30 * 17 * 60 )  
+    nPrdTimes = nPrdMinutes #int( nDays * 19 * 60 )
+    nRetTimes = int( 30 * 19 * 60 )  
 
     eDf = utl.sortAssets( symbols   = allETFs,
                           dfFile    = dfFile,
@@ -181,42 +171,44 @@ def buildModPrt( snapDate ):
     return True
 
 # ***********************************************************************
-# A worker function
-# ***********************************************************************
-
-def worker(snapDate):
-
-    sFlag = False
-    try:
-        sFlag = buildModPrt( snapDate )
-    except Exception as e:
-        print( e )
-
-    if not sFlag:
-        print( 'ALERT: Processing of %s was unsuccessful!' % snapDate )
-
-# ***********************************************************************
 # Run the backtest
 # ***********************************************************************
 
 if __name__ ==  '__main__':
+    
     snapDate = bkBegDate
-    pool     = Pool(6)
+    pool     = Pool( numCores )
 
     while snapDate <= bkEndDate:
 
         while True:
-            if snapDate.isoweekday() not in [ 6, 7 ]:
+            if snapDate.isoweekday() not in [ 6, 7 ] and \
+               snapDate.strftime( '%H:%M:%S' ) >= minModTime and \
+               snapDate.strftime( '%H:%M:%S' ) <= maxModTime:
                 break
             else:
-                snapDate += datetime.timedelta( days = 1 )
+                snapDate += datetime.timedelta( minutes = nPrdMinutes )
 
-        pool.apply_async( worker, args = ( snapDate, ) )
+        pool.apply_async( buildModPrt, args = ( snapDate, ) )
 
-        snapDate = snapDate + datetime.timedelta( days = nPrdDays )
+        snapDate = snapDate + datetime.timedelta( minutes = nPrdMinutes )
 
     pool.close()
     pool.join()
     
+    modFiles = os.listdir( 'models' )
 
+    prtWtsHash = {}
 
+    for item in modFiles:
+
+        if item.split( '_' )[0] != 'weights':
+            continue
+    
+        filePath = os.path.join( 'models', item )
+        tmpHash = pickle.load( open( filePath, 'rb' ) )
+        dateStr = list( tmpHash.keys() )[0]
+        prtWtsHash[ dateStr ] = tmpHash[ dateStr ]
+
+    with open( prtFile, 'w' ) as fp:
+            json.dump( prtWtsHash, fp )        

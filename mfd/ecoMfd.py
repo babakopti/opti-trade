@@ -195,7 +195,7 @@ class EcoMfdConst( EcoMfdCBase ):
                     if self.diagFlag and r != p and r != q and p != q:
                         continue
 
-                    if self.srelFlag and r == p and and p == q:
+                    if self.srelFlag and r == p and p == q:
                         continue                    
 
                     tmpVec  = xi(p,q) * np.multiply( sol[p][:], sol[q][:] )

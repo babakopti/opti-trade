@@ -36,7 +36,7 @@ class MfdMod:
                     maxOosDate,
                     velNames,
                     stepSize     = None,
-                    optType      = 'GD',
+                    optType      = 'SLSQP',
                     maxOptItrs   = 100, 
                     optGTol      = 1.0e-4,
                     optFTol      = 1.0e-8,
