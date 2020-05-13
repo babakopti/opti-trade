@@ -140,12 +140,10 @@ vixHash = getVixHash()
 
 def getExprHash( coefs ):
 
-    assert len( coefs ) % 2 == 0, 'Incorrect input size!'
+    assert len( coefs ) == 2, 'Incorrect input size!'
 
-    nTmp = int( len( coefs ) / 2 )
-    
-    longExprCoefs  = coefs[:nTmp]
-    shortExprCoefs = coefs[nTmp:]
+    longExprCoef  = coefs[0]
+    shortExprCoef = coefs[1]
 
     longHash  = {}
     shortHash = {}
@@ -155,13 +153,11 @@ def getExprHash( coefs ):
         wtHash = prtWtsHash[ snapDate ]
         vix    = vixHash[ snapDate ]
 
-        longExpr = 0.0
-        for k in range( len( longExprCoefs ) ):
-            longExpr += longExprCoefs[k] * vix**k
-            
-        shortExpr = 0.0
-        for k in range( len( shortExprCoefs ) ):
-            shortExpr += shortExprCoefs[k] * vix**k
+        longExpr = 1.0 - \
+            np.tanh( longExprCoef * vix )
+
+        shortExpr = 1.0 - \
+            np.tanh( shortExprCoef * vix )        
 
         longHash[ snapDate ]  = longExpr
         shortHash[ snapDate ] = shortExpr
@@ -174,7 +170,7 @@ def getExprHash( coefs ):
 
 def getObjFunc( coefs ):
 
-    longHash, shortHash = getExprHash( coefs )    
+    longHash, shortHash = getExprHash( coefs )
 
     for snapDate in prtWtsHash:
 
@@ -221,38 +217,48 @@ def shortFunc( coefs, snapDate ):
 # getCons
 # ***********************************************************************
 
-# cons = []
+cons = []
     
-# for snapDate in prtWtsHash:
+for snapDate in prtWtsHash:
 
-#     cons.append( { 'type' : 'ineq',
-#                    'fun' : lambda x: longFunc( x, snapDate ) } )
-#     cons.append( { 'type' : 'ineq',
-#                    'fun' : lambda x: shortFunc( x, snapDate ) } )
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: longFunc( x, snapDate ) } )
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: shortFunc( x, snapDate ) } )
 
-#     cons.append( { 'type' : 'ineq',
-#                    'fun' : lambda x: 1.0 - longFunc( x, snapDate ) } )
-#     cons.append( { 'type' : 'ineq',
-#                    'fun' : lambda x: 1.0 - shortFunc( x, snapDate ) } )
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: 1.0 - longFunc( x, snapDate ) } )
+    cons.append( { 'type' : 'ineq',
+                   'fun' : lambda x: 1.0 - shortFunc( x, snapDate ) } )
     
 # # ***********************************************************************
 # # Optimize
 # # ***********************************************************************
 
-# options  = { 'ftol'       : 0.001,
-#              'maxiter'    : 100,
-#              'disp'       : True  }
+options  = { 'ftol'       : 0.001,
+             'maxiter'    : 100,
+             'disp'       : True  }
 
 # optObj = scipy.optimize.minimize( fun         = getObjFunc, 
-#                                   x0          = [ 1.0, 0.5 ], 
+#                                   x0          = [ 0.1, 0.1 ], 
 #                                   method      = 'SLSQP',
-#                                   constraints = cons,
+#                                   bounds      = [ (0.0,None),
+#                                                   (0.0, None) ],
+# #                                  constraints = cons,
 #                                   options     = options    )
 
 # print( 'Success:', optObj.success )
     
 # print( optObj.x )
-                
-print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 1.0, 1.0 ] ) )
 
+coefs = np.linspace(0,0.01,100)
+y = []
+for coef in coefs:
+    y.append(1.0 - getObjFunc( [ coef, 0.0 ] ))
+
+plt.plot( coefs, y, '-o' )
+plt.show()
+#print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 0.0001, 0.0001 ] ) )
+#plt.show()
 #print( 'Optimized average daily return:', 1.0 - getObjFunc( optObj.x ) )
+
