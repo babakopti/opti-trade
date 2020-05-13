@@ -140,10 +140,10 @@ vixHash = getVixHash()
 
 def getExprHash( coefs ):
 
-    assert len( coefs ) == 2, 'Incorrect input size!'
+    assert len( coefs ) == 4, 'Incorrect input size!'
 
-    longExprCoef  = coefs[0]
-    shortExprCoef = coefs[1]
+    longExprCoefs  = coefs[:2]
+    shortExprCoefs = coefs[2:]
 
     longHash  = {}
     shortHash = {}
@@ -153,11 +153,9 @@ def getExprHash( coefs ):
         wtHash = prtWtsHash[ snapDate ]
         vix    = vixHash[ snapDate ]
 
-        longExpr = 1.0 - \
-            np.tanh( longExprCoef * vix )
+        longExpr = longExprCoefs[0] - longExprCoefs[1] * np.tanh( vix )
 
-        shortExpr = 1.0 - \
-            np.tanh( shortExprCoef * vix )        
+        shortExpr = shortExprCoefs[0] - shortExprCoefs[1] * np.tanh( vix )        
 
         longHash[ snapDate ]  = longExpr
         shortHash[ snapDate ] = shortExpr
@@ -189,76 +187,45 @@ def getObjFunc( coefs ):
                                      dfFile     = dfFile,
                                      initTotVal = initTotVal,
                                      shortFlag  = False,
-                                     invHash    = ETF_HASH   )
-
-    return 1.0 - float( retDf.Return.mean() )
-
-# ***********************************************************************
-# longFunc
-# ***********************************************************************
-
-def longFunc( coefs, snapDate ):
-
-    longHash, shortHash = getExprHash( coefs )    
-
-    return longHash[ snapDate ]
-
-# ***********************************************************************
-# shortFunc
-# ***********************************************************************
-
-def shortFunc( coefs, snapDate ):
-
-    longHash, shortHash = getExprHash( coefs )    
-
-    return shortHash[ snapDate ]
-
-# ***********************************************************************
-# getCons
-# ***********************************************************************
-
-cons = []
+                                     invHash    = ETF_HASH,
+                                     hourOset   = 6   )
+    plt.plot(retDf.Date, retDf.EndVal)
     
-for snapDate in prtWtsHash:
-
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: longFunc( x, snapDate ) } )
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: shortFunc( x, snapDate ) } )
-
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: 1.0 - longFunc( x, snapDate ) } )
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: 1.0 - shortFunc( x, snapDate ) } )
+    return 1.0 - float( retDf.Return.mean() )
     
 # # ***********************************************************************
 # # Optimize
 # # ***********************************************************************
 
-options  = { 'ftol'       : 0.001,
-             'maxiter'    : 100,
-             'disp'       : True  }
+if False:
+    options  = { 'ftol'       : 0.001,
+                 'maxiter'    : 100,
+                 'disp'       : True  }
 
-# optObj = scipy.optimize.minimize( fun         = getObjFunc, 
-#                                   x0          = [ 0.1, 0.1 ], 
-#                                   method      = 'SLSQP',
-#                                   bounds      = [ (0.0,None),
-#                                                   (0.0, None) ],
-# #                                  constraints = cons,
-#                                   options     = options    )
+    optObj = scipy.optimize.minimize( fun         = getObjFunc, 
+                                      x0          = [ 1.0, 0., 1.0, 1.0 ], 
+                                      method      = 'SLSQP',
+                                      bounds      = [ (0.0, None),
+                                                      (0.0, None),
+                                                      (0.0, None),
+                                                      (0.0, None) ],
+                                      options     = options    )
 
-# print( 'Success:', optObj.success )
+    print( 'Success:', optObj.success )
     
-# print( optObj.x )
+    print( optObj.x )
 
-coefs = np.linspace(0,0.01,100)
-y = []
-for coef in coefs:
-    y.append(1.0 - getObjFunc( [ coef, 0.0 ] ))
 
-plt.plot( coefs, y, '-o' )
+if False:
+    coefs = np.linspace(0,0.01,10)
+    y = []
+    for coef in coefs:
+        y.append(1.0 - getObjFunc( [ 1.0, 0.0, 1.0, coef ] ))
+
+    plt.plot( coefs, y, '-o' )
+    plt.show()
+
+print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 1.0, 0.0, 1.0, 0.0 ] ) )
 plt.show()
-#print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 0.0001, 0.0001 ] ) )
-#plt.show()
-#print( 'Optimized average daily return:', 1.0 - getObjFunc( optObj.x ) )
+
 
