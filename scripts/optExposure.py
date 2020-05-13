@@ -18,20 +18,23 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from dat.assets import ETF_HASH, SUB_ETF_HASH
+from dat.assets import ETF_HASH
 
 # ***********************************************************************
 # Set some parameters
 # ***********************************************************************
 
 dataFlag = False
+prtFlag  = False
+
 baseDir  = '/var/data'
 prtDir   = '/var/prt_weights'
-dfFile   = 'exposure_opt_dfFile.pkl' 
+dfFile   = 'exposure_opt_dfFile.pkl'
+prtFile  = 'exposure_opt_prtWtsHash.json'
 symbols  = list( ETF_HASH.keys() ) + \
            list( ETF_HASH.values() ) + \
            [ 'VIX' ]
-minDate  = pd.to_datetime( '2020-01-22' )
+minDate  = pd.to_datetime( '2020-02-15' )
 maxDate  = pd.to_datetime( '2020-05-08' )
 
 initTotVal  = 20000
@@ -91,13 +94,22 @@ def getPrtWtsHash():
     return prtWtsHash
 
 # ***********************************************************************
+# get prt wts hash
+# ***********************************************************************
+
+if prtFlag:
+    prtWtsHash = getPrtWtsHash()
+    with open( prtFile, 'w' ) as fp:
+            json.dump( prtWtsHash, fp )
+else:
+    prtWtsHash = json.load( open( prtFile, 'r' ) )
+    
+# ***********************************************************************
 # getVix()
 # ***********************************************************************
 
 def getVixHash():
 
-    prtWtsHash = getPrtWtsHash()
-    
     wtDf = pd.DataFrame( { 'Date': list( prtWtsHash.keys() ) } )
     df = pd.read_pickle( dfFile )
     df = df[ [ 'Date', 'VIX' ] ]
@@ -121,7 +133,6 @@ def getVixHash():
 # ***********************************************************************
 
 vixHash = getVixHash()
-prtWtsHash = getPrtWtsHash()
 
 # ***********************************************************************
 # getExprReturn
@@ -210,38 +221,38 @@ def shortFunc( coefs, snapDate ):
 # getCons
 # ***********************************************************************
 
-cons = []
+# cons = []
     
-for snapDate in prtWtsHash:
+# for snapDate in prtWtsHash:
 
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: longFunc( x, snapDate ) } )
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: shortFunc( x, snapDate ) } )
+#     cons.append( { 'type' : 'ineq',
+#                    'fun' : lambda x: longFunc( x, snapDate ) } )
+#     cons.append( { 'type' : 'ineq',
+#                    'fun' : lambda x: shortFunc( x, snapDate ) } )
 
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: 1.0 - longFunc( x, snapDate ) } )
-    cons.append( { 'type' : 'ineq',
-                   'fun' : lambda x: 1.0 - shortFunc( x, snapDate ) } )
+#     cons.append( { 'type' : 'ineq',
+#                    'fun' : lambda x: 1.0 - longFunc( x, snapDate ) } )
+#     cons.append( { 'type' : 'ineq',
+#                    'fun' : lambda x: 1.0 - shortFunc( x, snapDate ) } )
     
-# ***********************************************************************
-# Optimize
-# ***********************************************************************
+# # ***********************************************************************
+# # Optimize
+# # ***********************************************************************
 
-options  = { 'ftol'       : 0.001,
-             'maxiter'    : 100,
-             'disp'       : True  }
+# options  = { 'ftol'       : 0.001,
+#              'maxiter'    : 100,
+#              'disp'       : True  }
 
-optObj = scipy.optimize.minimize( fun         = getObjFunc, 
-                                  x0          = [ 1.0, 0.5 ], 
-                                  method      = 'SLSQP',
-                                  constraints = cons,
-                                  options     = options    )
+# optObj = scipy.optimize.minimize( fun         = getObjFunc, 
+#                                   x0          = [ 1.0, 0.5 ], 
+#                                   method      = 'SLSQP',
+#                                   constraints = cons,
+#                                   options     = options    )
 
-print( 'Success:', optObj.success )
+# print( 'Success:', optObj.success )
     
-print( optObj.x )
+# print( optObj.x )
                 
-#print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 1.0, 1.0 ] ) )
+print( 'Full exposure average daily return:', 1.0 - getObjFunc( [ 1.0, 1.0 ] ) )
 
 #print( 'Optimized average daily return:', 1.0 - getObjFunc( optObj.x ) )
