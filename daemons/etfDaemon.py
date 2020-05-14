@@ -29,6 +29,7 @@ import utl.utils as utl
 from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt
+from brk.tdam import Tdam
 
 # ***********************************************************************
 # Set some parameters 
@@ -46,7 +47,7 @@ NUM_ASSET_EVAL_DAYS = 60
 
 NUM_TRN_DAYS  = 360
 NUM_OOS_DAYS  = 3
-NUM_PRD_DAYS  = 1
+NUM_PRD_MINS  = 1 * 24 * 60
 NUM_MAD_DAYS  = 30                    
 MAX_OPT_ITRS  = 500
 OPT_TOL       = 5.0e-2
@@ -68,14 +69,23 @@ PID_FILE      = '/var/run/mfd_prt_builder.pid'
 USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_email.txt'
 
 DEV_LIST = [ 'babak.emami@gmail.com' ]
-USR_LIST = [ 'babak.emami@gmail.com' ]
+USR_LIST = []
+
+TOKEN_FILE = '../brk/tokens/refresh_token_2020-08-14.txt'
+
+with open( TOKEN_FILE, 'r' ) as fHd:
+    REFRESH_TOKEN = fHd.read()[:-1]
+
+ETF_ACCOUNT_ID = '455436175'
 
 DEBUG_MODE = False
 
 if DEBUG_MODE:
     SCHED_FLAG = False
+    DRY_RUN    = True
 else:
     SCHED_FLAG = True
+    DRY_RUN    = False
 
 NUM_DAYS_DATA_CLEAN = 2
 NUM_DAYS_MOD_CLEAN  = 30
@@ -101,7 +111,7 @@ class MfdPrtBuilder( Daemon ):
                     nEvalDays   = NUM_ASSET_EVAL_DAYS,
                     nTrnDays    = NUM_TRN_DAYS,
                     nOosDays    = NUM_OOS_DAYS,
-                    nPrdDays    = NUM_PRD_DAYS,
+                    nPrdMinutes = NUM_PRD_MINS,
                     nMadDays    = NUM_MAD_DAYS,                    
                     maxOptItrs  = MAX_OPT_ITRS,
                     optTol      = OPT_TOL,
@@ -129,7 +139,7 @@ class MfdPrtBuilder( Daemon ):
         self.nEvalDays   = nEvalDays
         self.nTrnDays    = nTrnDays
         self.nOosDays    = nOosDays
-        self.nPrdDays    = nPrdDays
+        self.nPrdMinutes = nPrdMinutes
         self.nMadDays    = nMadDays        
         self.maxOptItrs  = maxOptItrs
         self.optTol      = optTol
@@ -258,10 +268,10 @@ class MfdPrtBuilder( Daemon ):
         t0     = time.time()
         wtHash = {}
 
-        nPrdTimes = int( self.nPrdDays * 19 * 60 )
+        nPrdTimes = self.nPrdMinutes
         nRetTimes = int( self.nMadDays * 19 * 60 )
 
-        quoteHash = self.getQuoteHash( mfdMod )
+        quoteHash = self.getQuoteHash( snapDate )
         
         mfdPrt = MfdPrt( modFile      = modFile,
                          quoteHash    = quoteHash,
@@ -291,10 +301,21 @@ class MfdPrtBuilder( Daemon ):
                           ( time.time() - t0 ) )
 
         try:
+            self.trade( wtHash )
+        except Exception as e:
+            msgStr = e + '; Trade was not successful!'
+            self.logger.error( msgStr )        
+
+        try:
             self.sendPrtAlert( wtHash )
         except Exception as e:
             msgStr = e + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
+
+        try:
+            self.checkTokenExp()
+        except Exception as e:
+            self.logger.error( e )
 
         self.clean( self.datDir, NUM_DAYS_DATA_CLEAN )
         self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
@@ -419,10 +440,8 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             self.logger.error( e )
 
-    def getQuoteHash( self, mfdMod ):
+    def getQuoteHash( self, snapDate ):
 
-        ecoMfd    = mfdMod.ecoMfd
-        snapDate  = ecoMfd.maxOosDate
         endDate   = snapDate
         begDate   = endDate - datetime.timedelta( days = self.nEvalDays )
         
@@ -439,20 +458,13 @@ class MfdPrtBuilder( Daemon ):
             except Exception as e:
                 self.logger.error( e )
 
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+        
         quoteHash = {}
     
-        for m in range( ecoMfd.nDims ):
+        for asset in assets:
 
-            asset = ecoMfd.velNames[m]
-
-            if asset not in assets:
-                continue
-        
-            tmp       = ecoMfd.actOosSol[m][-1]
-            slope     = ecoMfd.deNormHash[ asset ][0]
-            intercept = ecoMfd.deNormHash[ asset ][1]
-        
-            quoteHash[ asset ] = slope * tmp + intercept
+            quoteHash[ asset ] = td.getQuote( asset, 'last' )
 
         return quoteHash
     
@@ -481,7 +493,20 @@ class MfdPrtBuilder( Daemon ):
 
         except Exception as e:
             self.logger.error( e )
-            
+
+    def trade( self, wtHash ):
+
+        self.logging.info( 'Starting to trade on TD Ameritrade...' )
+        
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+        
+        if not DRY_RUN:
+            td.adjWeights( wtHash  = wtHash,
+                           invHash = ETF_HASH,
+                           totVal  = None    )
+
+        self.logging.info( 'Done with trading!' )            
+                
     def sendPrtAlert( self, wtHash ):
 
         assets = list( wtHash.keys() )

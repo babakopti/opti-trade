@@ -74,10 +74,12 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = []
 
-TOKEN_FILE = '../brk/tokens/refresh_token.txt'
+TOKEN_FILE = '../brk/tokens/refresh_token_2020-08-14.txt'
 
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
+
+OPTION_ACCOUNT_ID = '490905156'
 
 DEBUG_MODE = False
 
@@ -433,7 +435,7 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.info( 'Settling the current options holdings...' )
         
-        td = Tdam( refToken = REFRESH_TOKEN )
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
         
         positions = td.getPositions()
 
@@ -559,7 +561,7 @@ class OptionPrtBuilder( Daemon ):
 
     def getAssetHash( self ):
 
-        td = Tdam( refToken = REFRESH_TOKEN )
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
         
         assetHash = {}
         
@@ -585,7 +587,7 @@ class OptionPrtBuilder( Daemon ):
 
     def getCashValue( self ):
 
-        td = Tdam( refToken = REFRESH_TOKEN )
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
 
         cash = td.getCashBalance()
 
@@ -593,7 +595,7 @@ class OptionPrtBuilder( Daemon ):
 
     def getOptions( self ):
  
-        td = Tdam( refToken = REFRESH_TOKEN )
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
         
         options = []
         for symbol in self.assets:
@@ -617,7 +619,7 @@ class OptionPrtBuilder( Daemon ):
 
     def trade( self, selHash ):
 
-        td = Tdam( refToken = REFRESH_TOKEN )
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
         
         self.alertStr += '\nSelected %d options!\n\n' \
             % ( len( selHash.keys() ) )

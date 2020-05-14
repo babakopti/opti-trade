@@ -26,6 +26,7 @@ class Tdam:
                     authKey      = None,
                     refToken     = None,
                     callbackUrl  = 'http://localhost:8080',
+                    accountId    = None,
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -48,7 +49,7 @@ class Tdam:
 
         self.setAuth()
         self.setAccounts()
-        self.setAccountId()
+        self.setAccountId( accountId )
 
     def setAuth( self ):
 
