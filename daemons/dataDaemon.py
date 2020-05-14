@@ -128,6 +128,22 @@ class DataCollector( Daemon ):
 
         self.logger.info( '%s was saved to bucket!', tmpName )
 
+    def reportSplit( self, df, symbol ):
+
+        splitDf = df[ df[ symbol ].pct_change() <= -0.5 ]
+
+        if splitDf.shape[0] > 0:
+            self.logger.critical( 'Possible split detected for %s: \n %s',
+                                  symbol,
+                                  str( splitDf ) )
+            
+        splitDf = df[ df[ symbol ].pct_change() >= 1.0 ]
+
+        if splitDf.shape[0] > 0:
+            self.logger.critical( 'Possible reverse split detected for %s: \n %s',
+                                  symbol,
+                                  str( splitDf ) )
+            
     def updateData( self ):
 
         typeHash = {}
@@ -222,6 +238,8 @@ class DataCollector( Daemon ):
             
             newDf.to_pickle( filePath, protocol = 4 )
 
+            self.reportSplit( newDf, symbol )
+            
             self.backupData( filePath )
 
         self.logger.critical( 'Done with getting data for %d symbols...',
