@@ -44,6 +44,7 @@ retDf1 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                   initTotVal = initTotVal,
                                   shortFlag  = False,
                                   minDate    = minDate,
+                                  hourOset   = 0.5,
                                   invHash    = ETF_HASH   )
 
 # retDf2 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,

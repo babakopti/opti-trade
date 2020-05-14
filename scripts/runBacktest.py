@@ -28,13 +28,12 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolio_once_a_day_2020.json'
-hourIncs    = [ 24 ]
+prtFile     = 'portfolio_every_6_hours_2020.json'
 bkBegDate   = pd.to_datetime( '2020-01-02 09:30:00' )
 bkEndDate   = pd.to_datetime( '2020-05-12 09:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
-nPrdMinutes = 24 * 60
+nPrdMinutes = 6 * 60
 minModTime  = '09:30:00'
 maxModTime  = '15:30:00'
 

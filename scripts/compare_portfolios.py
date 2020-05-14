@@ -20,43 +20,15 @@ from dat.assets import ETF_HASH
 # Input
 # ***********************************************************************
 
-prtFiles    = [ 'portfolio_once_a_day_2020.json',
-                'portfolio_once_a_day_2020_srel.json' ]
-legends     = [ '5 sorted ETFs, abs_sharpe, 60 eval. days, srelFlag = False',
-                '5 sorted ETFs, abs_sharpe, 60 eval. days, srelFlag = True' ]
+prtFiles    = [ 'portfolios/portfolio_once_a_day_2020.json',
+                'portfolios/portfolio_once_a_day_afternoon_2020.json' ]
+legends     = [ '5 sorted ETFs, abs_sharpe, 60 eval. days, Morning trade',
+                '5 sorted ETFs, abs_sharpe, 60 eval. days, Afternoon trade' ]
 
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
-outFile     = 'analysis-results/compare_sorted_ETFs_srel.csv'
-
-invHash = {   'TQQQ' : 'SQQQ',
-              'SPY'  : 'SH',
-              'DDM'  : 'DXD',
-              'MVV'  : 'MZZ',
-              'UWM'  : 'TWM',
-              'SAA'  : 'SDD',
-              'UYM'  : 'SMN',
-              'UGE'  : 'SZK',
-              'UCC'  : 'SCC',
-              'FINU' : 'FINZ',
-              'RXL'  : 'RXD',
-              'UXI'  : 'SIJ',
-              'URE'  : 'SRS',
-              'ROM'  : 'REW',
-              'UJB'  : 'SJB',
-              'AGQ'  : 'ZSL',     
-              'DIG'  : 'DUG',
-              'USD'  : 'SSG',
-              'ERX'  : 'ERY',
-              'UYG'  : 'SKF',
-              'UCO'  : 'SCO',
-              'BOIL' : 'KOLD',
-              'UPW'  : 'SDP',
-              'UGL'  : 'GLL',
-              'BIB'  : 'BIS',
-              'UST'  : 'PST',
-              'UBT'  : 'TBT' }
+outFile     = 'analysis-results/compare_sorted_ETFs_freq_trade.csv'
 
 # ***********************************************************************
 # Get min and max dates
