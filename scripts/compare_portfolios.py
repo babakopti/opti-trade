@@ -21,8 +21,10 @@ from dat.assets import ETF_HASH
 # ***********************************************************************
 
 prtFiles    = [ 'portfolios/portfolio_once_a_day_2020.json',
+                'portfolios/portfolio_every_6_hours_2020.json',
                 'portfolios/portfolio_once_a_day_afternoon_2020.json' ]
 legends     = [ '5 sorted ETFs, abs_sharpe, 60 eval. days, Morning trade',
+                '5 sorted ETFs, abs_sharpe, 60 eval. days, Every 6 hours',                
                 '5 sorted ETFs, abs_sharpe, 60 eval. days, Afternoon trade' ]
 
 dfFile      = 'data/dfFile_2020.pkl'
