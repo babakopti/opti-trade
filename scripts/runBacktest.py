@@ -28,12 +28,12 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_6_hours_2020.json'
+prtFile     = 'portfolios/portfolio_every_2_hours_2020.json'
 bkBegDate   = pd.to_datetime( '2020-01-02 09:30:00' )
 bkEndDate   = pd.to_datetime( '2020-05-12 09:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
-nPrdMinutes = 6 * 60
+nPrdMinutes = 2 * 60
 minModTime  = '09:30:00'
 maxModTime  = '15:30:00'
 
@@ -42,8 +42,8 @@ maxModTime  = '15:30:00'
 # ***********************************************************************
 
 modFlag  = True
-dataFlag = True
-numCores = 4
+dataFlag = False
+numCores = 2
 
 baseDir  = '/var/data'
 dfFile   = 'data/dfFile_2020.pkl'
@@ -52,8 +52,8 @@ symbols  = list( ETF_HASH.keys() ) + \
            list( ETF_HASH.values() ) + \
            FUTURES + \
            [ 'VIX' ]
-velNames = list( ETF_HASH.keys() ) + FUTURES
-assets   = list( SUB_ETF_HASH.keys() )
+velNames  = list( ETF_HASH.keys() ) + FUTURES
+assetPool = list( SUB_ETF_HASH.keys() )
 
 factor = 4.0e-05
 vType  = 'vel'
@@ -125,7 +125,7 @@ def buildModPrt( snapDate ):
     nPrdTimes = nPrdMinutes #int( nDays * 19 * 60 )
     nRetTimes = int( 30 * 19 * 60 )  
 
-    eDf = utl.sortAssets( symbols   = assets,
+    eDf = utl.sortAssets( symbols   = assetPool,
                           dfFile    = dfFile,
                           begDate   = snapDate - datetime.timedelta( days = 60 ),
                           endDate   = snapDate,
