@@ -28,12 +28,12 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_2_hours_2020.json'
+prtFile     = 'portfolios/portfolio_every_3_hours_2020.json'
 bkBegDate   = pd.to_datetime( '2020-01-02 09:30:00' )
 bkEndDate   = pd.to_datetime( '2020-05-12 09:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
-nPrdMinutes = 2 * 60
+nPrdMinutes = 3 * 60
 minModTime  = '09:30:00'
 maxModTime  = '15:30:00'
 
@@ -43,7 +43,7 @@ maxModTime  = '15:30:00'
 
 modFlag  = True
 dataFlag = False
-numCores = 2
+numCores = 4
 
 baseDir  = '/var/data'
 dfFile   = 'data/dfFile_2020.pkl'
@@ -159,7 +159,7 @@ def buildModPrt( snapDate ):
                      fallBack     = 'macd',
                      verbose      = 1          )
 
-    dateKey = snapDate.strftime( '%Y-%m-%d' )
+    dateKey = snapDate.strftime( '%Y-%m-%d %H:%M:00' )
 
     wtHash[ dateKey ] = mfdPrt.getPortfolio()
 
