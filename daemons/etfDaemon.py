@@ -496,7 +496,7 @@ class MfdPrtBuilder( Daemon ):
 
     def trade( self, wtHash ):
 
-        self.logging.info( 'Starting to trade on TD Ameritrade...' )
+        self.logger.info( 'Starting to trade on TD Ameritrade...' )
         
         td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
         
@@ -505,7 +505,7 @@ class MfdPrtBuilder( Daemon ):
                            invHash = ETF_HASH,
                            totVal  = None    )
 
-        self.logging.info( 'Done with trading!' )            
+        self.logger.info( 'Done with trading!' )            
                 
     def sendPrtAlert( self, wtHash ):
 
