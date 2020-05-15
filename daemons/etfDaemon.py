@@ -60,7 +60,7 @@ PRT_DIR       = '/var/prt_weights'
 DAT_DIR       = '/var/mfd_data'
 BASE_DAT_DIR  = '/var/data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '05:30'
+SCHED_TIMES   = [ '09:30', '12:30', '15:30' ]
 LOG_FILE_NAME = '/var/log/mfd_prt_builder.log'
 VERBOSE       = 1
 
@@ -77,6 +77,9 @@ with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
 
 ETF_ACCOUNT_ID = '455436175'
+
+MIN_TRADE_TIME = '09:30:00'
+MAX_TRADE_TIME = '15:59:00'
 
 DEBUG_MODE = False
 
@@ -124,7 +127,7 @@ class MfdPrtBuilder( Daemon ):
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
                     timeZone    = TIME_ZONE,
-                    schedTime   = SCHED_TIME,
+                    schedTimes  = SCHED_TIMES,
                     logFileName = LOG_FILE_NAME,
                     verbose     = VERBOSE         ):
 
@@ -152,7 +155,7 @@ class MfdPrtBuilder( Daemon ):
         self.datDir      = datDir
         self.baseDatDir  = baseDatDir        
         self.timeZone    = timeZone
-        self.schedTime   = schedTime
+        self.schedTimes  = schedTimes
         self.logFileName = logFileName        
         self.verbose     = verbose
         self.velNames    = etfs + stocks + futures + indexes
@@ -491,16 +494,24 @@ class MfdPrtBuilder( Daemon ):
 
     def trade( self, wtHash ):
 
-        self.logger.info( 'Starting to trade on TD Ameritrade...' )
-        
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+        os.environ[ 'TZ' ] = self.timeZone
         
         if not DRY_RUN:
-            td.adjWeights( wtHash  = wtHash,
-                           invHash = ETF_HASH,
-                           totVal  = None    )
+            
+            nowTime = datetime.datetime.now().strftime( '%H:%M:%S' )            
 
-        self.logger.info( 'Done with trading!' )            
+            if nowTime < MIN_TRADE_TIME or nowTime > MAX_TRADE_TIME:
+                self.logger.error( 'Not trading, as we are outside of trading hours!' )
+            else:
+                td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+                
+                self.logger.info( 'Starting to trade on TD Ameritrade...' )
+                
+                td.adjWeights( wtHash  = wtHash,
+                               invHash = ETF_HASH,
+                               totVal  = None    )
+
+                self.logger.info( 'Done with trading!' )            
                 
     def sendPrtAlert( self, wtHash ):
 
@@ -573,7 +584,8 @@ class MfdPrtBuilder( Daemon ):
         if not SCHED_FLAG:
             self.build()
         else:
-            schedule.every().day.at( self.schedTime ).do( self.build )
+            for item in self.schedTimes:
+                schedule.every().day.at( item ).do( self.build )
             
             while True: 
                 schedule.run_pending() 
