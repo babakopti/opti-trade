@@ -17,6 +17,13 @@ sys.path.append( os.path.abspath( '../' ) )
 from utl.utils import getLogger
 
 # ***********************************************************************
+# Some parameters
+# ***********************************************************************
+
+MAX_SLIP = 0.05
+TOL_SLIP = 0.0025
+
+# ***********************************************************************
 # Class Tdam: A class to trade with TD Ameritrade
 # ***********************************************************************
 
@@ -27,6 +34,8 @@ class Tdam:
                     refToken     = None,
                     callbackUrl  = 'http://localhost:8080',
                     accountId    = None,
+                    maxSlip      = MAX_SLIP,
+                    tolSlip      = TOL_SLIP,                    
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -38,6 +47,8 @@ class Tdam:
         self.refToken    = refToken
 
         self.callbackUrl = callbackUrl
+        self.maxSlip     = maxSlip
+        self.tolSlip     = tolSlip        
         self.logFileName = logFileName
         self.verbose     = verbose
         self.logger      = getLogger( logFileName, verbose, 'tdam' )
@@ -307,6 +318,58 @@ class Tdam:
                         sType     = sType,
                         action    = orderAction )            
 
+    def adjSlip( self, orderQtyHash ):
+
+        for symbol in orderQtyHash:
+            
+            qty  = orderQtyHash[ symbol ]
+            last = self.getQuote( symbol, 'last' )
+
+            lastInv = 0.0
+            if last > 0:
+                lastInv = 1.0 / last
+            else:
+                self.logger.error( 'Not trading %s as encountered non-postive '
+                                   'last price of %0.2f!',
+                                   symbol,
+                                   last )
+                orderQtyHash[ symbol ] = 0
+                continue                
+
+            if qty > 0:
+                actual = self.getQuote( symbol, 'ask' )
+            elif qty < 0:
+                actual = self.getQuote( symbol, 'bid' )
+
+            if actual <= 0:
+                self.logger.error( 'Not trading %s as encountered non-postive '
+                                   'ask or bid price of %0.2f!',
+                                   symbol,
+                                   actual )
+                orderQtyHash[ symbol ] = 0
+                continue
+            
+            slip = abs( actual - last ) * lastInv
+            
+            if slip > self.maxSlip:
+                self.logger.critical( 'Not trading %s as slip of %0.3f is '
+                                      'larger than the threshold!',
+                                      symbol,
+                                      slip )
+                orderQtyHash[ symbol ] = 0
+                continue
+
+            elif slip > self.tolSlip:
+                adjQty = int( qty * last / actual )                
+                orderQtyHash[ symbol ] = adjQty
+                
+                self.logger.info( 'Adjusting order quantity if %s from %d to %d!',
+                                  symbol,
+                                  qty,
+                                  adjQty )
+
+        return orderQtyHash
+            
     def adjWeights( self, wtHash, invHash, totVal = None ):
 
         # Echo some info
@@ -425,6 +488,10 @@ class Tdam:
                 
                 orderQtyHash[ invSymbol ] += targInvQty - currInvQty
 
+        # Adjsut for ask/last or bid/last slip
+
+        orderQtyHash = self.adjSlip( orderQtyHash )
+        
         # Implement the orders
         
         self.logger.info( str(orderQtyHash) )
