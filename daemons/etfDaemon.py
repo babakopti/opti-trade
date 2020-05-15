@@ -312,11 +312,6 @@ class MfdPrtBuilder( Daemon ):
             msgStr = e + '; Portfolio alert was NOT sent!'
             self.logger.error( msgStr )
 
-        try:
-            self.checkTokenExp()
-        except Exception as e:
-            self.logger.error( e )
-
         self.clean( self.datDir, NUM_DAYS_DATA_CLEAN )
         self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
         self.clean( self.prtDir, NUM_DAYS_PRT_CLEAN  )
