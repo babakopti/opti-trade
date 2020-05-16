@@ -50,6 +50,8 @@ SCHED_TIME    = '01:00'
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
+CHECK_SPLIT_MONTHS = 4
+
 PID_FILE      = '/var/run/data_collector.pid'
 
 DEV_LIST = [ 'babak.emami@gmail.com' ]
@@ -129,30 +131,34 @@ class DataCollector( Daemon ):
 
         self.logger.info( '%s was saved to bucket!', tmpName )
 
-    def reportSplit( self, df, symbol ):
+    def reportSplit( self, df, symbol, months = CHECK_SPLIT_MONTHS ):
 
-        splitDf = df[ df[ symbol ].pct_change() <= -0.5 ]
+        begDate = pd.to_datetime( df.Date.max() ) - \
+            pd.timedelta( months = months )
+        
+        splitDf = df[ ( df.Date >= begDate ) &
+                      ( df[ symbol ].pct_change() <= -0.5 ) ]
 
         if splitDf.shape[0] > 0:
 
             for date in list( splitDf.Date ):
-                minDate = date - datetime.timedelta( minutes = 3 )
-                maxDate = date + datetime.timedelta( minutes = 3 )            
-                tmpDf   = df[ ( df.Date >= minDate ) &
-                              ( df.Date <= maxDate ) ] 
-                self.logger.critical( 'Possible split detected for %s: \n %s',
+                tmpDf = df[ df.Date == date ]
+                ratio = 1.0 / tmpDf[ symbol ].pct_change()
+                self.logger.critical( 'Possible split of 1:%d detected for %s: \n %s',
+                                      ratio,
                                       symbol,
                                       str( tmpDf ) )
-            
-        splitDf = df[ df[ symbol ].pct_change() >= 1.0 ]
+
+        splitDf = df[ ( df.Date >= begDate ) &
+                      ( df[ symbol ].pct_change() >= 1.0 ) ]                
 
         if splitDf.shape[0] > 0:
+            
             for date in list( splitDf.Date ):
-                minDate = date - datetime.timedelta( minutes = 3 )
-                maxDate = date + datetime.timedelta( minutes = 3 )            
-                tmpDf   = df[ ( df.Date >= minDate ) &
-                              ( df.Date <= maxDate ) ]             
-                self.logger.critical( 'Possible reverse split detected for %s: \n %s',
+                tmpDf = df[ df.Date == date ]
+                ratio = tmpDf[ symbol ].pct_change()                
+                self.logger.critical( 'Possible reverse split of %d:1 detected for %s: \n %s',
+                                      ratio,
                                       symbol,
                                       str( tmpDf ) )
             
