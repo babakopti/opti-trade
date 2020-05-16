@@ -50,7 +50,7 @@ SCHED_TIME    = '01:00'
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
-CHECK_SPLIT_DAYS = 4 * 30
+CHECK_SPLIT_DAYS = 14
 
 PID_FILE      = '/var/run/data_collector.pid'
 
@@ -135,22 +135,28 @@ class DataCollector( Daemon ):
 
         begDate = df.Date.max() - datetime.timedelta( days = nDays )
 
-        splitDf = df[ ( df.Date >= begDate ) &
-                      ( ( df[ symbol ].pct_change() <= -0.5 ) |
-                        ( df[ symbol ].pct_change() >= 1.0 ) ) ]
+        df = df[ df.Date >= begDate ]
+        
+        df[ 'change' ] = df[ symbol ].pct_change()
+        
+        splitDf = df[ ( df.change <= -0.5 ) |
+                      ( df.change >= 1.0 )    ]
 
-        dates = list( splitDf.Date )
+        dates   = list( splitDf.Date )
+        changes = list( splitDf.change )
         
         for itr in range( splitDf.shape[0] ):
-            change = df[ symbol ].pct_change()
-            if ratio >= 1.0:
+            
+            change = changes[itr]
+            
+            if change >= 1.0:
                 self.logger.critical( 'Possible 1:%d reverse split detected for %s on %s!',
-                                      int( 1 + change ),
+                                      round( 1 + change ),
                                       symbol,
                                       str( dates[itr] ) )
-            elif ratio <= -0.5:
+            elif change <= -0.5:
                 self.logger.critical( 'Possible %d:1 split detected for %s on %s!',
-                                      int( 1 / ( 1 + change ) ),
+                                      round( 1 / ( 1 + change ) ),
                                       symbol,
                                       str( dates[itr] ) )
             
