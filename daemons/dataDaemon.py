@@ -6,6 +6,7 @@ import sys
 import os
 import logging
 import time
+import datetime
 import schedule
 import pandas as pd
 
@@ -133,16 +134,26 @@ class DataCollector( Daemon ):
         splitDf = df[ df[ symbol ].pct_change() <= -0.5 ]
 
         if splitDf.shape[0] > 0:
+            tmpDate = pd.to_datetime( splitDf.Date.min() )
+            minDate = tmpDate - datetime.timedelta( days = 3 )
+            tmpDate = pd.to_datetime( splitDf.Date.max() )            
+            maxDate = tmpDate + datetime.timedelta( days = 3 )            
+            tmpDf   = df[ ( df.Date >= minDate ) & ( df.Date <= maxDate ) ] 
             self.logger.critical( 'Possible split detected for %s: \n %s',
                                   symbol,
-                                  str( splitDf ) )
+                                  str( tmpDf ) )
             
         splitDf = df[ df[ symbol ].pct_change() >= 1.0 ]
 
         if splitDf.shape[0] > 0:
+            tmpDate = pd.to_datetime( splitDf.Date.min() )
+            minDate = tmpDate - datetime.timedelta( days = 3 )
+            tmpDate = pd.to_datetime( splitDf.Date.max() )            
+            maxDate = tmpDate + datetime.timedelta( days = 3 )            
+            tmpDf   = df[ ( df.Date >= minDate ) & ( df.Date <= maxDate ) ]             
             self.logger.critical( 'Possible reverse split detected for %s: \n %s',
                                   symbol,
-                                  str( splitDf ) )
+                                  str( tmpDf ) )
             
     def updateData( self ):
 
