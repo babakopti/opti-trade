@@ -133,34 +133,26 @@ class DataCollector( Daemon ):
 
     def reportSplit( self, df, symbol, nDays = CHECK_SPLIT_DAYS ):
 
-        begDate = pd.to_datetime( df.Date.max() ) - \
-            datetime.timedelta( days = nDays )
+        begDate = df.Date.max() - datetime.timedelta( days = nDays )
+
+        splitDf = df[ ( df.Date >= begDate ) &
+                      ( ( df[ symbol ].pct_change() <= -0.5 ) |
+                        ( df[ symbol ].pct_change() >= 1.0 ) ) ]
+
+        dates = list( splitDf.Date )
         
-        splitDf = df[ ( df.Date >= begDate ) &
-                      ( df[ symbol ].pct_change() <= -0.5 ) ]
-
-        if splitDf.shape[0] > 0:
-
-            for date in list( splitDf.Date ):
-                tmpDf = df[ df.Date == date ]
-                ratio = 1.0 / tmpDf[ symbol ].pct_change()
-                self.logger.critical( 'Possible split of 1:%d detected for %s: \n %s',
-                                      ratio,
+        for itr in range( splitDf.shape[0] ):
+            change = df[ symbol ].pct_change()
+            if ratio >= 1.0:
+                self.logger.critical( 'Possible 1:%d reverse split detected for %s on %s!',
+                                      int( 1 + change ),
                                       symbol,
-                                      str( tmpDf ) )
-
-        splitDf = df[ ( df.Date >= begDate ) &
-                      ( df[ symbol ].pct_change() >= 1.0 ) ]                
-
-        if splitDf.shape[0] > 0:
-            
-            for date in list( splitDf.Date ):
-                tmpDf = df[ df.Date == date ]
-                ratio = tmpDf[ symbol ].pct_change()                
-                self.logger.critical( 'Possible reverse split of %d:1 detected for %s: \n %s',
-                                      ratio,
+                                      str( dates[itr] ) )
+            elif ratio <= -0.5:
+                self.logger.critical( 'Possible %d:1 split detected for %s on %s!',
+                                      int( 1 / ( 1 + change ) ),
                                       symbol,
-                                      str( tmpDf ) )
+                                      str( dates[itr] ) )
             
     def updateData( self ):
 
