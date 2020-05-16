@@ -20,7 +20,7 @@ from dat.assets import SUB_ETF_HASH as ETF_HASH
 # Input
 # ***********************************************************************
 
-prtFile     = 'portfolio_once_a_day_2020.json'
+prtFile     = 'portfolios/portfolio_once_a_day_afternoon_2020.json'
 dfFile      = 'data/dfFile_2020.pkl'
 base        = 'SPY'
 initTotVal  = 20000.0
@@ -44,9 +44,9 @@ retDf1 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                   initTotVal = initTotVal,
                                   shortFlag  = False,
                                   minDate    = minDate,
-                                  hourOset   = 0.5,
+                                  hourOset   = 0.,
                                   invHash    = ETF_HASH   )
-
+retDf1.to_pickle('retDf.pkl')
 # retDf2 = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
 #                                   dfFile     = dfFile,
 #                                   initTotVal = initTotVal,
@@ -67,7 +67,7 @@ retDf3 = utl.calcBacktestReturns( prtWtsHash = baseHash,
 # Plot
 # ***********************************************************************
 
-plt.plot( retDf1.Date, retDf1.EndVal, 'b',
+plt.plot( retDf1.Date, retDf1.EndVal, 'b-o',
 #          retDf2.Date, retDf2.EndVal, 'g',
           retDf3.Date, retDf3.EndVal, 'r'  )
 plt.xlabel( 'Date' )

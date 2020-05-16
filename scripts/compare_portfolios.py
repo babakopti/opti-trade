@@ -20,17 +20,15 @@ from dat.assets import ETF_HASH
 # Input
 # ***********************************************************************
 
-prtFiles    = [ 'portfolios/portfolio_once_a_day_2020.json',
-                'portfolios/portfolio_every_6_hours_2020.json',
-                'portfolios/portfolio_once_a_day_afternoon_2020.json' ]
-legends     = [ '5 sorted ETFs, abs_sharpe, 60 eval. days, Morning trade',
-                '5 sorted ETFs, abs_sharpe, 60 eval. days, Every 6 hours',                
-                '5 sorted ETFs, abs_sharpe, 60 eval. days, Afternoon trade' ]
+prtFiles    = [ 'portfolios/portfolio_every_3_hours_2020.json',
+                'portfolios/portfolio_every_3_hours_2020_full_ETF_HASH.json' ]
+legends     = [ 'Every 3 hours',
+                'Every 3 hours; full ETF_HASH'  ]
 
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
-outFile     = 'analysis-results/compare_sorted_ETFs_freq_trade.csv'
+outFile     = 'analysis-results/compare_sorted_ETFs_oos_time.csv'
 
 # ***********************************************************************
 # Get min and max dates
