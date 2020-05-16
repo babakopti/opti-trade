@@ -1540,3 +1540,25 @@ def getOptionsChain( symbol,
             options.append( item )        
 
     return options
+
+# ***********************************************************************
+# adjSplit(): Adjust for a split
+# ***********************************************************************
+
+def adjSplit( df, symbol, ratio, spType, spDate ):
+
+    assert ratio >= 1, 'Ratio should be >= 1!'
+    
+    preDf  = df[ df.Date < spDate ]
+    postDf = df[ df.Date >= spDate ]
+
+    if spType == 'split':
+        preDf[ symbol ] = ( 1.0 / ratio ) * preDf[ symbol ]
+    elif spType == 'reverse_split':
+        preDf[ symbol ] = ratio * preDf[ symbol ]
+
+    adjDf = pd.concat( [ preDf, postDf ] )
+
+    return adjDf
+        
+    
