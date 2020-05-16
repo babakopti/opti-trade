@@ -50,7 +50,7 @@ SCHED_TIME    = '01:00'
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
-CHECK_SPLIT_MONTHS = 4
+CHECK_SPLIT_DAYS = 4 * 30
 
 PID_FILE      = '/var/run/data_collector.pid'
 
@@ -131,10 +131,10 @@ class DataCollector( Daemon ):
 
         self.logger.info( '%s was saved to bucket!', tmpName )
 
-    def reportSplit( self, df, symbol, months = CHECK_SPLIT_MONTHS ):
+    def reportSplit( self, df, symbol, nDays = CHECK_SPLIT_DAYS ):
 
         begDate = pd.to_datetime( df.Date.max() ) - \
-            pd.timedelta( months = months )
+            datetime.timedelta( days = nDays )
         
         splitDf = df[ ( df.Date >= begDate ) &
                       ( df[ symbol ].pct_change() <= -0.5 ) ]
