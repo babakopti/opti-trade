@@ -63,7 +63,7 @@ DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
 PI_DAT_DIR    = '/var/pi_data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '12:30'
+SCHED_TIME    = '10:45'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
 VERBOSE       = 1
 
