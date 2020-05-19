@@ -120,11 +120,14 @@ class Tdam:
         account = self.accounts[ self.accountId ][ 'securitiesAccount' ]
 
         if 'positions' not in account.keys():
-            val = None
+            positions = []
         else:
-            val =  account[ 'positions' ]
+            positions =  account[ 'positions' ]
 
-        return val
+        if positions is None:
+            positions = []
+
+        return positions
     
     def getQuote( self, symbol, pType = 'last' ):
 
