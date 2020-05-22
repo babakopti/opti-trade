@@ -4,6 +4,7 @@
 
 import sys
 import os
+import time
 import requests
 import tdameritrade
 import tdameritrade.auth as auth
@@ -22,6 +23,8 @@ from utl.utils import getLogger
 
 MAX_SLIP = 0.25
 TOL_SLIP = 0.0025
+
+ORDER_WAIT_TIME = 10
 
 # ***********************************************************************
 # Class Tdam: A class to trade with TD Ameritrade
@@ -300,7 +303,11 @@ class Tdam:
 
     def setPortfolio( self, orderQtyHash, sType = 'EQUITY' ):
 
-        for symbol in orderQtyHash:
+        orderList = list( orderQtyHash.keys() )
+        orderList = sorted( orderList,
+                            key = lambda x: orderQtyHash[ x ] )
+        
+        for symbol in orderList:
             
             currPrice = self.getQuote( symbol )
             quantity  = orderQtyHash[ symbol ]
@@ -319,7 +326,9 @@ class Tdam:
                         price     = None,
                         quantity  = quantity,
                         sType     = sType,
-                        action    = orderAction )            
+                        action    = orderAction )
+
+            time.sleep( ORDER_WAIT_TIME )
 
     def adjSlip( self, orderQtyHash ):
 
