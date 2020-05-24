@@ -36,9 +36,7 @@ class OdeGeoConst( OdeBaseConst ):
                 src[m] += srcTerm[m][tsId]
 
         if srcCoefs is not None:
-            src += srcCoefs[0] * ( y - \
-                                   srcCoefs[1] * t / nTimes - \
-                                   srcCoefs[2] )**3
+            src += 1.0e-9*srcCoefs[0] * y + 1.0e-9*srcCoefs[1]
                     
         vals = -np.tensordot( Gamma,
                               np.tensordot( y, y, axes = 0 ),
@@ -57,8 +55,7 @@ class OdeGeoConst( OdeBaseConst ):
 
         if srcCoefs is not None:
             for m in range( nDims ):
-                src[m][m] = 3 * srcCoefs[0][m] * \
-                    ( y[m] - srcCoefs[1][m] * t / nTimes - srcCoefs[2][m] )**2
+                src[m][m] = 1.0e-9*srcCoefs[0][m] 
                 
         vals = -2.0 * np.tensordot( Gamma, y, axes = ( (2), (0) ) ) + src
 
@@ -96,8 +93,7 @@ class OdeAdjConst( OdeBaseConst ):
             actVec[a] = actSol[a][tsId]
 
         if srcCoefs is not None:
-            src = -3 * srcCoefs[0] * \
-                ( adjVec - srcCoefs[1] * t / nTimes - srcCoefs[2] )**2 * v
+            src = -1.0e-9*srcCoefs[0] * v
             
         vals = 2.0 * np.tensordot( Gamma,
                                    np.tensordot( v, adjVec, axes = 0 ),
@@ -130,10 +126,7 @@ class OdeAdjConst( OdeBaseConst ):
 
         if srcCoefs is not None:
             for r in range( nDims ):
-                src[r][r] = -3 * srcCoefs[0][r] * \
-                    ( adjVec[r] - \
-                      srcCoefs[1][r] * t / nTimes - \
-                      srcCoefs[2][r] )**2 
+                src[r][r] = -1.0e-9*srcCoefs[0][r] 
             
         vals = 2.0 * np.tensordot( Gamma, adjVec, ( (2), (0) ) ) + src
         vals = np.transpose( vals )

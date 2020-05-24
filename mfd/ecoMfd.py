@@ -101,7 +101,7 @@ class EcoMfdConst( EcoMfdCBase ):
         else:
             self.nGammaVec = int( nDims * nDims * ( nDims + 1 ) / 2 )
 
-        self.nSrcVec = 3 * nDims 
+        self.nSrcVec = 2 * nDims 
         self.nParms  = self.nGammaVec + self.nSrcVec
         
         self.GammaVec = np.zeros( shape = ( self.nGammaVec ), dtype = 'd' )
@@ -225,21 +225,11 @@ class EcoMfdConst( EcoMfdCBase ):
                 for j in range( 2 ):
                     
                     if j == 0:
-                        tmpVec = ( sol[r] - \
-                                   srcCoefs[1][r] * times / nTimes - \
-                                   srcCoefs[2][r] )**3 * adjSol[r]
+                        tmpVec = -1.0e-9*sol[r] * adjSol[r]
                     elif j == 1:
-                        tmpVec = -3 * ( times / nTimes ) * srcCoefs[0][r] * \
-                            ( sol[r] - \
-                              srcCoefs[1][r] * times / nTimes - \
-                              srcCoefs[2][r] )**2 * adjSol[r]
-                    elif j == 2:
-                        tmpVec = -3 * srcCoefs[0][r] * \
-                            ( sol[r] - \
-                              srcCoefs[1][r] * times / nTimes - \
-                              srcCoefs[2][r] )**2 * adjSol[r]                        
+                        tmpVec = -1.0e-9*adjSol[r]
                         
-                    grad[srcId + self.nGammaVec] = -trapz( tmpVec, dx = timeInc )
+                    grad[srcId + self.nGammaVec] = trapz( tmpVec, dx = timeInc )
                             
                     srcId += 1
 
@@ -363,12 +353,12 @@ class EcoMfdConst( EcoMfdCBase ):
             return None
 
         nDims     = self.nDims
-        srcCoefs  = np.zeros( shape = ( 3, nDims ),
+        srcCoefs  = np.zeros( shape = ( 2, nDims ),
                               dtype = 'd' )
 
         srcId = 0
         for m in range( nDims ):
-            for j in range( 3 ):
+            for j in range( 2 ):
                 srcCoefs[j][m] = srcVec[srcId]
                 srcId += 1
                     

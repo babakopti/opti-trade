@@ -41,7 +41,7 @@ class OdeBaseConst:
 
         if srcCoefs is not None:
             
-            assert srcCoefs.shape[0] == 3, 'Incorrect srcCoefs size!'
+            assert srcCoefs.shape[0] == 2, 'Incorrect srcCoefs size!'
             assert srcCoefs.shape[1] == nDims, 'Incorrect srcCoefs size!'
         
         if actSol is not None:
