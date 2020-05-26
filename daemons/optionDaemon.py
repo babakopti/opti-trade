@@ -214,8 +214,8 @@ class OptionPrtBuilder( Daemon ):
                 return
 
             holidays = pmc.get_calendar('NYSE').holidays().holidays
-            
-            if snapDate in holidays:
+
+            if pd.to_datetime( snapDate.strftime( '%Y-%m-%d' ) ) in holidays:            
                 self.logger.critical( 'Not running as today is a NYSE holiday!' )
                 return
         
