@@ -21,7 +21,7 @@ from utl.utils import getLogger
 # Some parameters
 # ***********************************************************************
 
-MAX_SLIP = 0.25
+MAX_SLIP = 2.0
 TOL_SLIP = 0.0025
 
 ORDER_WAIT_TIME = 10
@@ -330,7 +330,7 @@ class Tdam:
 
             time.sleep( ORDER_WAIT_TIME )
 
-    def adjSlip( self, orderQtyHash ):
+    def adjSlip( self, orderQtyHash, currPrtHash ):
 
         for symbol in orderQtyHash:
             
@@ -372,10 +372,14 @@ class Tdam:
                 continue
 
             elif slip > self.tolSlip:
-                adjQty = int( qty * last / actual )                
+                adjQty = int( qty * last / actual )
+
+                if adjQty < 0 and currPrtHash[ symbol ] > 0:
+                    adjQty = -min( abs( ajdQty ), currPrtHash[ symbol ] )
+                    
                 orderQtyHash[ symbol ] = adjQty
                 
-                self.logger.info( 'Adjusting order quantity if %s from %d to %d!',
+                self.logger.info( 'Adjusting order quantity of %s from %d to %d!',
                                   symbol,
                                   qty,
                                   adjQty )
@@ -500,9 +504,9 @@ class Tdam:
                 
                 orderQtyHash[ invSymbol ] += targInvQty - currInvQty
 
-        # Adjsut for ask/last or bid/last slip
+        # Adjust for ask/last or bid/last slip
 
-        orderQtyHash = self.adjSlip( orderQtyHash )
+        orderQtyHash = self.adjSlip( orderQtyHash, currPrtHash )
         
         # Implement the orders
         
