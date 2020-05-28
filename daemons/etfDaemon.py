@@ -76,7 +76,7 @@ TOKEN_FILE = '../brk/tokens/refresh_token_2020-08-14.txt'
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
 
-ETF_ACCOUNT_ID = '455436175'
+ETF_ACCOUNT_ID = '490905156' 
 
 MIN_TRADE_TIME = '09:30:00'
 MAX_TRADE_TIME = '15:59:00'
