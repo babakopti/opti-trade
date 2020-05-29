@@ -506,10 +506,13 @@ class MfdPrtBuilder( Daemon ):
                 td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
                 
                 self.logger.info( 'Starting to trade on TD Ameritrade...' )
-                
-                td.adjWeights( wtHash  = wtHash,
-                               invHash = ETF_HASH,
-                               totVal  = None    )
+
+                try:
+                    td.adjWeights( wtHash  = wtHash,
+                                   invHash = ETF_HASH,
+                                   totVal  = None    )
+                except Exception as e:
+                    logging.error( 'Trading failed: %s!' % e )
 
                 self.logger.info( 'Done with trading!' )            
                 

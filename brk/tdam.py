@@ -375,7 +375,7 @@ class Tdam:
                 adjQty = int( qty * last / actual )
 
                 if adjQty < 0 and currPrtHash[ symbol ] > 0:
-                    adjQty = -min( abs( ajdQty ), currPrtHash[ symbol ] )
+                    adjQty = -min( abs( adjQty ), currPrtHash[ symbol ] )
                     
                 orderQtyHash[ symbol ] = adjQty
                 
