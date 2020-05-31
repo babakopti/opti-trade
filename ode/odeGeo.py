@@ -110,3 +110,122 @@ class OdeAdjConst( OdeBaseConst ):
 
         return vals
 
+# ***********************************************************************
+# OdeGeoConst2: Geodesic ODE solver; 2nd order; const. curv.
+# ***********************************************************************
+
+class OdeGeoConst2( OdeBaseConst ):
+
+    def fun( self, t, y ):
+
+        nDims     = self.nDims
+        Gamma     = self.Gamma
+        beta      = self.beta
+        timeInc   = self.timeInc
+        nTimes    = self.nTimes
+        actAvgSol = self.actAvgSol
+        tsId      = int( t / timeInc )
+        x         = y[:nDims]
+        u         = y[nDims:]
+
+        assert tsId < nTimes, 'tsId should be smaller than nTimes!'
+
+        vec = -np.tensordot( Gamma,
+                             np.tensordot( u, u, axes = 0 ),
+                             ( ( 1, 2 ), ( 0, 1 ) ) ) - \
+               beta * ( x - actAvgSol.transpose()[tsId] )
+
+        vals = np.concatenate( [ u, vec ] )
+        
+        return vals
+
+    def jac( self, t, y ):
+                       
+        nDims = self.nDims
+        Gamma = self.Gamma
+        beta  = self.beta
+        u     = y[nDims:]
+
+        vec11 = np.zeros( shape = ( nDims, nDims ), dtype = 'd' )
+        vec12 = np.eye( nDims )        
+        vec21 = -np.diag( beta )
+        vec22 = -2.0 * np.tensordot( Gamma,
+                                     u,
+                                     axes = ( (2), (0) ) )
+
+        vals  = np.block( [ [vec11, vec12], [vec21, vec22] ] )
+        
+        return vals
+
+# ***********************************************************************
+# OdeAdjConst2: Adjoint Geodesic solver; 2nd order; constant curvature
+# ***********************************************************************
+
+class OdeAdjConst2( OdeBaseConst ):
+
+    def fun( self, t, y ):
+
+        nDims     = self.nDims
+        Gamma     = self.Gamma
+        beta      = self.beta
+        timeInc   = self.timeInc
+        nTimes    = self.nTimes
+        actSol    = self.actSol
+        adjSol    = self.adjSol
+        adjVel    = self.adjVel
+        adjAcl    = self.adjAcl
+        varCoefs  = self.varCoefs
+        atnCoefs  = self.atnCoefs
+        tsId      = int( t / timeInc )
+        v         = y[:nDims]
+        w         = y[nDims:]
+
+        assert tsId < nTimes, 'tsId should be smaller than nTimes!'
+
+        adjSolVec = adjSol.transpose()[tsId]
+        adjVelVec = adjVel.transpose()[tsId]
+        adjAclVec = adjAcl.transpose()[tsId]       
+        actSolVec = actSol.transpose()[tsId]
+
+        vec  = 2.0 * np.tensordot( Gamma,
+                                   np.tensordot( w, adjVelVec, axes = 0 ),
+                                   ( ( 0, 2 ), ( 0, 1 ) ) ) +\
+               2.0 * np.tensordot( Gamma,
+                                   np.tensordot( v, adjAclVec, axes = 0 ),
+                                   ( ( 0, 2 ), ( 0, 1 ) ) ) - \
+               beta * v - \
+               atnCoefs[tsId] * varCoefs * ( adjSolVec - actSolVec )
+
+        vals = np.concatenate( [ w, vec ] )
+        
+        return vals
+
+    def jac( self, t, y ):
+
+        nDims     = self.nDims
+        timeInc   = self.timeInc
+        nTimes    = self.nTimes
+        Gamma     = self.Gamma
+        adjVel    = self.adjVel
+        adjAcl    = self.adjAcl
+        tsId      = int( t / timeInc )        
+ 
+        assert tsId < nTimes, 'tsId should be smaller than nTimes!'
+
+        adjVelVec = adjVel.transpose()[tsId]
+        adjAclVec = adjAcl.transpose()[tsId]
+
+        vec11 = np.zeros( shape = ( nDims, nDims ), dtype = 'd' )
+        vec12 = np.eye( nDims )        
+        vec21 = 2.0 * np.tensordot( Gamma,
+                                     adjAclVec,
+                                     axes = ( (2), (0) ) ).transpose() - \
+                np.diag( beta )
+        
+        vec22 = 2.0 * np.tensordot( Gamma,
+                                     adjVelVec,
+                                     axes = ( (2), (0) ) ).transpose()
+
+        vals  = np.block( [ [vec11, vec12], [vec21, vec22] ] )        
+
+        return vals

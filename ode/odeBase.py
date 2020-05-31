@@ -19,16 +19,20 @@ class OdeBaseConst:
                   bcTime,
                   timeInc,
                   nSteps,
-                  intgType = 'LSODA',
-                  actSol   = None,
-                  adjSol   = None,
-                  tol      = 1.0e-4,
-                  nMaxItrs = 20,
-                  varCoefs = None,
-                  srcCoefs = None,
-                  srcTerm  = None,
-                  atnCoefs = None,                  
-                  verbose  = 1           ):
+                  intgType  = 'LSODA',
+                  beta      = None,
+                  actSol    = None,
+                  actAvgSol = None,                  
+                  adjSol    = None,
+                  adjVel    = None,
+                  adjAcl    = None,                  
+                  tol       = 1.0e-4,
+                  nMaxItrs  = 20,
+                  varCoefs  = None,
+                  srcCoefs  = None,
+                  srcTerm   = None,
+                  atnCoefs  = None,                  
+                  verbose   = 1           ):
 
         nDims   = len( bcVec )
         nTimes  = nSteps + 1
@@ -38,14 +42,29 @@ class OdeBaseConst:
         assert Gamma.shape[0] == nDims,  'Incorrect Gamma size!'
         assert Gamma.shape[1] == nDims,  'Incorrect Gamma size!'
         assert Gamma.shape[2] == nDims,  'Incorrect Gamma size!'
-        
+
+        if beta is not None:
+            assert len( beta ) == nDims, 'Incorrect beta size!'
+
         if actSol is not None:
             assert actSol.shape[0] == nDims,  'Incorrect actSol size!'
             assert actSol.shape[1] == nTimes, 'Incorrect actSol size!'
 
+        if actAvgSol is not None:
+            assert actAvgSol.shape[0] == nDims,  'Incorrect actAvgSol size!'
+            assert actAvgSol.shape[1] == nTimes, 'Incorrect actAvgSol size!'            
+
         if adjSol is not None:
             assert adjSol.shape[0] == nDims,  'Incorrect adjSol size!'
             assert adjSol.shape[1] == nTimes, 'Incorrect adjSol size!'
+
+        if adjVel is not None:
+            assert adjVel.shape[0] == nDims,  'Incorrect adjVel size!'
+            assert adjVel.shape[1] == nTimes, 'Incorrect adjVel size!'
+
+        if adjAcl is not None:
+            assert adjAcl.shape[0] == nDims,  'Incorrect adjAcl size!'
+            assert adjAcl.shape[1] == nTimes, 'Incorrect adjAcl size!'            
 
         if varCoefs is not None:
             assert len( varCoefs ) == nDims, 'Incorrect varCoefs size!'
@@ -74,8 +93,12 @@ class OdeBaseConst:
         self.timeInc  = timeInc
         self.nSteps   = nSteps
         self.intgType = intgType
+        self.beta     = beta
         self.actSol   = actSol
+        self.actAvgSol= actAvgSol        
         self.adjSol   = adjSol
+        self.adjVel   = adjVel
+        self.adjAcl   = adjAcl        
         self.varCoefs = varCoefs
         self.srcCoefs = srcCoefs
         self.srcTerm  = srcTerm
@@ -84,9 +107,12 @@ class OdeBaseConst:
         self.nMaxItrs = nMaxItrs
         self.verbose  = verbose
         self.nTimes   = nTimes
-
-        self.sol      = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
-
+        self.bkFlag   = bool( self.bcTime > 0 )
+        
+        self.sol = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+        self.vel = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
+        self.acl = None
+        
     def fun( self, t, y ):
         pass
 
@@ -100,8 +126,7 @@ class OdeBaseConst:
         nTimes  = self.nTimes
         bcTime  = self.bcTime
         timeInc = self.timeInc
-
-        bkFlag  = bool( bcTime > 0 )
+        bkFlag  = self.bkFlag
 
         if bkFlag:
             endTime  = bcTime - nSteps * timeInc
@@ -135,12 +160,32 @@ class OdeBaseConst:
         assert res.y.shape[1] == nTimes, 'Internal error!'
 
         if bkFlag:
-            self.sol = np.flip( res.y, 1 )
+            solVec = np.flip( res.y, 1 )
         else:
-            self.sol = res.y.copy()
+            solVec = res.y
 
+        for m in range( nDims ):
+            self.sol[m] = solVec[m]
+            self.vel[m] = solVec[m + nDims]
+
+        acl = np.zeros( shape = ( nTimes, nDims ), dtype = 'd' )
+        
+        for tsId in range( nTimes ):
+
+            t = tsId * timeInc
+
+            acl[tsId] = self.fun( t,
+                                  solVec.transpose()[tsId] )[nDims:]
+
+        self.acl = acl.transpose()
+        
         return sFlag 
 
     def getSol( self ):
         return self.sol
 
+    def getVel( self ):
+        return self.vel
+
+    def getAcl( self ):
+        return self.acl
