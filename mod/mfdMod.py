@@ -528,6 +528,8 @@ class MfdMod2:
                     srcTerm      = None,                    
                     atnFct       = 1.0,
                     mode         = 'intraday',
+                    avgWinSize   = 7 * 19 * 60,
+                    velBcWinSize = 1 * 19 * 60,                    
                     logFileName  = None,                    
                     verbose      = 1          ):
 
@@ -542,6 +544,8 @@ class MfdMod2:
         self.optFTol     = optFTol
         self.srcTerm     = srcTerm
         self.mode        = mode
+        self.avgWinSize  = avgWinSize
+        self.velBcWinSize= velBcWinSize
         self.ecoMfd      = None
         self.trmFuncDict = {}
         self.logFileName = logFileName
@@ -606,6 +610,8 @@ class MfdMod2:
                                srcTerm      = self.srcTerm,
                                atnFct       = self.atnFct,
                                mode         = self.mode,
+                               avgWinSize   = self.avgWinSize,
+                               velBcWinSize = self.velBcWinSize,
                                logFileName  = self.logFileName,                              
                                verbose      = self.verbose        )        
 

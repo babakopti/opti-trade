@@ -56,6 +56,8 @@ mfdMod = MfdMod2(   dfFile       = dfFile,
                     factor       = 1.0e-7,
                     regCoef      = 1.0e-2,
                     smoothCount  = None,
+                    avgWinSize   = 7 * 19 * 60,
+                    velBcWinSize = 1 * 19 * 60,                    
                     logFileName  = None,
                     verbose      = 1          )
 

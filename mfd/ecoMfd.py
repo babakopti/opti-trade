@@ -561,6 +561,8 @@ class EcoMfdConst2:
                   srcTerm      = None,
                   atnFct       = 1.0,
                   mode         = 'intraday',
+                  avgWinSize   = 7 * 19 * 60,
+                  velBcWinSize = 1 * 19 * 60,
                   logFileName  = None,
                   verbose      = 1        ):
 
@@ -589,6 +591,9 @@ class EcoMfdConst2:
         self.diagFlag    = diagFlag
         self.srelFlag    = srelFlag        
         self.mode        = mode
+        self.avgWinSize  = avgWinSize
+        self.velBcWinSize= velBcWinSize
+        
         self.trnDf       = None
         self.oosDf       = None
         self.errVec      = []
@@ -741,7 +746,7 @@ class EcoMfdConst2:
             self.trnDf[ avgName ] = self.trnDf[ varName ].\
                 rolling( min_periods = 1,
                          center      = False,
-                         window      = 7 * 19 * 60 ).mean()
+                         window      = self.avgWinSize ).mean()
 
         self.nTimes    = self.trnDf.shape[0]
         self.nOosTimes = self.oosDf.shape[0]
@@ -818,11 +823,11 @@ class EcoMfdConst2:
 
         for m in range( nDims ):
             
-            vec = np.array( trnDf[varNames[m]] )
-
+            vec    = np.array( trnDf[varNames[m]] )
+            velVec = np.gradient( vec[-self.velBcWinSize:], 2 )
+            
             self.endVec[m] = vec[nSteps]
-            self.endVec[m + nDims] = np.mean(np.gradient( vec[-1*19*60:], 2 ))
-            #vec[nSteps] - vec[nSteps - 1]
+            self.endVec[m + nDims] = np.mean( velVec )
 
             if self.endBcFlag:
                 self.bcVec[m] = self.endVec[m]
