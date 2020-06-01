@@ -870,7 +870,7 @@ class EcoMfdConst2:
             bounds.append( ( None, None ) )
 
         for paramId in range( self.nDims ):
-            bounds.append( ( -1.0, 0.0 ) )
+            bounds.append( ( -1.0e-10, 0.0 ) )
 
         optObj = scipy.optimize.minimize( fun     = self.getObjFunc, 
                                           x0      = self.params, 
@@ -1208,11 +1208,13 @@ class EcoMfdConst2:
         nTimes    = self.nTimes
         nOosTimes = self.nOosTimes
         Gamma     = self.getGamma( self.params )
+        beta      = self.getBeta( self.params )
         srcCoefs  = self.srcCoefs
 
         self.logger.debug( 'Solving geodesic to predict...' )
 
         odeObj   = OdeGeoConst2( Gamma    = Gamma,
+                                 beta     = beta,
                                  bcVec    = self.endVec,
                                  bcTime   = 0.0,
                                  timeInc  = 1.0,
@@ -1477,7 +1479,7 @@ class EcoMfdConst2:
         actOosSol = self.actOosSol
         x         = np.linspace( 0, nSteps, nTimes )
         xOos      = np.linspace( nSteps, nSteps + nOosTimes-1, nOosTimes )
-        odeObj    = self.getSol( self.GammaVec )
+        odeObj    = self.getSol( self.params )
         oosOdeObj = self.getOosSol()
         sol       = odeObj.getSol()
         oosSol    = oosOdeObj.getSol()

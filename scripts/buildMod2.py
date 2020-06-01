@@ -64,6 +64,6 @@ validFlag = mfdMod.build()
 print( 'Success :', validFlag )
 
 #mfdMod.save( modFileName )
-mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
+mfdMod.ecoMfd.pltResults( rType = 'trn' )
 #mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
 

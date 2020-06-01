@@ -574,7 +574,7 @@ class MfdMod2:
 
         sFlag = self.setMfd()
 
-        self.echoMod()
+#        self.echoMod()
         
         if not sFlag:
             self.converged = sFlag
