@@ -22,6 +22,7 @@ from sklearn.decomposition import KernelPCA
 
 sys.path.append( os.path.abspath( '../' ) )
 
+from utl.utils import getLogger
 from mfd.ecoMfdBase import EcoMfdCBase
 from ode.odeGeo import OdeGeoConst 
 from ode.odeGeo import OdeAdjConst 
@@ -659,7 +660,7 @@ class EcoMfdConst2:
         if srelFlag:
             self.nGammaVec -= nDims
 
-        self.nParams = self.nGammaVec + 3 * nDims
+        self.nParams = self.nGammaVec + nDims
         self.params  = np.zeros( shape = ( self.nParams ), dtype = 'd' )
 
         self.setBcs()
@@ -855,35 +856,107 @@ class EcoMfdConst2:
 
         t0 = time.time()
 
+        if self.optType == 'GD':
+            sFlag = self.setParamsGD()        
+            return
+        
         options  = { 'gtol'    : self.optGTol, 
                      'ftol'    : self.optFTol, 
                      'maxiter' : self.maxOptItrs, 
                      'disp'    : True              }
 
-        try:
-            optObj = scipy.optimize.minimize( fun     = self.getObjFunc, 
-                                              x0      = self.params, 
-                                              method  = self.optType, 
-                                              jac     = self.getGrad,
-                                              options = options       )
-            sFlag   = optObj.success
+        bounds  = []
+        for paramId in range( self.nGammaVec ):
+            bounds.append( ( None, None ) )
+
+        for paramId in range( self.nDims ):
+            bounds.append( ( -1.0, 0.0 ) )
+
+        optObj = scipy.optimize.minimize( fun     = self.getObjFunc, 
+                                          x0      = self.params, 
+                                          method  = self.optType, 
+                                          jac     = self.getGrad,
+                                          bounds  = bounds,
+                                          options = options       )
+        sFlag   = optObj.success
     
-            self.params = optObj.x
+        self.params = optObj.x
 
-            self.logger.info( 'Success: %s', str( sFlag ) )
-
-        except:
-            sFlag = False
+        self.logger.info( 'Success: %s', str( sFlag ) )
 
         self.statHash[ 'totTime' ] = time.time() - t0
 
-        self.logger.info( 'Setting Gamma: %0.2f seconds.', 
+        self.logger.info( 'Setting parameters: %0.2f seconds.', 
                           time.time() - t0 )
 
         self.setConstStdVec()
         
         return sFlag
 
+    def setParamsGD( self ):
+
+        if self.stepSize is None:
+            stepSize = 1.0
+            lsFlag   = True
+            self.logger.info( 'Line search enabled as step size is not set!' )
+        else:
+            stepSize = self.stepSize
+            lsFlag   = False
+
+        for itr in range( self.maxOptItrs ):
+
+            funcVal  = self.getObjFunc( self.params )
+
+            print( 'funcVal = ', funcVal )
+            
+            grad     = self.getGrad( self.params )
+
+            print( 'grad =', grad )
+
+            sys.exit()
+            
+            if itr == 0:
+                funcVal0  = funcVal
+                norm0     = np.linalg.norm( grad )
+                
+            if lsFlag:
+                obj = scipy.optimize.line_search( f        = self.getObjFunc, 
+                                                  myfprime = self.getGrad, 
+                                                  xk       = self.params,
+                                                  pk       = -grad, 
+                                                  gfk      = grad,
+                                                  old_fval = funcVal,
+                                                  c1       = 0.1, 
+                                                  c2       = 0.9, 
+                                                  maxiter  = 3       )
+            
+                if obj[0] is not None:
+                    stepSize = obj[0]
+                else:
+                    self.logger.warning( 'Line search did not converge! Using previous value!' )
+
+            tmp = np.linalg.norm( grad ) / norm0
+
+            self.logger.debug( 'Iteration %d: step size     = %.8f', itr + 1, stepSize )
+
+            self.logger.info( 'Iteration %d: rel. gradient norm = %.8f', itr + 1, tmp )
+            
+            if tmp < self.optGTol:
+                self.logger.info( 'Converged at iteration %d; rel. gradient norm = %.8f', itr + 1, tmp )
+                return True
+
+            tmp = funcVal / funcVal0
+
+            if tmp < self.optFTol:
+                self.logger.info( 'Converged at iteration %d; rel. func. val. = %.8f', itr + 1, tmp )
+                return True
+
+            self.params = self.params - stepSize * grad
+
+        gc.collect()
+        
+        return False
+    
     def getObjFunc( self, params ):
 
         self.statHash[ 'funCnt' ] += 1
@@ -943,6 +1016,8 @@ class EcoMfdConst2:
 
         sol = odeObj.getSol()
 
+        print( 'sol =', sol )
+        
         adjOdeObj = self.getAdjSol( params, odeObj )
 
         if adjOdeObj is None:
@@ -951,10 +1026,15 @@ class EcoMfdConst2:
 
         adjSol = adjOdeObj.getSol()
 
+        print( 'adjSol =', adjSol )
+
         t0 = time.time()
 
         GammaVec = self.getGammaVec( params )
         beta     = self.getBeta( params )
+
+        print( 'GammaVec =', GammaVec )
+        print( 'beta =', beta )
         
         gammaId = 0
         for r in range( nDims ):
@@ -971,8 +1051,8 @@ class EcoMfdConst2:
                     tmpVec  = np.multiply(tmpVec, adjSol[r] )
 
                     grad[gammaId] = trapz( tmpVec, dx = timeInc ) +\
-                        regCoef * ( regL1Wt * np.sign( GammaVec[paramId] ) +\
-                                    ( 1.0 - regL1Wt ) * 2.0 * GammaVec[paramId] )    
+                        regCoef * ( regL1Wt * np.sign( GammaVec[gammaId] ) +\
+                                    ( 1.0 - regL1Wt ) * 2.0 * GammaVec[gammaId] )    
 
                     gammaId += 1
 
@@ -986,7 +1066,7 @@ class EcoMfdConst2:
                             ( 1.0 - regL1Wt ) * 2.0 * beta[betaId] )    
             
             betaId += 1
-            
+
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
                            time.time() - t0 )
         

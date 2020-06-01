@@ -34,9 +34,13 @@ class OdeBaseConst:
                   atnCoefs  = None,                  
                   verbose   = 1           ):
 
-        nDims   = len( bcVec )
+        nDims   = Gamma.shape[0]
         nTimes  = nSteps + 1
 
+        assert len( bcVec ) == nDims or \
+               len( bcVec ) == 2 * nDims, \
+               'Incorrect bcVec size!'
+        
         assert bcTime >= 0, 'BC time should be >= 0!'
 
         assert Gamma.shape[0] == nDims,  'Incorrect Gamma size!'
@@ -111,7 +115,7 @@ class OdeBaseConst:
         
         self.sol = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
         self.vel = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
-        self.acl = None
+        self.acl = np.zeros( shape = ( nDims, nTimes ), dtype = 'd' )
         
     def fun( self, t, y ):
         pass
@@ -156,7 +160,9 @@ class OdeBaseConst:
 
         assert sFlag, 'Failed to solve the ODE!'
         
-        assert res.y.shape[0] == nDims,  'Internal error!'
+        assert res.y.shape[0] == nDims or \
+               res.y.shape[0] == 2 * nDims, \
+               'Internal error!'
         assert res.y.shape[1] == nTimes, 'Internal error!'
 
         if bkFlag:
@@ -168,16 +174,16 @@ class OdeBaseConst:
             self.sol[m] = solVec[m]
             self.vel[m] = solVec[m + nDims]
 
-        acl = np.zeros( shape = ( nTimes, nDims ), dtype = 'd' )
+        # acl = np.zeros( shape = ( nTimes, nDims ), dtype = 'd' )
         
-        for tsId in range( nTimes ):
+        # for tsId in range( nTimes ):
 
-            t = tsId * timeInc
+        #     t = tsId * timeInc
 
-            acl[tsId] = self.fun( t,
-                                  solVec.transpose()[tsId] )[nDims:]
+        #     acl[tsId] = self.fun( t,
+        #                           solVec.transpose()[tsId] )[nDims:]
 
-        self.acl = acl.transpose()
+        # self.acl = acl.transpose()
         
         return sFlag 
 
@@ -188,4 +194,8 @@ class OdeBaseConst:
         return self.vel
 
     def getAcl( self ):
+
+        for m in range( self.nDims ):
+            self.acl[m] = np.gradient( self.vel[m], 2 )
+            
         return self.acl

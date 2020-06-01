@@ -13,6 +13,7 @@ import scipy as sp
 sys.path.append( os.path.abspath( '../' ) )
 
 from mfd.ecoMfd import EcoMfdConst as EcoMfd
+from mfd.ecoMfd import EcoMfdConst2 as EcoMfd2
 
 from utl.utils import getLogger
 
@@ -503,3 +504,132 @@ class MfdMod:
         validFlag = validFlag & (oosMeritAvg >= self.minMerit)
         
         return validFlag
+
+# ***********************************************************************
+# Class MfdMod2: Model object to build a second order model
+# ***********************************************************************
+
+class MfdMod2:
+
+    def __init__(   self,
+                    dfFile,
+                    minTrnDate, 
+                    maxTrnDate,
+                    maxOosDate,
+                    varNames,
+                    stepSize     = None,
+                    optType      = 'SLSQP',
+                    maxOptItrs   = 100, 
+                    optGTol      = 1.0e-4,
+                    optFTol      = 1.0e-8,
+                    factor       = 4.0e-5,
+                    regCoef      = None,
+                    smoothCount  = None,
+                    srcTerm      = None,                    
+                    atnFct       = 1.0,
+                    mode         = 'intraday',
+                    logFileName  = None,                    
+                    verbose      = 1          ):
+
+        self.dfFile      = dfFile
+        self.minTrnDate  = minTrnDate
+        self.maxTrnDate  = maxTrnDate
+        self.maxOosDate  = maxOosDate
+        self.stepSize    = stepSize
+        self.optType     = optType
+        self.maxOptItrs  = maxOptItrs
+        self.optGTol     = optGTol
+        self.optFTol     = optFTol
+        self.srcTerm     = srcTerm
+        self.mode        = mode
+        self.ecoMfd      = None
+        self.trmFuncDict = {}
+        self.logFileName = logFileName
+        self.verbose     = verbose
+        self.logger      = getLogger( logFileName, verbose, 'mod' )
+        self.converged   = False
+        self.factor      = factor
+        
+        if regCoef is None:
+            self.regCoef    = 0.0
+        else:
+            self.regCoef    = regCoef
+        
+        assert atnFct >= 0, 'atnFct should be positive!'
+        assert atnFct <= 1.0, 'atnFct should be less than or equal to 1.0!'
+
+        self.atnFct = atnFct
+
+        self.varNames = varNames
+        
+        if smoothCount is not None :
+            for varName in self.varNames:
+                self.trmFuncDict[ varName ] = lambda x : x.rolling( int( smoothCount ), 
+                                                                    win_type = 'blackman',
+                                                                    center   = True ).mean()
+                
+    def build( self ):
+
+        self.logger.info( 'Building a manifold...' )
+
+        sFlag = self.setMfd()
+
+        self.echoMod()
+        
+        if not sFlag:
+            self.converged = sFlag
+            return False
+        
+        return True
+
+    def setMfd( self ):
+
+        self.ecoMfd = EcoMfd2( varNames     = self.varNames,
+                               dateName     = 'Date', 
+                               dfFile       = self.dfFile,
+                               minTrnDate   = self.minTrnDate,
+                               maxTrnDate   = self.maxTrnDate,
+                               maxOosDate   = self.maxOosDate,
+                               trmFuncDict  = self.trmFuncDict,
+                               optType      = self.optType, 
+                               maxOptItrs   = self.maxOptItrs, 
+                               optGTol      = self.optGTol,
+                               optFTol      = self.optFTol,
+                               stepSize     = self.stepSize,
+                               factor       = self.factor,
+                               regCoef      = self.regCoef,
+                               regL1Wt      = 0.0,
+                               nPca         = None,
+                               diagFlag     = DIAG_FLAG,
+                               srelFlag     = SREL_FLAG,                              
+                               endBcFlag    = True,
+                               srcTerm      = self.srcTerm,
+                               atnFct       = self.atnFct,
+                               mode         = self.mode,
+                               logFileName  = self.logFileName,                              
+                               verbose      = self.verbose        )        
+
+        sFlag = self.ecoMfd.setParams()
+
+        if not sFlag:
+            self.logger.warning( 'Did not converge!' )
+
+        return sFlag
+
+    def save( self, outModFile ):
+        
+        with open( outModFile, 'wb' ) as fHd:
+            dill.dump( self, fHd, pk.HIGHEST_PROTOCOL )
+
+    def echoMod( self ):
+
+        ecoMfd  = self.ecoMfd
+        nDims   = ecoMfd.nDims
+
+        self.logger.info( 'Manifold Error    : %0.6f', ecoMfd.getError() )
+        self.logger.info( 'Manifold oos Error: %0.6f', ecoMfd.getOosError() )
+        self.logger.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
+
+        self.logger.info( '\n' + str( ecoMfd.getTimeDf() ) )
+
+    
