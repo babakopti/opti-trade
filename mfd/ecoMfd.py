@@ -821,7 +821,8 @@ class EcoMfdConst2:
             vec = np.array( trnDf[varNames[m]] )
 
             self.endVec[m] = vec[nSteps]
-            self.endVec[m + nDims] = vec[nSteps] - vec[nSteps - 1]
+            self.endVec[m + nDims] = np.mean(np.gradient( vec[-1*19*60:], 2 ))
+            #vec[nSteps] - vec[nSteps - 1]
 
             if self.endBcFlag:
                 self.bcVec[m] = self.endVec[m]
@@ -865,18 +866,17 @@ class EcoMfdConst2:
                      'maxiter' : self.maxOptItrs, 
                      'disp'    : True              }
 
-        bounds  = []
-        for paramId in range( self.nGammaVec ):
-            bounds.append( ( None, None ) )
+        # bounds  = []
+        # for paramId in range( self.nGammaVec ):
+        #     bounds.append( ( None, None ) )
 
-        for paramId in range( self.nDims ):
-            bounds.append( ( -1.0e-10, 0.0 ) )
+        # for paramId in range( self.nDims ):
+        #     bounds.append( ( -1.0e-10, 0.0 ) )
 
         optObj = scipy.optimize.minimize( fun     = self.getObjFunc, 
                                           x0      = self.params, 
                                           method  = self.optType, 
                                           jac     = self.getGrad,
-                                          bounds  = bounds,
                                           options = options       )
         sFlag   = optObj.success
     
@@ -907,14 +907,8 @@ class EcoMfdConst2:
 
             funcVal  = self.getObjFunc( self.params )
 
-            print( 'funcVal = ', funcVal )
-            
             grad     = self.getGrad( self.params )
 
-            print( 'grad =', grad )
-
-            sys.exit()
-            
             if itr == 0:
                 funcVal0  = funcVal
                 norm0     = np.linalg.norm( grad )
@@ -1016,26 +1010,19 @@ class EcoMfdConst2:
 
         sol = odeObj.getSol()
 
-        print( 'sol =', sol )
-        
         adjOdeObj = self.getAdjSol( params, odeObj )
-
+        
         if adjOdeObj is None:
             sys.exit()
             return False
 
         adjSol = adjOdeObj.getSol()
 
-        print( 'adjSol =', adjSol )
-
         t0 = time.time()
 
         GammaVec = self.getGammaVec( params )
         beta     = self.getBeta( params )
 
-        print( 'GammaVec =', GammaVec )
-        print( 'beta =', beta )
-        
         gammaId = 0
         for r in range( nDims ):
             for p in range( nDims ):
@@ -1069,6 +1056,8 @@ class EcoMfdConst2:
 
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
                            time.time() - t0 )
+
+        print( 'grad:', grad )
         
         del sol
         del adjSol
@@ -1133,6 +1122,7 @@ class EcoMfdConst2:
         sol      = odeObj.getSol()
         vel      = odeObj.getVel()
         acl      = odeObj.getAcl()
+
         bcVec    = np.zeros( shape = ( 2 * nDims ), dtype = 'd' )
 
         self.logger.debug( 'Solving adjoint geodesic equation...' )

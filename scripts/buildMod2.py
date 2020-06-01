@@ -53,7 +53,7 @@ mfdMod = MfdMod2(   dfFile       = dfFile,
                     maxOptItrs   = 100,
                     optGTol      = 1.0e-2,
                     optFTol      = 1.0e-2,
-                    factor       = 1.0e-8,
+                    factor       = 1.0e-7,
                     regCoef      = 1.0e-2,
                     smoothCount  = None,
                     logFileName  = None,
@@ -65,5 +65,5 @@ print( 'Success :', validFlag )
 
 #mfdMod.save( modFileName )
 mfdMod.ecoMfd.pltResults( rType = 'trn' )
-#mfdMod.ecoMfd.pltResults( rType = 'oos', pType = pType )
+mfdMod.ecoMfd.pltResults( rType = 'oos' )
 
