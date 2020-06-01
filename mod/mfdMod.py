@@ -578,7 +578,7 @@ class MfdMod2:
 
         sFlag = self.setMfd()
 
-#        self.echoMod()
+        self.echoMod()
         
         if not sFlag:
             self.converged = sFlag
@@ -634,7 +634,7 @@ class MfdMod2:
 
         self.logger.info( 'Manifold Error    : %0.6f', ecoMfd.getError() )
         self.logger.info( 'Manifold oos Error: %0.6f', ecoMfd.getOosError() )
-        self.logger.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt( 'vel' ) )
+        self.logger.info( 'Manifold oos velocity trend match: %0.6f', ecoMfd.getOosTrendCnt() )
 
         self.logger.info( '\n' + str( ecoMfd.getTimeDf() ) )
 

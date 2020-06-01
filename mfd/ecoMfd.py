@@ -871,17 +871,18 @@ class EcoMfdConst2:
                      'maxiter' : self.maxOptItrs, 
                      'disp'    : True              }
 
-        # bounds  = []
-        # for paramId in range( self.nGammaVec ):
-        #     bounds.append( ( None, None ) )
+        bounds  = []
+        for paramId in range( self.nGammaVec ):
+            bounds.append( ( None, None ) )
 
-        # for paramId in range( self.nDims ):
-        #     bounds.append( ( -1.0e-10, 0.0 ) )
+        for paramId in range( self.nDims ):
+            bounds.append( ( 0.0, 1.0e-12 ) )
 
         optObj = scipy.optimize.minimize( fun     = self.getObjFunc, 
                                           x0      = self.params, 
                                           method  = self.optType, 
                                           jac     = self.getGrad,
+#                                          bounds  = bounds,
                                           options = options       )
         sFlag   = optObj.success
     
