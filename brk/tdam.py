@@ -348,7 +348,7 @@ class Tdam:
                 orderQtyHash[ symbol ] = 0
                 continue                
 
-            if qty > 0:
+            if qty >= 0:
                 actual = self.getQuote( symbol, 'ask' )
             elif qty < 0:
                 actual = self.getQuote( symbol, 'bid' )
@@ -371,7 +371,7 @@ class Tdam:
                 orderQtyHash[ symbol ] = 0
                 continue
 
-            elif slip > self.tolSlip:
+            elif slip > self.tolSlip and qty > 0:
                 adjQty = int( qty * last / actual )
 
                 if adjQty < 0 and currPrtHash[ symbol ] > 0:
