@@ -320,15 +320,18 @@ class Tdam:
             else:
                 continue
 
-            self.order( symbol,
-                        orderType = 'MARKET',
-                        duration  = 'DAY',
-                        price     = None,
-                        quantity  = quantity,
-                        sType     = sType,
-                        action    = orderAction )
+            try:
+                self.order( symbol,
+                            orderType = 'MARKET',
+                            duration  = 'DAY',
+                            price     = None,
+                            quantity  = quantity,
+                            sType     = sType,
+                            action    = orderAction )
 
-            time.sleep( ORDER_WAIT_TIME )
+                time.sleep( ORDER_WAIT_TIME )
+            except Exception as e:
+                self.logger.critical( e )
 
     def adjSlip( self, orderQtyHash, currPrtHash ):
 
