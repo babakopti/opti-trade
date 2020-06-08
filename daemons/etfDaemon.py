@@ -319,7 +319,10 @@ class MfdPrtBuilder( Daemon ):
         self.clean( self.modDir, NUM_DAYS_MOD_CLEAN  )
         self.clean( self.prtDir, NUM_DAYS_PRT_CLEAN  )
 
-        self.cleanBucket( NUM_DAYS_BUCKET_CLEAN )
+        try:
+            self.cleanBucket( NUM_DAYS_BUCKET_CLEAN )
+        except Exception as e:
+            self.logger.error(e)
             
         return True
 

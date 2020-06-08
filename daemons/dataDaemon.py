@@ -255,8 +255,11 @@ class DataCollector( Daemon ):
             newDf.to_pickle( filePath, protocol = 4 )
 
             self.reportSplit( newDf, symbol )
-            
-            self.backupData( filePath )
+
+            try:
+                self.backupData( filePath )
+            except Exception as e:
+                self.logger.error( e )
 
         self.logger.critical( 'Done with getting data for %d symbols...',
                               len( symbols ) )
