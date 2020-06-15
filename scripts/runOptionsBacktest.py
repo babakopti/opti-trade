@@ -13,6 +13,8 @@ import pickle
 import numpy as np
 import pandas as pd
 
+from multiprocessing import Pool
+
 sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
@@ -32,7 +34,7 @@ nTrnYears    = 5
 nOosMinutes  = 5
 maxHorizon   = 3 * 30
 begDate      = pd.to_datetime( '2017-01-01' )
-endDate      = pd.to_Datetime( '2018-12-31' )
+endDate      = pd.to_datetime( '2018-12-31' )
 numCores     = 2
 INDEXES      = INDEXES + [ 'VIX' ]
 ASSETS       = [ 'TLT', 'DIA', 'FAS', 'SMH' ]
@@ -45,7 +47,7 @@ actDf = pd.read_pickle( dfFile )[ [ 'Date' ] + ASSETS ]
 
 actDf[ 'Date' ] = actDf.Date.apply( lambda x : \
                                     pd.to_datetime(x).\
-                                    stftime( '%Y-%m-%d' ) ) )
+                                    strftime( '%Y-%m-%d' ) )
 
 actDf = actDf.groupby( 'Date', as_index = False ).mean()
 
@@ -59,6 +61,9 @@ for date in actDf.Date:
 actDf = actDf.melt( id_vars    = [ 'Date' ],
                     value_vars = list( set( actDf.columns ) - \
                                        { 'Date' } ) )
+
+actDf[ 'Date' ] = actDf.Date.apply( lambda x : pd.to_datetime(x) )
+
 actDf = actDf.rename( columns = { 'Date'     : 'Expiration',
                                   'variable' : 'UnderlyingSymbol',
                                   'value'    : 'actExprPrice' }   )
