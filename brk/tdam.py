@@ -24,7 +24,10 @@ from utl.utils import getLogger
 MAX_SLIP = 2.0
 TOL_SLIP = 0.0025
 
+MAX_RETRIES = 5
+
 ORDER_WAIT_TIME = 10
+RETRY_WAIT_TIME = 20
 
 # ***********************************************************************
 # Class Tdam: A class to trade with TD Ameritrade
@@ -274,11 +277,20 @@ class Tdam:
             self.accountId
         
         headers = { 'Authorization': 'Bearer ' + self.token }
-        
-        resp = requests.post( url,
-                              headers = headers,
-                              json    = orderHash    )
 
+        for itr in range( MAX_RETRIES ):
+            resp = requests.post( url,
+                                  headers = headers,
+                                  json    = orderHash    )
+            if resp.ok:
+                break
+            else:
+                self.logger.warning( '%s: Retrying in %d seconds!', resp.text, RETRY_WAIT_TIME )
+                time.sleep( RETRY_WAIT_TIME )
+
+        if not resp.ok:
+            self.logger.critical( 'Failed to trade %s: %s', symbol, resp.text )
+                
         self.logger.info( resp.text )
             
     def getPortfolio( self, sType = 'EQUITY' ):
