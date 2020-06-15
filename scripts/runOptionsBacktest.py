@@ -38,24 +38,47 @@ INDEXES      = INDEXES + [ 'VIX' ]
 ASSETS       = [ 'TLT', 'DIA', 'FAS', 'SMH' ]
 
 # ***********************************************************************
-# Get daily df to use for gettinf actual prices
+# Get daily df 
 # ***********************************************************************
 
-df = pd.read_pickle( dfFile )
+actDf = pd.read_pickle( dfFile )[ [ 'Date' ] + ASSETS ]
 
-tmpFunc = lambda x : pd.to_datetime(x).stftime( '%Y-%m-%d' ) )
+actDf[ 'Date' ] = actDf.Date.apply( lambda x : \
+                                    pd.to_datetime(x).\
+                                    stftime( '%Y-%m-%d' ) ) )
 
-df[ 'Date0' ] = df.Date.apply( tmpFunc )
+actDf = actDf.groupby( 'Date', as_index = False ).mean()
 
-dayDf = df.groupby( 'Date', as_index = False ).mean()
-                                                
+actHash = {}
+for date in actDf.Date:
+    actHash[ date ] = {}
+    tmpDf = actDf[ actDf.Date == date ]
+    for asset in ASSETS:
+        actHash[ date ][ asset ] = list( tmpDf[ asset ] )[0]
+        
+actDf = actDf.melt( id_vars    = [ 'Date' ],
+                    value_vars = list( set( actDf.columns ) - \
+                                       { 'Date' } ) )
+actDf = actDf.rename( columns = { 'Date'     : 'Expiration',
+                                  'variable' : 'UnderlyingSymbol',
+                                  'value'    : 'actExprPrice' }   )
+
+optDf = pd.read_pickle( optionDfFile )
+
+optDf = optDf.merge( actDf,
+                     how = 'left',
+                     on  = [ 'UnderlyingSymbol', 'Expiration' ] )
+
+optDf.to_pickle( optionDfFile )
+
 # ***********************************************************************
 # Utility functions
 # ***********************************************************************
 
 def getAssetHash( snapDate ):
-    pass
-
+    
+    return actHash[ snapDate ]
+    
 def process( snapDate ):
 
     t0 = time.time()

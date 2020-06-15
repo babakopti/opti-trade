@@ -22,7 +22,7 @@ from dat.assets import FUTURES, INDEXES
 
 dfFile       = 'data/optionTestDfFile.pkl'
 minDate      = pd.to_datetime( '2012-01-01' )
-maxDate      = pd.to_Datetime( '2019-01-05' )
+maxDate      = pd.to_datetime( '2019-01-05' )
 INDEXES      = INDEXES + [ 'VIX' ]
 
 # ***********************************************************************
@@ -32,7 +32,7 @@ INDEXES      = INDEXES + [ 'VIX' ]
 piDf = utl.mergePiSymbols( symbols = INDEXES + ETFS + FUTURES,
                            datDir  = '/var/pi_data',
                            minDate = minDate )
-df   = utl.mergeSymbols( symbols = symbols,
+df   = utl.mergeSymbols( symbols = INDEXES + ETFS + FUTURES,
                          datDir  = '/var/data',
                          fileExt = 'pkl',
                          minDate = minDate,
