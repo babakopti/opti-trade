@@ -44,7 +44,7 @@ NUM_TRN_YEARS = 5
 NUM_OOS_MINS  = 5
 STEP_SIZE     = None
 MAX_OPT_ITRS  = 500
-OPT_TOL       = 5.0e-2
+OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
