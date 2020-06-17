@@ -35,7 +35,8 @@ from brk.tdam import Tdam
 # Set some parameters 
 # ***********************************************************************
 
-INDEXES  = INDEXES + [ 'VIX' ]
+INDEXES  = list( set( INDEXES ) - { 'TRAN', 'TYX' } )
+ETFS     = list( set( ETFS ) - { 'OIH' } )
 STOCKS   = []
 
 ASSETS   = ETFS

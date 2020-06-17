@@ -10,6 +10,7 @@ import pytz
 import dill
 import logging
 import pickle
+import gc
 import numpy as np
 import pandas as pd
 
@@ -33,17 +34,30 @@ dfFile       = 'data/optionTestDfFile.pkl'
 nTrnYears    = 5
 nOosMinutes  = 5
 maxHorizon   = 3 * 30
-begDate      = pd.to_datetime( '2017-01-01' )
-endDate      = pd.to_datetime( '2018-12-31' )
-numCores     = 2
-INDEXES      = INDEXES + [ 'VIX' ]
+snapDates    = [ pd.to_datetime( '2016-05-02 10:00:00' ),
+                 pd.to_datetime( '2016-05-16 10:00:00' ),                 
+                 pd.to_datetime( '2016-05-27 10:00:00' ),
+                 pd.to_datetime( '2016-09-01 10:00:00' ),
+                 pd.to_datetime( '2016-09-15 10:00:00' ),
+                 pd.to_datetime( '2016-09-30 10:00:00' ),
+                 pd.to_datetime( '2017-07-03 10:00:00' ),
+                 pd.to_datetime( '2017-07-14 10:00:00' ),                 
+                 pd.to_datetime( '2017-07-31 10:00:00' )  ]
+
+optDf = pd.read_pickle( optionDfFile )
+
+snapDates = list( set( optDf.DataDate ) - set( snapDates ) )
+                 
+INDEXES      = INDEXES 
 ASSETS       = [ 'TLT', 'DIA', 'FAS', 'SMH' ]
+velNames     = ETFS + INDEXES + FUTURES
+velNames     = list( set( velNames ) - { 'TRAN', 'TYX', 'OIH' } )
 
 # ***********************************************************************
-# Get daily df 
+# Do some preprocessing
 # ***********************************************************************
 
-actDf = pd.read_pickle( dfFile )[ [ 'Date' ] + ASSETS ]
+actDf = pd.read_pickle( dfFile )[ [ 'Date' ] + velNames ]
 
 actDf[ 'Date' ] = actDf.Date.apply( lambda x : \
                                     pd.to_datetime(x).\
@@ -55,26 +69,30 @@ actHash = {}
 for date in actDf.Date:
     actHash[ date ] = {}
     tmpDf = actDf[ actDf.Date == date ]
-    for asset in ASSETS:
-        actHash[ date ][ asset ] = list( tmpDf[ asset ] )[0]
-        
-actDf = actDf.melt( id_vars    = [ 'Date' ],
-                    value_vars = list( set( actDf.columns ) - \
-                                       { 'Date' } ) )
+    for symbol in velNames:
+        actHash[ date ][ symbol ] = list( tmpDf[ symbol ] )[0]
 
-actDf[ 'Date' ] = actDf.Date.apply( lambda x : pd.to_datetime(x) )
+if False:        
+    actDf = actDf.melt( id_vars    = [ 'Date' ],
+                        value_vars = list( set( actDf.columns ) - \
+                                           { 'Date' } ) )
 
-actDf = actDf.rename( columns = { 'Date'     : 'Expiration',
-                                  'variable' : 'UnderlyingSymbol',
-                                  'value'    : 'actExprPrice' }   )
+    actDf[ 'Date' ] = actDf.Date.apply( lambda x : pd.to_datetime(x) )
 
-optDf = pd.read_pickle( optionDfFile )
+    actDf = actDf.rename( columns = { 'Date'     : 'Expiration',
+                                      'variable' : 'UnderlyingSymbol',
+                                      'value'    : 'actExprPrice' }   )
 
-optDf = optDf.merge( actDf,
-                     how = 'left',
-                     on  = [ 'UnderlyingSymbol', 'Expiration' ] )
+    optDf = pd.read_pickle( optionDfFile )
 
-optDf.to_pickle( optionDfFile )
+    optDf[ 'Expiration' ] = optDf.Expiration.apply( lambda x : pd.to_datetime(x) )
+    optDf[ 'DataDate' ]   = optDf.DataDate.apply( lambda x : pd.to_datetime(x) )
+    
+    optDf = optDf.merge( actDf,
+                         how = 'left',
+                         on  = [ 'UnderlyingSymbol', 'Expiration' ] )
+
+    optDf.to_pickle( optionDfFile )
 
 # ***********************************************************************
 # Utility functions
@@ -82,29 +100,32 @@ optDf.to_pickle( optionDfFile )
 
 def getAssetHash( snapDate ):
     
-    return actHash[ snapDate ]
+    return actHash[ snapDate.strftime( '%Y-%m-%d' ) ]
     
 def process( snapDate ):
 
     t0 = time.time()
 
     # Build model
+
+    print( 'Building model for %s' % str( snapDate ) )
     
-    velNames = ETFS + INDEXES + FUTURES
     maxOosDt = snapDate
     maxTrnDt = maxOosDt - datetime.timedelta( minutes = nOosMinutes )
     minTrnDt = maxTrnDt - pd.DateOffset( years = nTrnYears )        
     modFile  = 'model_' + str( snapDate ) + '.dill'
     modFile  = os.path.join( 'models', modFile )
-    
+
+    print( maxOosDt, maxTrnDt, minTrnDt )
+
     mfdMod   = MfdMod( dfFile       = dfFile,
                        minTrnDate   = minTrnDt,
                        maxTrnDate   = maxTrnDt,
                        maxOosDate   = maxOosDt,
                        velNames     = velNames,
                        maxOptItrs   = 100,
-                       optGTol      = 5.0e-2,
-                       optFTol      = 5.0e-2,
+                       optGTol      = 1.0e-3,
+                       optFTol      = 1.0e-3,
                        regCoef      = 1.0e-3,
                        factor       = 1.0e-5,
                        logFileName  = None,
@@ -113,38 +134,49 @@ def process( snapDate ):
     sFlag = mfdMod.build()
 
     if not sFlag:
-        logging.warning( 'Model did not converge!' )
-        return False
+        print( 'Model did not converge!' )
 
     mfdMod.save( modFile )
 
+    mfdMod = None
+    gc.collect()
+    
     # Build portfolio object
+
+    print( 'Getting assetHash for %s' % str( snapDate ) )
     
     assetHash = getAssetHash( snapDate )
-        
-    prtObj = MfdOptionsPrt( modFile     = modFile,
-                            assetHash   = assetHash,
-                            curDate     = snapDate,
-                            minDate     = minDate,
-                            maxDate     = maxDate,
-                            minProb     = 0.5,
-                            rfiDaily    = 0.0,
-                            tradeFee    = 0.75,
-                            nDayTimes   = 1140,
-                            logFileName = None,                    
-                            verbose     = 1          )
+
+    print( 'Building prt obj for %s' % str( snapDate ) )
+
+    minDate = snapDate
+    maxDate = snapDate + datetime.timedelta( days = maxHorizon )
+    prtObj  = MfdOptionsPrt( modFile     = modFile,
+                             assetHash   = assetHash,
+                             curDate     = snapDate,
+                             minDate     = minDate,
+                             maxDate     = maxDate,
+                             minProb     = 0.5,
+                             rfiDaily    = 0.0,
+                             tradeFee    = 0.75,
+                             nDayTimes   = 1140,
+                             logFileName = None,                    
+                             verbose     = 1          )
 
     # Get historical options chains
+
+    print( 'Adding success probabilities option df for %s' % str( snapDate ) )
     
     optDf = pd.read_pickle( optionDfFile )
     optDf = optDf[ optDf.UnderlyingSymbol.isin( ASSETS ) ]
     optDf = optDf[ optDf.Last > 0 ]
     optDf = optDf[ optDf.DataDate >= snapDate ]
+    optDf = optDf[ ( optDf.Expiration >= minDate ) &
+                   ( optDf.Expiration <= maxDate ) ]
         
     optDf[ 'horizon' ] = optDf[ 'Expiration' ] - optDf[ 'DataDate' ]
-    optDf[ 'horizon' ] = optDf.horizon.apply( lambda x : x.days )
 
-    optDf = optDf[ optDf.horizon <= maxHorizon ]
+    optDf = optDf[ optDf.horizon <= datetime.timedelta( days = maxHorizon ) ]
 
     # Get success probabilities of options
     
@@ -175,6 +207,8 @@ def process( snapDate ):
 
     optFile  = 'options_' + str( snapDate ) + '.pkl'
     optFile  = os.path.join( 'models', optFile )
+
+    print( 'Saving opt df for %s' % str( snapDate ) )
     
     optDf.to_pickle( optFile )
     
@@ -185,18 +219,10 @@ def process( snapDate ):
 # ***********************************************************************
 
 if __name__ ==  '__main__':
-    
-    snapDate = begDate
-    pool     = Pool( numCores )
 
-    while snapDate <= endDate:
+    for snapDate in snapDates:
 
-        pool.apply_async( process, args = ( snapDate, ) )
-
-        snapDate = snapDate + datetime.timedelta( days = maxHorizon )
-
-    pool.close()
-    pool.join()
+        process( snapDate )
 
     optFiles = os.listdir( 'models' )
     optDf = pd.DataFrame()
