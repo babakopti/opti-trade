@@ -36,6 +36,8 @@ if False:
 else:
     df = pd.read_pickle( 'options_test_all.pkl' )
 
+df[ 'Year' ] = df.DataDate.apply( lambda x : x.year )
+
 # ***********************************************************************
 # Analyze call options
 # ***********************************************************************
@@ -64,16 +66,28 @@ print( 'Chosen call success rate:',
        ch_call_df[ ch_call_df.Success ].shape[0] / ch_call_df.shape[0] )
 
 print( 'Overall call average return:',
-       call_df['Return'].mean() )
+       call_df.Return.mean() )
 
 print( 'Chosen call average return:',
-       ch_call_df['Return'].mean() )
+       ch_call_df.Return.mean() )
 
 print( 'Overall call median return:',
-       call_df['Return'].median() )
+       call_df.Return.median() )
 
 print( 'Chosen call median return:',
-       ch_call_df['Return'].median() )
+       ch_call_df.Return.median() )
+
+print( 'Overall call average return summary:',
+       call_df.groupby( 'Year' )[ 'Return' ].mean() )
+
+print( 'Chosen call average return summary:',
+       ch_call_df.groupby( 'Year' )[ 'Return' ].mean() )
+
+print( 'Overall call median return summary:',
+       call_df.groupby( 'Year' )[ 'Return' ].median() )
+
+print( 'Chosen call median return summary:',
+       ch_call_df.groupby( 'Year' )[ 'Return' ].median() )
 
 plt.scatter( ch_call_df.Probability, ch_call_df.Return )
 plt.title( 'Return vs. probability for call options!' )
@@ -109,16 +123,28 @@ print( 'Chosen put success rate:',
        ch_put_df[ ch_put_df.Success ].shape[0] / ch_put_df.shape[0] )
 
 print( 'Overall put average return:',
-       put_df['Return'].mean() )
+       put_df.Return.mean() )
 
 print( 'Chosen put average return:',
-       ch_put_df['Return'].mean() )
+       ch_put_df.Return.mean() )
 
 print( 'Overall put median return:',
-       put_df['Return'].median() )
+       put_df.Return.median() )
 
 print( 'Chosen put median return:',
-       ch_put_df['Return'].median() )
+       ch_put_df.Return.median() )
+
+print( 'Overall put average return summary:',
+       put_df.groupby( 'Year' )[ 'Return' ].mean() )
+
+print( 'Chosen put average return summary:',
+       ch_put_df.groupby( 'Year' )[ 'Return' ].mean() )
+
+print( 'Overall put median return summary:',
+       put_df.groupby( 'Year' )[ 'Return' ].median() )
+
+print( 'Chosen put median return summary:',
+       ch_put_df.groupby( 'Year' )[ 'Return' ].median() )
 
 plt.scatter( ch_put_df.Probability, ch_put_df.Return )
 plt.title( 'Return vs. probability for put options!' )
