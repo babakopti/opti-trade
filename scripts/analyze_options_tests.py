@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 # ***********************************************************************
 
 minProb = 0.55
+maxPrice = 2000.0
 
 # ***********************************************************************
 # Put all pieces together
@@ -89,6 +90,14 @@ print( 'Overall call median return summary:',
 print( 'Chosen call median return summary:',
        ch_call_df.groupby( 'Year' )[ 'Return' ].median() )
 
+print( 'Chosen call count with price limit:',
+    ch_call_df[ ch_call_df.Last < maxPrice / 100.0 ].\
+       groupby( 'Year' )[ 'OptionSymbol' ].count() )
+
+print( 'Chosen call median return summary with price limit:',
+    ch_call_df[ ch_call_df.Last < maxPrice / 100.0 ].\
+       groupby( 'Year' )[ 'Return' ].median() )
+
 plt.scatter( ch_call_df.Probability, ch_call_df.Return )
 plt.title( 'Return vs. probability for call options!' )
 plt.xlabel( 'Probability' )
@@ -145,6 +154,14 @@ print( 'Overall put median return summary:',
 
 print( 'Chosen put median return summary:',
        ch_put_df.groupby( 'Year' )[ 'Return' ].median() )
+
+print( 'Chosen put count with price limit:',
+    ch_put_df[ ch_put_df.Last < maxPrice / 100.0 ].\
+       groupby( 'Year' )[ 'OptionSymbol' ].count() )
+
+print( 'Chosen put median return summary with price limit:',
+    ch_put_df[ ch_put_df.Last < maxPrice / 100.0 ].\
+       groupby( 'Year' )[ 'Return' ].median() )
 
 plt.scatter( ch_put_df.Probability, ch_put_df.Return )
 plt.title( 'Return vs. probability for put options!' )
