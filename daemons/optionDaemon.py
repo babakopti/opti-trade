@@ -48,7 +48,7 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
-MAX_OPTION_MONTHS  = 6
+MAX_OPTION_MONTHS  = 3
 MAX_RATIO_CONTRACT = 0.20
 MAX_RATIO_ASSET    = 0.25
 MAX_RATIO_EXPOSURE = 1.0

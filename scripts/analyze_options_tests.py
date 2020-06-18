@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # Some Parameters
 # ***********************************************************************
 
-minProb = 0.55
+minProb = 0.51
 maxPrice = 2000.0
 
 # ***********************************************************************
@@ -38,6 +38,7 @@ else:
     df = pd.read_pickle( 'options_test_all.pkl' )
 
 df[ 'Year' ] = df.DataDate.apply( lambda x : x.year )
+df[ 'Bin_Prob' ] = df.Probability.apply( lambda x : 0.05 * int( x / 0.05 ) )
 
 # ***********************************************************************
 # Analyze call options
@@ -102,6 +103,26 @@ plt.scatter( ch_call_df.Probability, ch_call_df.Return )
 plt.title( 'Return vs. probability for call options!' )
 plt.xlabel( 'Probability' )
 plt.ylabel( 'Return' )
+plt.show()
+
+plt.scatter( ch_call_df.Probability, 100 * ch_call_df.Last )
+plt.title( 'Contract price vs. probability for call options!' )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Price' )
+plt.show()
+
+plt_df = ch_call_df.groupby( 'Bin_Prob', as_index = False ).mean()
+
+plt.plot( plt_df.Bin_Prob, plt_df.Return )
+plt.title( 'Return vs. binned probability for call options!' )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Return' )
+plt.show()
+
+plt.plot( plt_df.Bin_Prob, 100 * plt_df.Last )
+plt.title( 'Contract price vs. binned probability for call options!' )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Price' )
 plt.show()
 
 # ***********************************************************************
@@ -169,5 +190,22 @@ plt.xlabel( 'Probability' )
 plt.ylabel( 'Return' )
 plt.show()
 
+plt.scatter( ch_put_df.Probability, 100 * ch_put_df.Last )
+plt.title( 'Contract price vs. probability for put options!' )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Price' )
+plt.show()
 
+plt_df = ch_put_df.groupby( 'Bin_Prob', as_index = False ).median()
 
+plt.plot( plt_df.Bin_Prob, plt_df.Return )
+plt.title( 'Return vs. binned probability for put options!' )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Return' )
+plt.show()
+
+plt.plot( plt_df.Bin_Prob, 100 * plt_df.Last )
+plt.title( 'Contract price vs. binned probability for put options!' )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Price' )
+plt.show()
