@@ -19,12 +19,11 @@ import pandas_market_calendars as pmc
 
 from collections import defaultdict
 
-from daemonBase import Daemon, EmailTemplate
-
 sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
+from daemons.daemonBase import Daemon, EmailTemplate
 from dat.assets import OPTION_ETFS as ETFS
 from dat.assets import FUTURES, INDEXES
 from mod.mfdMod import MfdMod
@@ -75,12 +74,12 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = []
 
-TOKEN_FILE = '../brk/tokens/refresh_token_2020-08-14.txt'
+TOKEN_FILE = '../brk/tokens/refresh_token_pany_2020-09-17.txt'
 
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
 
-OPTION_ACCOUNT_ID = '490905156'
+OPTION_ACCOUNT_ID = '868894929'
 
 DEBUG_MODE = False
 
