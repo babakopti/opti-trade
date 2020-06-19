@@ -12,8 +12,9 @@ import matplotlib.pyplot as plt
 # Some Parameters
 # ***********************************************************************
 
-minProb = 0.51
-maxPrice = 2000.0
+minProb  = 0.495
+maxPrice = 10000.0
+tradeFee = 0.75
 
 # ***********************************************************************
 # Put all pieces together
@@ -48,7 +49,7 @@ call_df = df[ df.Type == 'call' ]
 
 call_df[ 'Return' ] = ( call_df[ 'actExprPrice' ] - \
                         call_df[ 'Strike' ] - \
-                        call_df[ 'Last' ]  ) / call_df[ 'Last' ]
+                        call_df[ 'Last' ]  - tradeFee ) / call_df[ 'Last' ]
 
 call_df[ 'Return' ] = call_df[ 'Return' ].\
     apply( lambda x : max( x, -1 ) )
@@ -113,13 +114,13 @@ plt.show()
 
 plt_df = ch_call_df.groupby( 'Bin_Prob', as_index = False ).mean()
 
-plt.plot( plt_df.Bin_Prob, plt_df.Return )
+plt.plot( plt_df.Bin_Prob, plt_df.Return, '-o' )
 plt.title( 'Return vs. binned probability for call options!' )
 plt.xlabel( 'Probability' )
 plt.ylabel( 'Return' )
 plt.show()
 
-plt.plot( plt_df.Bin_Prob, 100 * plt_df.Last )
+plt.plot( plt_df.Bin_Prob, 100 * plt_df.Last, '-o' )
 plt.title( 'Contract price vs. binned probability for call options!' )
 plt.xlabel( 'Probability' )
 plt.ylabel( 'Price' )
@@ -133,7 +134,7 @@ put_df = df[ df.Type == 'put' ]
 
 put_df[ 'Return' ] = ( -put_df[ 'actExprPrice' ] + \
                         put_df[ 'Strike' ] - \
-                        put_df[ 'Last' ]  ) / put_df[ 'Last' ]
+                        put_df[ 'Last' ]  - tradeFee ) / put_df[ 'Last' ]
 
 put_df[ 'Return' ] = put_df[ 'Return' ].\
     apply( lambda x : max( x, -1 ) )
@@ -196,15 +197,15 @@ plt.xlabel( 'Probability' )
 plt.ylabel( 'Price' )
 plt.show()
 
-plt_df = ch_put_df.groupby( 'Bin_Prob', as_index = False ).median()
+plt_df = ch_put_df.groupby( 'Bin_Prob', as_index = False ).mean()
 
-plt.plot( plt_df.Bin_Prob, plt_df.Return )
+plt.plot( plt_df.Bin_Prob, plt_df.Return, '-o' )
 plt.title( 'Return vs. binned probability for put options!' )
 plt.xlabel( 'Probability' )
 plt.ylabel( 'Return' )
 plt.show()
 
-plt.plot( plt_df.Bin_Prob, 100 * plt_df.Last )
+plt.plot( plt_df.Bin_Prob, 100 * plt_df.Last, '-o' )
 plt.title( 'Contract price vs. binned probability for put options!' )
 plt.xlabel( 'Probability' )
 plt.ylabel( 'Price' )

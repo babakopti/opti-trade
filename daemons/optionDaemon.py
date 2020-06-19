@@ -52,7 +52,7 @@ MAX_OPTION_MONTHS  = 3
 MAX_RATIO_CONTRACT = 0.20
 MAX_RATIO_ASSET    = 0.25
 MAX_RATIO_EXPOSURE = 1.0
-MIN_PROBABILITY    = 0.51
+MIN_PROBABILITY    = 0.50
 OPTION_TRADE_FEE   = 0.65
 
 MOD_HEAD      = 'option_model_'
@@ -62,6 +62,7 @@ PRT_DIR       = '/var/option_prt'
 DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
 PI_DAT_DIR    = '/var/pi_data'
+CHAIN_FILE    = '/var/option_data/all_option_chains.pkl'
 TIME_ZONE     = 'America/New_York'
 SCHED_TIME    = '10:45'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
@@ -88,7 +89,7 @@ if DEBUG_MODE:
     DRY_RUN    = True
 else:
     SCHED_FLAG = True
-    DRY_RUN    = False
+    DRY_RUN    = True #False
 
 NUM_DAYS_DATA_CLEAN = 3
 NUM_DAYS_MOD_CLEAN  = 3
@@ -125,7 +126,8 @@ class OptionPrtBuilder( Daemon ):
                     prtDir      = PRT_DIR,
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
-                    piDatDir    = PI_DAT_DIR,                    
+                    piDatDir    = PI_DAT_DIR,
+                    chainFile   = CHAIN_FILE,
                     timeZone    = TIME_ZONE,
                     schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
@@ -158,6 +160,7 @@ class OptionPrtBuilder( Daemon ):
         self.datDir      = datDir
         self.baseDatDir  = baseDatDir
         self.piDatDir    = piDatDir
+        self.chainFile   = chainFile        
         self.timeZone    = timeZone
         self.schedTime   = schedTime
         self.logFileName = logFileName        
@@ -608,8 +611,39 @@ class OptionPrtBuilder( Daemon ):
     
         self.logger.info( 'Found %d options contracts!', len( options ) )
 
+        try:
+            self.saveOptions( options )
+        except Exception as e:
+            self.logger.error( 'Unable to save option chains: %s', e )
+            
+        self.logger.info( 'Saved option chains for future use.' )
+
         return options
-    
+
+    def saveOptions( self, options ):
+
+        if self.prtObj is None:
+            self.logger.warning( 'prtObj should be set before calling saveOptions!' )
+            return
+        
+        if os.path.exists( self.chainFile ):
+            oldDf = pd.read_pickle( self.chainFile )
+        else:
+            oldDf = pd.DataFrame()
+            
+        newHash = defaultdict( list )
+
+        for option in options:
+            option[ 'Prob' ] = self.prtObj.getProb( option )
+            for col in option:
+                newHash[ col ].append( option[col] )
+
+        newDf = pd.DataFrame( newHash )
+
+        newDf = pd.concat( [ oldDf, newDf ] )
+
+        newDf.to_pickle( self.chainFile )
+
     def savePrt( self, selHash, prtFile ):
 
         json.dump( selHash, open( prtFile, 'w' ) )
