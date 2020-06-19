@@ -23,7 +23,7 @@ sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
 
-from daemons.daemonBase import Daemon, EmailTemplate
+from daemonBase import Daemon, EmailTemplate
 from dat.assets import OPTION_ETFS as ETFS
 from dat.assets import FUTURES, INDEXES
 from mod.mfdMod import MfdMod
