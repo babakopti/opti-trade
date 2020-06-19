@@ -634,7 +634,17 @@ class OptionPrtBuilder( Daemon ):
         newHash = defaultdict( list )
 
         for option in options:
+            
+            exprDate  = pd.to_datetime( option[ 'expiration' ] )
+            
+            if exprDate <= self.prtObj.curDate:
+                continue
+            
+            if exprDate > self.prtObj.maxDate:
+                continue
+            
             option[ 'Prob' ] = self.prtObj.getProb( option )
+            
             for col in option:
                 newHash[ col ].append( option[col] )
 

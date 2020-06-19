@@ -25,14 +25,14 @@ from brk.tdam import Tdam
 # Some parameters
 # ***********************************************************************
 
-snapDate  = pd.to_datetime( '2020-06-18' )
+snapDate  = pd.to_datetime( '2020-06-19' )
 
 modFile   = 'option_model_2020-06-18_14:31:59.dill'
 
-cash      = 100000
+cash      = 2000
 maxPriceC = 0.1 * cash
 maxPriceA = 0.3 * cash
-minProb   = 0.5
+minProb   = 0.48
 maxMonths = 3
 
 INDEXES  = list( set( INDEXES ) - { 'TRAN', 'TYX' } )
