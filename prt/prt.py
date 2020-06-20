@@ -855,73 +855,92 @@ class MfdOptionsPrt:
                     options,
                     cash,
                     maxPriceC,
-                    maxPriceA,
-                    maxCands = None ):
+                    maxPriceA  ):
 
         t0      = time.time()
 
         options = self.filterOptions( options, maxPriceC )
+
+        for option in options:
+            
+            prob = self.getProb( option )
+            
+            probs.append( prob )
+            
+            option[ 'Prob' ] = prob
         
-        options = sorted( options,
-                          key     = self.getProb,
-                          reverse = True          )
+        sumInv  = np.sum( probs )
+        
+        if sumInv > 0:
+            sumInv = 1.0 / sumInv
 
-        if maxCands is not None:
-            options = options[:maxCands]
-
+        probs = sumInv * probs
+        
         self.logger.info( 'Selecting from a pool of %d contracts...',
                           len( options ) )
         
-        tmpHash = {}
+        spentHash = {}
         for asset in self.assetHash:
-            tmpHash[ asset ] = 0.0
+            spentHash[ asset ] = 0.0
+
+        eligHash = {}
+        for option in options:
+            eligHash[ option[ 'optionSymbol' ] ] = 1
 
         totVal  = cash            
         selHash = Counter()
-
+        
         while totVal > 0:
 
-            prevVal = totVal
-            
-            for option in options:
-                
-                symbol   = option[ 'optionSymbol' ]
-                asset    = option[ 'assetSymbol' ]
-                strike   = option[ 'strike' ]
-                exprDate = option[ 'expiration' ]
-                oType    = option[ 'type' ]                
-                oCnt     = option[ 'contractCnt' ]
-                uPrice   = option[ 'unitPrice' ]
-                oPrice   = uPrice * oCnt                
-                cost     = oPrice + self.tradeFee
-
-                if totVal < cost:
-                    continue
-
-                tmpVal = tmpHash[ asset ] + oPrice
-
-                if tmpVal > maxPriceA:
-                    continue
-                
-                prob = self.getProb( option )
-
-                if prob < self.minProb:
-                    continue
-            
-                selHash[ symbol ] += 1                
-                tmpHash[ asset ]  += oPrice                
-                totVal            -= cost
-
-                self.logger.info( 'Selecting %s; cost is %0.2f; win prob is %0.2f; remaining cash is %0.2f',
-                                  symbol,
-                                  cost,
-                                  prob,
-                                  totVal )
-                
-            if totVal == prevVal:
+            if sum( eligHash.values() ) == 0:
+                self.logger.info( 'No more eligible options found!' )
                 break
+            
+            option = np.random.choice( options,
+                                       replace = True,
+                                       p       = probs )
+            
+            symbol   = option[ 'optionSymbol' ]
+            asset    = option[ 'assetSymbol' ]
+            strike   = option[ 'strike' ]
+            exprDate = option[ 'expiration' ]
+            oType    = option[ 'type' ]                
+            oCnt     = option[ 'contractCnt' ]
+            uPrice   = option[ 'unitPrice' ]
+            oPrice   = uPrice * oCnt                
+            cost     = oPrice + self.tradeFee
 
-        self.logger.info( 'Total cost of selected options: %0.2f!', ( cash - totVal ) )
+            if totVal < cost:
+                eligHash[ symbol ] = 0
+                continue
+
+            tmpVal = spentHash[ asset ] + oPrice
+
+            if tmpVal > maxPriceA:
+                eligHash[ symbol ] = 0
+                continue
+                
+            prob = options[ 'Prob' ]
+
+            if prob < self.minProb:
+                eligHash[ symbol ] = 0                
+                continue
+            
+            selHash[ symbol ]  += 1                
+            spentHash[ asset ] += oPrice                
+            totVal             -= cost
+
+            self.logger.info( 'Selecting %s; cost is %0.2f; '
+                              'win prob is %0.2f; remaining cash is %0.2f',
+                              symbol,
+                              cost,
+                              prob,
+                              totVal )
+                
+        self.logger.info( 'Selected a total of %d options! '
+                          'Total cost of selected options: %0.2f!',
+                          len( selHash ),
+                          ( cash - totVal ) )
         
         self.logger.info( 'Selecting options took %0.2f seconds!',
                           ( time.time() - t0 ) )
@@ -1036,7 +1055,7 @@ class MfdOptionsPrt:
         validFlag = self.validateOption( option )
 
         if not validFlag:
-            return -1.0
+            return 0.0
         
         asset    = option[ 'assetSymbol' ]
         strike   = float( option[ 'strike' ] )
@@ -1163,3 +1182,4 @@ class MfdOptionsPrt:
             return False
 
         return True
+
