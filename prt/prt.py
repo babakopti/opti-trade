@@ -1014,11 +1014,10 @@ class MfdOptionsPrt:
             return None
 
         if mode == 'exec_maturity':
-            prob = self.getProb( option )
             if oType == 'call':
-                val = prob * ( prdPrice - etaVal )
+                val = prdPrice - etaVal
             elif oType == 'put':
-                val = prob * ( etaVal - prdPrice )
+                val = etaVal - prdPrice
             else:
                 return None
         elif mode == 'exec_now':
