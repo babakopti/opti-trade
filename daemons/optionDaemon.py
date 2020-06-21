@@ -549,12 +549,13 @@ class OptionPrtBuilder( Daemon ):
                           cash,
                           self.maxRatioExp * cash )
 
-        maxPriceC   = self.maxRatioC * self.maxRatioExp * cash
-        maxPriceA   = self.maxRatioA * self.maxRatioExp * cash
+        exposedCash = self.maxRatioExp * cash
+        maxPriceC   = self.maxRatioC * exposedCash
+        maxPriceA   = self.maxRatioA * exposedCash
         options     = self.getOptions()
 
         selHash     = self.prtObj.selOptions( options   = options,
-                                              cash      = cash,
+                                              cash      = exposedCash,
                                               maxPriceC = maxPriceC,
                                               maxPriceA = maxPriceA   )
 
