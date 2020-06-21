@@ -855,7 +855,8 @@ class MfdOptionsPrt:
                     options,
                     cash,
                     maxPriceC,
-                    maxPriceA  ):
+                    maxPriceA,
+                    maxSelCnt = None  ):
 
         t0      = time.time()
 
@@ -889,12 +890,20 @@ class MfdOptionsPrt:
 
         totVal  = cash            
         selHash = Counter()
+        selCnt  = 0
         
         while totVal > 0:
 
             if sum( eligHash.values() ) == 0:
                 self.logger.info( 'No more eligible options found!' )
                 break
+
+            if maxSelCnt is not None:
+                if selCnt >= maxSelCnt:
+                    self.logger.info( 'Reached the maximum selection '
+                                      'count of %d!',
+                                      maxSelCnt )
+                    break
             
             option = np.random.choice( options,
                                        replace = True,
@@ -909,7 +918,8 @@ class MfdOptionsPrt:
             uPrice   = option[ 'unitPrice' ]
             oPrice   = uPrice * oCnt                
             cost     = oPrice + self.tradeFee
-
+            prob     = options[ 'Prob' ]
+            
             if totVal < cost:
                 eligHash[ symbol ] = 0
                 continue
@@ -920,8 +930,6 @@ class MfdOptionsPrt:
                 eligHash[ symbol ] = 0
                 continue
                 
-            prob = options[ 'Prob' ]
-
             if prob < self.minProb:
                 eligHash[ symbol ] = 0                
                 continue
@@ -929,6 +937,7 @@ class MfdOptionsPrt:
             selHash[ symbol ]  += 1                
             spentHash[ asset ] += oPrice                
             totVal             -= cost
+            selCnt             += 1
 
             self.logger.info( 'Selecting %s; cost is %0.2f; '
                               'win prob is %0.2f; remaining cash is %0.2f',

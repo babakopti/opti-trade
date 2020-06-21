@@ -48,12 +48,13 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
-MAX_OPTION_MONTHS  = 3
-MAX_RATIO_CONTRACT = 0.20
-MAX_RATIO_ASSET    = 0.25
-MAX_RATIO_EXPOSURE = 1.0
-MIN_PROBABILITY    = 0.50
-OPTION_TRADE_FEE   = 0.65
+MAX_OPTION_MONTHS   = 3
+MAX_PRICE_CONTRACT  = 500
+MAX_PRICE_ASSET     = 1000
+MAX_RATIO_EXPOSURE  = 1.0
+MAX_SELECTION_COUNT = 1
+MIN_PROBABILITY     = 0.50
+OPTION_TRADE_FEE    = 0.65
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'                    
@@ -115,8 +116,8 @@ class OptionPrtBuilder( Daemon ):
                     regCoef     = REG_COEF,                    
                     factor      = FACTOR,
                     maxMonths   = MAX_OPTION_MONTHS,
-                    maxRatioC   = MAX_RATIO_CONTRACT,
-                    maxRatioA   = MAX_RATIO_ASSET,
+                    maxPriceC   = MAX_PRICE_CONTRACT,
+                    maxPriceA   = MAX_PRICE_ASSET,
                     maxRatioExp = MAX_RATIO_EXPOSURE,
                     minProb     = MIN_PROBABILITY,
                     tradeFee    = OPTION_TRADE_FEE,
@@ -148,8 +149,8 @@ class OptionPrtBuilder( Daemon ):
         self.regCoef     = regCoef
         self.factor      = factor
         self.maxMonths   = maxMonths
-        self.maxRatioC   = maxRatioC
-        self.maxRatioA   = maxRatioA
+        self.maxPriceC   = maxPriceC
+        self.maxPriceA   = maxPriceA
         self.maxRatioExp = maxRatioExp
         self.minProb     = minProb
         self.tradeFee    = tradeFee
@@ -545,19 +546,19 @@ class OptionPrtBuilder( Daemon ):
         
         cash = self.getCashValue()
 
+        exposedCash = self.maxRatioExp * cash
+
         self.logger.info( 'Amount of available cash is %0.2f; exposure is %0.2f!',
                           cash,
-                          self.maxRatioExp * cash )
+                          exposedCash )
 
-        exposedCash = self.maxRatioExp * cash
-        maxPriceC   = self.maxRatioC * exposedCash
-        maxPriceA   = self.maxRatioA * exposedCash
-        options     = self.getOptions()
+        options = self.getOptions()
 
-        selHash     = self.prtObj.selOptions( options   = options,
-                                              cash      = exposedCash,
-                                              maxPriceC = maxPriceC,
-                                              maxPriceA = maxPriceA   )
+        selHash = self.prtObj.selOptions( options   = options,
+                                          cash      = exposedCash,
+                                          maxPriceC = self.maxPriceC,
+                                          maxPriceA = self.maxPriceA,
+                                          maxSelCnt = self.maxSelCnt    )
 
         self.savePrt( selHash, prtFile )
         

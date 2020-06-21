@@ -119,6 +119,23 @@ print( 'Chosen call median return summary with price limit:',
     ch_call_df[ ch_call_df.Last < maxPrice / 100.0 ].\
        groupby( 'Year' )[ 'Return' ].median() )
 
+tmp_list_call = []
+for itr in range( 1000 ):
+    tmp_df = call_df[ (call_df.Probability > minProb) & \
+                     (100 * call_df.Last < maxPrice) ]
+    val = tmp_df.sample( n = 10,
+                         replace = True,
+                         weights = 'Probability',
+                         axis = 0 ).Return.mean()
+    tmp_list_call.append( val )
+
+print( 'Chosen call min/max/mean/std from monte-carlo: '
+       '%0.2f, %0.2f, %0.2f, %0.2f' % (
+           np.min( tmp_list_call ),
+           np.max( tmp_list_call ),
+           np.mean( tmp_list_call ),
+           np.std( tmp_list_call ) ) )
+
 if False:
     plt.scatter( ch_call_df.Probability, ch_call_df.Return )
     plt.title( 'Return vs. probability for call options!' )
@@ -224,6 +241,23 @@ print( 'Chosen put count with price limit:',
 print( 'Chosen put median return summary with price limit:',
        ch_put_df[ ch_put_df.Last < maxPrice / 100.0 ].\
        groupby( 'Year' )[ 'Return' ].median() )
+
+tmp_list_put = []
+for itr in range( 1000 ):
+    tmp_df = put_df[ (put_df.Probability > minProb) & \
+                     (100 * put_df.Last < maxPrice) ]
+    val = tmp_df.sample( n = 10,
+                         replace = True,
+                         weights = 'Probability',
+                         axis = 0 ).Return.mean()
+    tmp_list_put.append(val)
+
+print( 'Chosen put min/max/mean/std from monte-carlo: '
+       '%0.2f, %0.2f, %0.2f, %0.2f' % (
+           np.min( tmp_list_put ),
+           np.max( tmp_list_put ),
+           np.mean( tmp_list_put ),
+           np.std( tmp_list_put ) ) )
 
 if False:
     plt.scatter( ch_put_df.Probability, ch_put_df.Return )
