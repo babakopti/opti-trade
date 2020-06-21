@@ -45,6 +45,21 @@ df[ 'Bin_Prob' ] = df.Probability.apply( lambda x : 0.05 * int( x / 0.05 ) )
 df[ 'horizon' ]  = df.horizon.apply( lambda x : int( x.days ) )
 
 # ***********************************************************************
+# Study prediction quality
+# ***********************************************************************
+
+if False:
+    for asset in set( df.UnderlyingSymbol ):
+        plt_df = df[ df.UnderlyingSymbol == asset ]
+        plt.scatter( plt_df.actExprPrice, plt_df.prdExprPrice )
+        plt.title( 'Actual vs. predicted prices fro %s.' %asset )
+        plt.xlabel( 'Actual Price' )
+        plt.ylabel( 'Predicted Price' )
+        plt.show()
+    
+    sys.exit()
+
+# ***********************************************************************
 # Analyze call options
 # ***********************************************************************
     
@@ -52,13 +67,13 @@ call_df = df[ df.Type == 'call' ]
 
 call_df[ 'Return' ] = ( call_df[ 'actExprPrice' ] - \
                         call_df[ 'Strike' ] - \
-                        call_df[ 'Last' ]  - tradeFee ) / call_df[ 'Last' ]
+                        call_df[ 'Last' ]  - tradeFee / 100 ) / call_df[ 'Last' ]
 
 call_df[ 'Return' ] = call_df[ 'Return' ].\
     apply( lambda x : max( x, -1 ) )
 
 call_df['Success'] = call_df[ 'Return' ].\
-    apply( lambda x: True if x > 0 else False )
+    apply( lambda x: 1 if x > 0 else 0 )
 
 ch_call_df = call_df[ call_df.Probability > minProb ]
 lim_ch_call_df = ch_call_df[ ch_call_df.Last < maxPrice / 100.0 ]
@@ -67,10 +82,10 @@ print( 'Call success / probability summary:',
        call_df.groupby( 'Success' )[ 'Probability' ].mean() )
 
 print( 'Overall call success rate:',
-       call_df[ call_df.Success ].shape[0] / call_df.shape[0] )
+       call_df[ call_df.Success == 1 ].shape[0] / call_df.shape[0] )
 
 print( 'Chosen call success rate:',
-       ch_call_df[ ch_call_df.Success ].shape[0] / ch_call_df.shape[0] )
+       ch_call_df[ ch_call_df.Success == 1 ].shape[0] / ch_call_df.shape[0] )
 
 print( 'Overall call average return:',
        call_df.Return.mean() )
@@ -128,6 +143,14 @@ plt.xlabel( 'Probability' )
 plt.ylabel( 'Return' )
 plt.show()
 
+plt.plot( plt_df.Bin_Prob, plt_df.Success, 'b-o',
+          lim_plt_df.Bin_Prob, lim_plt_df.Success, 'r-o' )
+plt.title( 'Success rate vs. binned probability for call options!' )
+plt.legend( [ 'All', 'Limited price' ] )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Success rate' )
+plt.show()
+
 plt.plot( plt_df.Bin_Prob, plt_df.horizon, 'b-o',
           lim_plt_df.Bin_Prob, lim_plt_df.horizon, 'r-o' )
 plt.title( 'Horizon vs. binned probability for call options!' )
@@ -150,13 +173,13 @@ put_df = df[ df.Type == 'put' ]
 
 put_df[ 'Return' ] = ( -put_df[ 'actExprPrice' ] + \
                         put_df[ 'Strike' ] - \
-                        put_df[ 'Last' ]  - tradeFee ) / put_df[ 'Last' ]
+                        put_df[ 'Last' ]  - tradeFee / 100 ) / put_df[ 'Last' ]
 
 put_df[ 'Return' ] = put_df[ 'Return' ].\
     apply( lambda x : max( x, -1 ) )
 
 put_df['Success'] = put_df[ 'Return' ].\
-    apply( lambda x: True if x > 0 else False )
+    apply( lambda x: 1 if x > 0 else 0 )
 
 ch_put_df = put_df[ put_df.Probability > minProb ]
 lim_ch_put_df = ch_put_df[ ch_put_df.Last < maxPrice / 100.0 ]
@@ -165,10 +188,10 @@ print( 'Put success / probability summary:',
        put_df.groupby( 'Success' )[ 'Probability' ].mean() )
 
 print( 'Overall put success rate:',
-       put_df[ put_df.Success ].shape[0] / put_df.shape[0] )
+       put_df[ put_df.Success == 1 ].shape[0] / put_df.shape[0] )
 
 print( 'Chosen put success rate:',
-       ch_put_df[ ch_put_df.Success ].shape[0] / ch_put_df.shape[0] )
+       ch_put_df[ ch_put_df.Success == 1 ].shape[0] / ch_put_df.shape[0] )
 
 print( 'Overall put average return:',
        put_df.Return.mean() )
@@ -224,6 +247,14 @@ plt.title( 'Return vs. binned probability for put options!' )
 plt.legend( [ 'All', 'Limited price' ] )
 plt.xlabel( 'Probability' )
 plt.ylabel( 'Return' )
+plt.show()
+
+plt.plot( plt_df.Bin_Prob, plt_df.Success, 'b-o',
+          lim_plt_df.Bin_Prob, lim_plt_df.Success, 'r-o' )
+plt.title( 'Success rate vs. binned probability for put options!' )
+plt.legend( [ 'All', 'Limited price' ] )
+plt.xlabel( 'Probability' )
+plt.ylabel( 'Success rate' )
 plt.show()
 
 plt.plot( plt_df.Bin_Prob, plt_df.horizon, 'b-o',

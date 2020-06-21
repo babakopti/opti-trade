@@ -29,6 +29,8 @@ from prt.prt import MfdOptionsPrt
 # Set some parameters 
 # ***********************************************************************
 
+modFlag      = False
+
 optionDfFile = 'data/relevant_option_samples.pkl'
 dfFile       = 'data/optionTestDfFile.pkl'
 nTrnYears    = 5
@@ -44,9 +46,9 @@ snapDates    = [ pd.to_datetime( '2016-05-02 10:00:00' ),
                  pd.to_datetime( '2017-07-14 10:00:00' ),                 
                  pd.to_datetime( '2017-07-31 10:00:00' )  ]
 
-optDf = pd.read_pickle( optionDfFile )
+#optDf = pd.read_pickle( optionDfFile )
 
-snapDates = list( set( optDf.DataDate ) - set( snapDates ) )
+#snapDates = list( set( optDf.DataDate ) - set( snapDates ) )
                  
 INDEXES      = INDEXES 
 ASSETS       = [ 'TLT', 'DIA', 'FAS', 'SMH' ]
@@ -108,38 +110,45 @@ def process( snapDate ):
 
     # Build model
 
-    print( 'Building model for %s' % str( snapDate ) )
-    
-    maxOosDt = snapDate
-    maxTrnDt = maxOosDt - datetime.timedelta( minutes = nOosMinutes )
-    minTrnDt = maxTrnDt - pd.DateOffset( years = nTrnYears )        
     modFile  = 'model_' + str( snapDate ) + '.dill'
     modFile  = os.path.join( 'models', modFile )
 
-    print( maxOosDt, maxTrnDt, minTrnDt )
+    if modFlag:
+        
+        print( 'Building model for %s' % str( snapDate ) )
+    
+        maxOosDt = snapDate
+        maxTrnDt = maxOosDt - datetime.timedelta( minutes = nOosMinutes )
+        minTrnDt = maxTrnDt - pd.DateOffset( years = nTrnYears )        
 
-    mfdMod   = MfdMod( dfFile       = dfFile,
-                       minTrnDate   = minTrnDt,
-                       maxTrnDate   = maxTrnDt,
-                       maxOosDate   = maxOosDt,
-                       velNames     = velNames,
-                       maxOptItrs   = 100,
-                       optGTol      = 1.0e-3,
-                       optFTol      = 1.0e-3,
-                       regCoef      = 1.0e-3,
-                       factor       = 1.0e-5,
-                       logFileName  = None,
-                       verbose      = 1      )
+        print( maxOosDt, maxTrnDt, minTrnDt )
 
-    sFlag = mfdMod.build()
+        mfdMod   = MfdMod( dfFile       = dfFile,
+                           minTrnDate   = minTrnDt,
+                           maxTrnDate   = maxTrnDt,
+                           maxOosDate   = maxOosDt,
+                           velNames     = velNames,
+                           maxOptItrs   = 100,
+                           optGTol      = 1.0e-3,
+                           optFTol      = 1.0e-3,
+                           regCoef      = 1.0e-3,
+                           factor       = 1.0e-5,
+                           logFileName  = None,
+                           verbose      = 1      )
 
-    if not sFlag:
-        print( 'Model did not converge!' )
+        sFlag = mfdMod.build()
 
-    mfdMod.save( modFile )
+        if not sFlag:
+            print( 'Model did not converge!' )
 
+        mfdMod.save( modFile )
+        
     mfdMod = None
     gc.collect()
+
+    if not os.path.exists( modFile ):
+        print( 'Did not find model %s!' % modFile )
+        return
     
     # Build portfolio object
 
@@ -180,8 +189,8 @@ def process( snapDate ):
 
     # Get success probabilities of options
     
-    probs = []
-
+    probs         = []
+    prdExprPrices = []
     optionSymbols = np.array( optDf.OptionSymbol )
     assetSymbols  = np.array( optDf.UnderlyingSymbol )
     strikes       = np.array( optDf.Strike )
@@ -203,7 +212,18 @@ def process( snapDate ):
 
         probs.append( prob )
 
-    optDf[ 'Probability' ] = probs
+        asset    = option[ 'assetSymbol' ]
+        exprDate = option[ 'expiration' ]
+        exprDate = pd.to_datetime( exprDate )
+        prdDf    = prtObj.prdDf
+        dateStr  = exprDate.strftime( '%Y-%m-%d' )
+        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
+        prdPrice = prdHash[ dateStr ]
+
+        prdExprPrices.append( prdPrice )
+
+    optDf[ 'Probability' ]   = probs
+    optDf[ 'prdExprPrice' ] = prdExprPrices
 
     optFile  = 'options_' + str( snapDate ) + '.pkl'
     optFile  = os.path.join( 'models', optFile )
