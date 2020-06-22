@@ -921,7 +921,7 @@ class MfdOptionsPrt:
             uPrice   = option[ 'unitPrice' ]
             oPrice   = uPrice * oCnt                
             cost     = oPrice + self.tradeFee
-            prob     = options[ 'Prob' ]
+            prob     = option[ 'Prob' ]
             
             if totVal < cost:
                 eligHash[ symbol ] = 0
