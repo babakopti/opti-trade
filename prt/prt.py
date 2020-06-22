@@ -871,7 +871,8 @@ class MfdOptionsPrt:
             probs.append( prob )
             
             option[ 'Prob' ] = prob
-        
+
+        probs   = np.array( probs )
         sumInv  = np.sum( probs )
         
         if sumInv > 0:
