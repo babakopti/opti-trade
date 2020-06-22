@@ -862,6 +862,8 @@ class MfdOptionsPrt:
 
         options = self.filterOptions( options, maxPriceC )
 
+        probs = []
+        
         for option in options:
             
             prob = self.getProb( option )
