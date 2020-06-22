@@ -90,7 +90,7 @@ if DEBUG_MODE:
     DRY_RUN    = True
 else:
     SCHED_FLAG = True
-    DRY_RUN    = True #False
+    DRY_RUN    = False
 
 NUM_DAYS_DATA_CLEAN = 3
 NUM_DAYS_MOD_CLEAN  = 3
