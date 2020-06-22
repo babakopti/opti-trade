@@ -130,6 +130,7 @@ class OptionPrtBuilder( Daemon ):
                     maxPriceC   = MAX_PRICE_CONTRACT,
                     maxPriceA   = MAX_PRICE_ASSET,
                     maxRatioExp = MAX_RATIO_EXPOSURE,
+                    maxSelCnt   = MAX_SELECTION_COUNT,
                     minProb     = MIN_PROBABILITY,
                     tradeFee    = OPTION_TRADE_FEE,
                     modHead     = MOD_HEAD,
@@ -163,6 +164,7 @@ class OptionPrtBuilder( Daemon ):
         self.maxPriceC   = maxPriceC
         self.maxPriceA   = maxPriceA
         self.maxRatioExp = maxRatioExp
+        self.maxSelCnt   = maxSelCnt
         self.minProb     = minProb
         self.tradeFee    = tradeFee
         self.modHead     = modHead
