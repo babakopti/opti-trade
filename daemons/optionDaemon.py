@@ -97,6 +97,17 @@ NUM_DAYS_MOD_CLEAN  = 3
 NUM_DAYS_PRT_CLEAN  = 90
 
 # ***********************************************************************
+# Set dry run to True on no-trade days
+# ***********************************************************************
+
+os.environ[ 'TZ' ] = TIME_ZONE
+
+curDate = datetime.datetime.now()
+
+if curDate.isoweekday() not in [ 2, 4 ]:
+    DRY_RUN = True
+
+# ***********************************************************************
 # Class OptionPrtBuilder: Daemon to build options portfolios
 # ***********************************************************************
 
@@ -637,7 +648,7 @@ class OptionPrtBuilder( Daemon ):
 
         for option in options:
             
-            exprDate  = pd.to_datetime( option[ 'expiration' ] )
+            exprDate = pd.to_datetime( option[ 'expiration' ] )
             
             if exprDate <= self.prtObj.curDate:
                 continue
