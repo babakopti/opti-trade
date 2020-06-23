@@ -943,7 +943,7 @@ class MfdOptionsPrt:
             selCnt             += 1
 
             self.logger.info( 'Selecting %s; cost is %0.2f; '
-                              'win prob is %0.2f; remaining cash is %0.2f',
+                              'success probability is %0.3f; remaining cash is %0.2f',
                               symbol,
                               cost,
                               prob,

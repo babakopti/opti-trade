@@ -53,7 +53,7 @@ MAX_PRICE_CONTRACT  = 500.0
 MAX_PRICE_ASSET     = 1000.0
 MAX_RATIO_EXPOSURE  = 1.0
 MAX_SELECTION_COUNT = 2
-MIN_PROBABILITY     = 0.49
+MIN_PROBABILITY     = 0.495
 OPTION_TRADE_FEE    = 0.65
 
 MOD_HEAD      = 'option_model_'
@@ -500,7 +500,7 @@ class OptionPrtBuilder( Daemon ):
             ( decision, prob ) = self.prtObj.getCurAction( option,
                                                            unitPrice )
 
-            msgStr = 'Decision for %s is %s; Sucess probalility is %0.2f' % \
+            msgStr = 'Decision for %s is %s; Success probability is %0.3f' % \
                      ( symbol, decision, prob )
 
             self.alertStr += msgStr + '\n'
