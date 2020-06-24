@@ -103,7 +103,9 @@ NUM_DAYS_PRT_CLEAN  = 90
 os.environ[ 'TZ' ] = TIME_ZONE
 
 curDate = datetime.datetime.now()
-
+curDate = curDate.strftime( '%Y-%m-%d %H:%M:%S' )
+curDate = pd.to_datetime( curDate )
+        
 if curDate.isoweekday() not in [ 2, 4 ]:
     DRY_RUN = True
 
