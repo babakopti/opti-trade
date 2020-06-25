@@ -50,9 +50,9 @@ FACTOR        = 1.0e-5
 
 MAX_OPTION_MONTHS   = 3
 MAX_PRICE_CONTRACT  = 500.0
-MAX_PRICE_ASSET     = 1000.0
+MAX_PRICE_ASSET     = 500.0
 MAX_RATIO_EXPOSURE  = 1.0
-MAX_SELECTION_COUNT = 2
+MAX_SELECTION_COUNT = 1
 MIN_PROBABILITY     = 0.495
 OPTION_TRADE_FEE    = 0.65
 
@@ -95,19 +95,6 @@ else:
 NUM_DAYS_DATA_CLEAN = 3
 NUM_DAYS_MOD_CLEAN  = 3
 NUM_DAYS_PRT_CLEAN  = 90
-
-# ***********************************************************************
-# Set dry run to True on no-trade days
-# ***********************************************************************
-
-os.environ[ 'TZ' ] = TIME_ZONE
-
-curDate = datetime.datetime.now()
-curDate = curDate.strftime( '%Y-%m-%d %H:%M:%S' )
-curDate = pd.to_datetime( curDate )
-        
-if curDate.isoweekday() not in [ 2, 4 ]:
-    DRY_RUN = True
 
 # ***********************************************************************
 # Class OptionPrtBuilder: Daemon to build options portfolios
@@ -229,7 +216,7 @@ class OptionPrtBuilder( Daemon ):
         snapDate = pd.to_datetime( snapDate )
 
         if not DEBUG_MODE:
-            if snapDate.isoweekday() in [ 6, 7 ]:
+            if snapDate.isoweekday() in [ 6, 7, 2, 5 ]:
                 return
 
             holidays = pmc.get_calendar('NYSE').holidays().holidays
