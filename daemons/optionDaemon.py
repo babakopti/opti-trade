@@ -18,6 +18,7 @@ import pandas as pd
 import pandas_market_calendars as pmc
 
 from collections import defaultdict
+from google.cloud import storage
 
 sys.path.append( os.path.abspath( '../' ) )
 
@@ -83,6 +84,10 @@ with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
 
 OPTION_ACCOUNT_ID = '868894929'
+
+GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
+GOOGLE_BUCKET = 'prt-storage'
+GOOGLE_PREFIX = 'options-chains'
 
 DEBUG_MODE = False
 
@@ -634,6 +639,8 @@ class OptionPrtBuilder( Daemon ):
                                  'calling saveOptions!' )
             return
 
+        self.logger.info( 'Saving options chains...' )
+        
         curDate   = datetime.datetime.now()
         tmpStr    = curDate.strftime( '%Y-%m' )
         chainFile = self.chainHead + tmpStr + '.pkl'
@@ -667,6 +674,19 @@ class OptionPrtBuilder( Daemon ):
         newDf = pd.concat( [ oldDf, newDf ] )
 
         newDf.to_pickle( chainFile )
+
+        self.logger.info( 'Options chains saved to %s', chainFile )        
+
+        client   = storage.Client.from_service_account_json( GOOGLE_STORAGE_JSON )
+        bucket   = client.get_bucket( GOOGLE_BUCKET )
+        baseName = os.path.basename( chainFile )
+        tmpName  = GOOGLE_PREFIX + '/' + baseName
+        blob     = bucket.blob( tmpName )
+            
+        with open( chainFile, 'rb' ) as fHd:
+            blob.upload_from_file( fHd )
+
+        self.logger.info( '%s was saved to bucket!', tmpName )        
 
     def savePrt( self, selHash, prtFile ):
 
