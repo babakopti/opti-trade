@@ -57,13 +57,14 @@ MIN_PROBABILITY     = 0.495
 OPTION_TRADE_FEE    = 0.65
 
 MOD_HEAD      = 'option_model_'
-PRT_HEAD      = 'option_prt_'                    
+PRT_HEAD      = 'option_prt_'
+CHAIN_HEAD    = 'option_chain_'
 MOD_DIR       = '/var/option_models'
 PRT_DIR       = '/var/option_prt'
 DAT_DIR       = '/var/option_data'
 BASE_DAT_DIR  = '/var/data'
 PI_DAT_DIR    = '/var/pi_data'
-CHAIN_FILE    = '/var/option_data/all_option_chains.pkl'
+CHAIN_DIR     = '/var/option_data'
 TIME_ZONE     = 'America/New_York'
 SCHED_TIME    = '10:45'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
@@ -124,12 +125,13 @@ class OptionPrtBuilder( Daemon ):
                     tradeFee    = OPTION_TRADE_FEE,
                     modHead     = MOD_HEAD,
                     prtHead     = PRT_HEAD,
+                    chainHead   = CHAIN_HEAD,
                     modDir      = MOD_DIR,
                     prtDir      = PRT_DIR,
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
                     piDatDir    = PI_DAT_DIR,
-                    chainFile   = CHAIN_FILE,
+                    chainDir    = CHAIN_DIR,
                     timeZone    = TIME_ZONE,
                     schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
@@ -157,13 +159,14 @@ class OptionPrtBuilder( Daemon ):
         self.minProb     = minProb
         self.tradeFee    = tradeFee
         self.modHead     = modHead
-        self.prtHead     = prtHead        
+        self.prtHead     = prtHead
+        self.chainHead   = chainHead
         self.modDir      = modDir
         self.prtDir      = prtDir
         self.datDir      = datDir
         self.baseDatDir  = baseDatDir
         self.piDatDir    = piDatDir
-        self.chainFile   = chainFile        
+        self.chainDir    = chainDir
         self.timeZone    = timeZone
         self.schedTime   = schedTime
         self.logFileName = logFileName        
@@ -627,11 +630,17 @@ class OptionPrtBuilder( Daemon ):
     def saveOptions( self, options ):
 
         if self.prtObj is None:
-            self.logger.warning( 'prtObj should be set before calling saveOptions!' )
+            self.logger.warning( 'prtObj should be set before '
+                                 'calling saveOptions!' )
             return
+
+        curDate   = datetime.datetime.now()
+        tmpStr    = curDate.strftime( '%Y-%m' )
+        chainFile = self.chainHead + tmpStr + '.pkl'
+        chainFile = os.path.join( self.chainDir, chainFile )
         
-        if os.path.exists( self.chainFile ):
-            oldDf = pd.read_pickle( self.chainFile )
+        if os.path.exists( chainFile ):
+            oldDf = pd.read_pickle( chainFile )
         else:
             oldDf = pd.DataFrame()
             
@@ -648,15 +657,16 @@ class OptionPrtBuilder( Daemon ):
                 continue
             
             option[ 'Prob' ] = self.prtObj.getProb( option )
+            option[ 'DataDate' ] = curDate.strftime( '%Y-%m-%d' )
             
             for col in option:
-                newHash[ col ].append( option[col] )
+                newHash[ col ].append( option[ col ] )
 
         newDf = pd.DataFrame( newHash )
 
         newDf = pd.concat( [ oldDf, newDf ] )
 
-        newDf.to_pickle( self.chainFile )
+        newDf.to_pickle( chainFile )
 
     def savePrt( self, selHash, prtFile ):
 
