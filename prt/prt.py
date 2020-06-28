@@ -720,9 +720,9 @@ class MfdOptionsPrt:
         
         assert setA == setB, 'modFile and assetHash are not consistent!'
 
-        self.curDate = self.curDate.replace( minute = 0,  second = 0  )
-        self.minDate = self.minDate.replace( minute = 0,  second = 0  )        
-        self.maxDate = self.maxDate.replace( minute = 23, second = 59 )
+        self.curDate = pd.to_datetime( self.curDate.strftime( '%Y-%m-%d' ) )
+        self.minDate = self.minDate.replace( hour = 0,  minute = 0  )        
+        self.maxDate = self.maxDate.replace( hour = 23, minute = 59 )
 
         if minProb <= 0 or minProb >= 1:
             self.logger.error( 'minProb should be in (0,1)!' )
