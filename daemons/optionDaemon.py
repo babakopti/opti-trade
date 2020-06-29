@@ -50,7 +50,7 @@ REG_COEF      = 1.0e-3
 FACTOR        = 1.0e-5
 
 MAX_OPTION_MONTHS   = 3
-MAX_PRICE_CONTRACT  = 500.0
+MAX_PRICE_CONTRACT  = 250.0
 MAX_PRICE_ASSET     = 500.0
 MAX_RATIO_EXPOSURE  = 1.0
 MAX_SELECTION_COUNT = 1
@@ -572,8 +572,7 @@ class OptionPrtBuilder( Daemon ):
 
         self.savePrt( selHash, prtFile )
 
-        if snapDate.isoweekday() not in [ 2, 5 ]:
-            self.trade( selHash )
+        self.trade( selHash )
 
     def getAssetHash( self ):
 
