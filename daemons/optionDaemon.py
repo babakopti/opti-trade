@@ -224,7 +224,7 @@ class OptionPrtBuilder( Daemon ):
         snapDate = pd.to_datetime( snapDate )
 
         if not DEBUG_MODE:
-            if snapDate.isoweekday() in [ 6, 7, 2, 5 ]:
+            if snapDate.isoweekday() in [ 6, 7 ]:
                 return
 
             holidays = pmc.get_calendar('NYSE').holidays().holidays
@@ -571,8 +571,9 @@ class OptionPrtBuilder( Daemon ):
                                           maxSelCnt = self.maxSelCnt    )
 
         self.savePrt( selHash, prtFile )
-        
-        self.trade( selHash )
+
+        if snapDate.isoweekday() not in [ 2, 5 ]:
+            self.trade( selHash )
 
     def getAssetHash( self ):
 
