@@ -1174,9 +1174,9 @@ class MfdOptionsPrt:
                                option[ 'optionSymbol' ], asset )
             return False
                 
-        if exprDate <= self.curDate:
+        if exprDate < self.curDate:
             msgStr = 'Contract %s: ' +\
-                'expiration %s should be > curDate %s'
+                'expiration %s should be >= curDate %s'
             self.logger.error( msgStr,
                                option[ 'optionSymbol' ],
                                str( exprDate ),
