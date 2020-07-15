@@ -361,8 +361,8 @@ class MfdPrtBuilder( Daemon ):
             newDf = newDf[ newDf.Date > oldDf.Date.max() ]
             newDf = pd.concat( [ oldDf, newDf ] )
         except Exception as e:
-            msgStr = 'Could not get new data, old data max date is %s!' \
-                     % str( oldDf.Date.max() )
+            msgStr = '%s; Could not get new data, old data max date is %s!' \
+                     % (e, str( oldDf.Date.max() ))
             self.logger.error( msgStr )
             newDf = oldDf
             
