@@ -40,6 +40,8 @@ STOCKS   = []
 
 ETFS     = list( ETF_HASH.keys() )
 
+ETFS     = list( set( ETFS ) - set( [ 'UJB' ] ) )
+
 ASSETS   = list( SUB_ETF_HASH.keys() )
 
 MAX_NUM_ASSETS = 5
@@ -71,7 +73,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = []
 
-TOKEN_FILE = '../brk/tokens/refresh_token_2020-08-14.txt'
+TOKEN_FILE = '../brk/tokens/refresh_token_2020-10-20.txt'
 
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
@@ -443,6 +445,8 @@ class MfdPrtBuilder( Daemon ):
 
     def getQuoteHash( self, snapDate ):
 
+        self.logger.info( 'Getting quotes...' )
+        
         endDate   = snapDate
         begDate   = endDate - datetime.timedelta( days = self.nEvalDays )
         
@@ -459,13 +463,25 @@ class MfdPrtBuilder( Daemon ):
             except Exception as e:
                 self.logger.error( e )
 
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+
+        self.logger.info( '%s are chosen for trading!',
+                          ','.join( assets ) )
         
+        self.logger.info( 'Connecting to Tdam to get quotes...' )
+
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+            self.logger.info( 'Connected to Tdam!' )
+        except Exception as e:
+            self.logger.error( e )
+
         quoteHash = {}
     
         for asset in assets:
-
+            
             quoteHash[ asset ] = td.getQuote( asset, 'last' )
+            
+            self.logger.info( 'Got a quote for %s...', asset )            
 
         return quoteHash
     
