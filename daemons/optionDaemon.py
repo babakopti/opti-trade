@@ -448,8 +448,11 @@ class OptionPrtBuilder( Daemon ):
     def settle( self ):
 
         self.logger.info( 'Settling the current options holdings...' )
-        
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        except Exception as e:
+            self.logger.error( e )
         
         positions = td.getPositions()
 
@@ -576,7 +579,10 @@ class OptionPrtBuilder( Daemon ):
 
     def getAssetHash( self ):
 
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        except Exception as e:
+            self.logger.error( e )
         
         assetHash = {}
         
@@ -602,16 +608,22 @@ class OptionPrtBuilder( Daemon ):
 
     def getCashValue( self ):
 
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        except Exception as e:
+            self.logger.error( e )
 
         cash = td.getCashBalance()
 
         return cash
 
     def getOptions( self ):
- 
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
-        
+
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        except Exception as e:
+            self.logger.error( e )
+            
         options = []
         for symbol in self.assets:
             

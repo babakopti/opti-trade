@@ -521,7 +521,11 @@ class MfdPrtBuilder( Daemon ):
             if nowTime < MIN_TRADE_TIME or nowTime > MAX_TRADE_TIME:
                 self.logger.error( 'Not trading, as we are outside of trading hours!' )
             else:
-                td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+                try:
+                    td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+                    self.logger.info( 'Connected to Tdam!' )
+                except Exception as e:
+                    self.logger.error( e )
                 
                 self.logger.info( 'Starting to trade on TD Ameritrade...' )
 
