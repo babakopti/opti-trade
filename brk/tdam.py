@@ -161,7 +161,17 @@ class Tdam:
 
     def getOptionsChain( self, symbol ):
 
-        topHash   = self.client.options( symbol )
+        for itr in range( MAX_RETRIES ):
+            
+            try:
+                topHash = self.client.options( symbol )
+                break
+            except Exception as e:
+                self.logger.warning( '%s: Retrying in %d seconds!',
+                                     e,
+                                     RETRY_WAIT_TIME )
+                time.sleep( RETRY_WAIT_TIME )            
+                
         callHash  = topHash[ 'callExpDateMap' ]
         putHash   = topHash[ 'putExpDateMap' ]
         options   = []
