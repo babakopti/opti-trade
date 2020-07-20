@@ -63,6 +63,7 @@ class Tdam:
         self.client      = None
         self.accounts    = None
         self.accountId   = None
+        self.accessHash  = None
 
         self.setAuth()
         self.setAccounts()
@@ -77,9 +78,10 @@ class Tdam:
         else:
             accessHash = auth.refresh_token( refresh_token = self.refToken,
                                              client_id     = self.authKey     )
-        
-        self.token  = accessHash[ 'access_token' ]
-        self.client = TDClient( self.token )
+
+        self.token      = accessHash[ 'access_token' ]
+        self.client     = TDClient( self.token )
+        self.accessHash = accessHash
         
     def setAccounts( self ):
 
