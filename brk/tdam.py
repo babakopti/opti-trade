@@ -73,10 +73,13 @@ class Tdam:
                 self.setAccountId( accountId )
                 break
             except Exception as e:
-                self.logger.warning( '%s: Retrying in %d seconds!',
-                                     e,
-                                     RETRY_WAIT_TIME )
-                time.sleep( RETRY_WAIT_TIME )            
+                if itr == MAX_RETRIES - 1:
+                    self.logging.error( 'Failed to authenticate!' )
+                else:
+                    self.logger.warning( '%s: Retrying in %d seconds!',
+                                         e,
+                                         RETRY_WAIT_TIME )
+                    time.sleep( RETRY_WAIT_TIME )            
 
     def setAuth( self ):
 
@@ -161,10 +164,14 @@ class Tdam:
                 price = self.client.quote( symbol )[ symbol ][ item ]
                 break
             except Exception as e:
-                self.logger.warning( '%s: Retrying in %d seconds!',
-                                     e,
-                                     RETRY_WAIT_TIME )
-                time.sleep( RETRY_WAIT_TIME )            
+                if itr == MAX_RETRIES - 1:
+                    self.logger.error( 'Failed to get a quote for %s!',
+                                       symbol )
+                else:
+                    self.logger.warning( '%s: Retrying in %d seconds!',
+                                         e,
+                                         RETRY_WAIT_TIME )
+                    time.sleep( RETRY_WAIT_TIME )            
 
         return price
 
@@ -176,10 +183,14 @@ class Tdam:
                 topHash = self.client.options( symbol )
                 break
             except Exception as e:
-                self.logger.warning( '%s: Retrying in %d seconds!',
-                                     e,
-                                     RETRY_WAIT_TIME )
-                time.sleep( RETRY_WAIT_TIME )            
+                if itr == MAX_RETRIES - 1:
+                    self.logger.error( 'Failed to get options chain for %s!',
+                                       symbol )
+                else:
+                    self.logger.warning( '%s: Retrying in %d seconds!',
+                                         e,
+                                         RETRY_WAIT_TIME )
+                    time.sleep( RETRY_WAIT_TIME )            
                 
         callHash  = topHash[ 'callExpDateMap' ]
         putHash   = topHash[ 'putExpDateMap' ]
