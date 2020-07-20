@@ -145,8 +145,17 @@ class Tdam:
             item = 'bidPrice'
         else:
             item = 'lastPrice'
+
+        for itr in range( MAX_RETRIES ):
             
-        price = self.client.quote( symbol )[ symbol ][ item ]
+            try:
+                price = self.client.quote( symbol )[ symbol ][ item ]
+                break
+            except Exception as e:
+                self.logger.warning( '%s: Retrying in %d seconds!',
+                                     e,
+                                     RETRY_WAIT_TIME )
+                time.sleep( RETRY_WAIT_TIME )            
 
         return price
 
