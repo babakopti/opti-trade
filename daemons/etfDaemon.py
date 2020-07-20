@@ -463,7 +463,6 @@ class MfdPrtBuilder( Daemon ):
             except Exception as e:
                 self.logger.error( e )
 
-
         self.logger.info( '%s are chosen for trading!',
                           ','.join( assets ) )
         

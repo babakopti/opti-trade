@@ -65,9 +65,18 @@ class Tdam:
         self.accountId   = None
         self.accessHash  = None
 
-        self.setAuth()
-        self.setAccounts()
-        self.setAccountId( accountId )
+        for itr in range( MAX_RETRIES ):
+            
+            try:
+                self.setAuth()
+                self.setAccounts()
+                self.setAccountId( accountId )
+                break
+            except Exception as e:
+                self.logger.warning( '%s: Retrying in %d seconds!',
+                                     e,
+                                     RETRY_WAIT_TIME )
+                time.sleep( RETRY_WAIT_TIME )            
 
     def setAuth( self ):
 
