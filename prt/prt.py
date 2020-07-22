@@ -856,11 +856,14 @@ class MfdOptionsPrt:
                     cash,
                     maxPriceC,
                     maxPriceA,
-                    maxSelCnt = None  ):
+                    maxSelCnt  = None,
+                    optionType = None  ):
 
         t0      = time.time()
 
-        options = self.filterOptions( options, maxPriceC )
+        options = self.filterOptions( options,
+                                      maxPriceC,
+                                      optionType )
 
         probs = []
         
@@ -1115,7 +1118,7 @@ class MfdOptionsPrt:
 
         return prob
 
-    def filterOptions( self, options, maxPriceC ):
+    def filterOptions( self, options, maxPriceC, optionType = None ):
         
         subSet = []
 
@@ -1123,6 +1126,7 @@ class MfdOptionsPrt:
             
             asset    = option[ 'assetSymbol' ]
             exprDate = option[ 'expiration' ]
+            oType    = option[ 'type' ]                    
             oCnt     = option[ 'contractCnt' ]
             uPrice   = option[ 'unitPrice' ]
             oPrice   = uPrice * oCnt                
@@ -1146,6 +1150,10 @@ class MfdOptionsPrt:
             if oPrice > maxPriceC:
                 continue
 
+            if optionType is not None:
+                if oType != optionType:
+                    continue
+                
             prob = self.getProb( option )
 
             if prob < self.minProb:

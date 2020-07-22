@@ -50,12 +50,13 @@ REG_COEF      = 1.0e-3
 FACTOR        = 1.0e-5
 
 MAX_OPTION_MONTHS   = 3
-MAX_PRICE_CONTRACT  = 250.0
+MAX_PRICE_CONTRACT  = 500.0
 MAX_PRICE_ASSET     = 500.0
 MAX_RATIO_EXPOSURE  = 1.0
 MAX_SELECTION_COUNT = 1
-MIN_PROBABILITY     = 0.495
-OPTION_TRADE_FEE    = 0.65
+MIN_PROBABILITY     = 0.496
+OPTION_TRADE_FEE    = 0.75
+OPTION_TRADE_TYPE   = 'call'
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'
@@ -128,6 +129,7 @@ class OptionPrtBuilder( Daemon ):
                     maxSelCnt   = MAX_SELECTION_COUNT,
                     minProb     = MIN_PROBABILITY,
                     tradeFee    = OPTION_TRADE_FEE,
+                    optionType  = OPTION_TRADE_TYPE,
                     modHead     = MOD_HEAD,
                     prtHead     = PRT_HEAD,
                     chainHead   = CHAIN_HEAD,
@@ -163,6 +165,7 @@ class OptionPrtBuilder( Daemon ):
         self.maxSelCnt   = maxSelCnt
         self.minProb     = minProb
         self.tradeFee    = tradeFee
+        self.optionType  = optionType
         self.modHead     = modHead
         self.prtHead     = prtHead
         self.chainHead   = chainHead
@@ -567,11 +570,12 @@ class OptionPrtBuilder( Daemon ):
 
         options = self.getOptions()
 
-        selHash = self.prtObj.selOptions( options   = options,
-                                          cash      = exposedCash,
-                                          maxPriceC = self.maxPriceC,
-                                          maxPriceA = self.maxPriceA,
-                                          maxSelCnt = self.maxSelCnt    )
+        selHash = self.prtObj.selOptions( options    = options,
+                                          cash       = exposedCash,
+                                          maxPriceC  = self.maxPriceC,
+                                          maxPriceA  = self.maxPriceA,
+                                          maxSelCnt  = self.maxSelCnt,
+                                          optionType = self.optionType )
 
         self.savePrt( selHash, prtFile )
 
@@ -724,11 +728,20 @@ class OptionPrtBuilder( Daemon ):
             
             self.logger.info( msgStr )
 
-            if not DRY_RUN:            
-                td.order( symbol    = symbol,
-                          quantity  = quantity,
-                          sType     = 'OPTION',
-                          action    = 'BUY_TO_OPEN' )
+            randDay = np.random.randint( 1, 6 )
+        
+            self.logger.info( 'Random selected weekday is %d, today is %d!',
+                              randDay,
+                              snapDate.isoweekday() )
+            
+            if not DRY_RUN:
+                if snapDate.isoweekday() == randDay:            
+                    td.order( symbol    = symbol,
+                              quantity  = quantity,
+                              sType     = 'OPTION',
+                              action    = 'BUY_TO_OPEN' )
+                else:
+                    self.logger.info( 'Not trading today!' )
     
     def sendPrtAlert( self ):
 
