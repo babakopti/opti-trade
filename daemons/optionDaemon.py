@@ -728,14 +728,15 @@ class OptionPrtBuilder( Daemon ):
             
             self.logger.info( msgStr )
 
+            curDay  = datetime.datetime.now().isoweekday()
             randDay = np.random.randint( 1, 6 )
         
             self.logger.info( 'Random selected weekday is %d, today is %d!',
                               randDay,
-                              snapDate.isoweekday() )
+                              curDay )
             
             if not DRY_RUN:
-                if snapDate.isoweekday() == randDay:            
+                if curDay == randDay:            
                     td.order( symbol    = symbol,
                               quantity  = quantity,
                               sType     = 'OPTION',
