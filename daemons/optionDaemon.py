@@ -715,7 +715,7 @@ class OptionPrtBuilder( Daemon ):
 
         td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
         
-        self.alertStr += '\nSelected %d options!\n\n' \
+        self.alertStr += '\nSelected %d options contract(s)!\n\n' \
             % ( len( selHash.keys() ) )
                                                                      
         for symbol in selHash:
@@ -741,8 +741,14 @@ class OptionPrtBuilder( Daemon ):
                               quantity  = quantity,
                               sType     = 'OPTION',
                               action    = 'BUY_TO_OPEN' )
+                    
+                    self.alertStr += 'Bought %d of %s...\n' % ( quantity, symbol )
                 else:
-                    self.logger.info( 'Not trading today!' )
+                    msgStr = 'Not trading today!'
+                    
+                    self.alertStr += msgStr + '\n'
+                    
+                    self.logger.info( msgStr )
     
     def sendPrtAlert( self ):
 
