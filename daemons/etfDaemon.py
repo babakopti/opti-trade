@@ -40,8 +40,6 @@ STOCKS   = []
 
 ETFS     = list( ETF_HASH.keys() )
 
-ETFS     = list( set( ETFS ) - set( [ 'UJB' ] ) )
-
 ASSETS   = list( SUB_ETF_HASH.keys() )
 
 MAX_NUM_ASSETS = 5
