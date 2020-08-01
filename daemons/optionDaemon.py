@@ -49,6 +49,7 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
+NUM_WEEKDAYS_BUY    = 2
 MAX_OPTION_MONTHS   = 3
 MAX_PRICE_CONTRACT  = 500.0
 MAX_PRICE_ASSET     = 500.0
@@ -728,15 +729,15 @@ class OptionPrtBuilder( Daemon ):
             
             self.logger.info( msgStr )
 
-            curDay  = datetime.datetime.now().isoweekday()
-            randDay = np.random.randint( 1, 6 )
+            curDayInt = datetime.datetime.now().isoweekday()
+            randDays  = np.random.randint( 1, 6, NUM_WEEKDAYS_BUY )
         
-            self.logger.info( 'Random selected weekday is %d, today is %d!',
-                              randDay,
-                              curDay )
+            self.logger.info( 'Randomly selected weekday(s) are %s, today is %d!',
+                              str( randDays ),
+                              curDayInt )
             
             if not DRY_RUN:
-                if curDay == randDay:            
+                if curDayInt in randDays:            
                     td.order( symbol    = symbol,
                               quantity  = quantity,
                               sType     = 'OPTION',
