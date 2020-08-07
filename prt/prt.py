@@ -840,8 +840,6 @@ class MfdOptionsPrt:
 
         if decision == 'sell_now':
             prob    = 1.0
-        elif decision == 'exec_now':
-            prob    = 1.0
         elif decision == 'exec_maturity':
             prob = self.getProb( curOption )
         elif decision == 'no_action':
@@ -964,7 +962,7 @@ class MfdOptionsPrt:
 
     def getDecision( self, option, curUPrice ):
 
-        decisions = [ 'exec_maturity', 'exec_now', 'sell_now' ]
+        decisions = [ 'exec_maturity', 'sell_now' ]
         exprDate  = pd.to_datetime( option[ 'expiration' ] )
         retHash   = {}
         
@@ -978,13 +976,11 @@ class MfdOptionsPrt:
 
         if maxRet < 0:
             decision = 'no_action'
-        elif retHash[ 'exec_now' ] == maxRet:
-            decision = 'exec_now'
         elif retHash[ 'sell_now' ] == maxRet:
             decision = 'sell_now'
         elif retHash[ 'exec_maturity' ] == maxRet and \
              exprDate == self.curDate:
-            decision = 'exec_now'
+            decision = 'sell_now'
         else:
             decision = 'exec_maturity'
 
@@ -1033,13 +1029,6 @@ class MfdOptionsPrt:
                 val = prdPrice - etaVal
             elif oType == 'put':
                 val = etaVal - prdPrice
-            else:
-                return None
-        elif mode == 'exec_now':
-            if oType == 'call':
-                val = curPrice - etaVal
-            elif oType == 'put':
-                val = etaVal - curPrice
             else:
                 return None
         elif mode == 'sell_now':
