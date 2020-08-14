@@ -43,7 +43,7 @@ maxModTime  = '15:30:00'
 
 modFlag  = True
 dataFlag = False
-numCores = 1
+numCores = 4
 
 baseDir  = '/var/data'
 dfFile   = 'data/dfFile_2020.pkl'
@@ -96,8 +96,8 @@ def buildModPrt( snapDate ):
                          maxOosDate   = maxOosDt,
                          velNames     = velNames,
                          maxOptItrs   = 500,
-                         optGTol      = 5.0e-2,
-                         optFTol      = 5.0e-2,
+                         optGTol      = 1.0e-3,
+                         optFTol      = 1.0e-3,
                          regCoef      = 5.0e-3,
                          factor       = factor,
                          logFileName  = None,
