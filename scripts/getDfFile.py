@@ -9,65 +9,45 @@ import datetime
 import numpy as np
 import pandas as pd
 
-from utils import getDf
-
 sys.path.append( os.path.abspath( '../' ) )
 
-from mod.mfdMod import MfdMod
+import utl.utils as utl
 
-from utl.utils import getKibotData
+from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-quandlDir = '/Users/babak/workarea/data/quandl_data'
-piDir     = '/Users/babak/workarea/data/pitrading_data'
-#dfFile    = 'data/dfFile_long_term_pitrading.pkl'
+etfs    = list( ETF_HASH.keys() ) #+ list( ETF_HASH.values() )
+stocks  = []
+futures = FUTURES
+indexes = []
 
-dfFile    = 'data/dfFile_long_term_kibot.pkl'
+minDate = pd.to_datetime( '2018-12-01 00:00:00' )
 
-#minDate  = pd.to_datetime( '2001-01-01 00:00:00' )
-#maxDate  = pd.to_datetime( '2016-12-31 23:59:00' )
-
-indices     = [ 'INDU', 'NDX', 'SPX', 'RUT', 'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA', 'TRAN',
-                'HGX',  'TYX',  'HUI', 'XAU'               ] 
-
-futures     = [ 'ES', 'NQ', 'US', 'YM', 'RTY', 'EMD', 'QM' ]
-
-ETFs        = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'OIH', 
-                'SMH', 'XLE', 'XLF', 'XLU', 'EWJ'          ]
-
-allETFs     = [ 'QQQ', 'SPY', 'DIA', 'MDY', 'IWM', 'GDX', 
-                'OIH', 'RSX', 'SMH', 'XLE', 'XLF', 'XLV', 
-                'XLU', 'FXI', 'TLT', 'EEM', 'EWJ', 'IYR', 
-                'SDS', 'SLV', 'GLD', 'USO', 'UNG', 'TNA', 
-                'TZA', 'FAS'                               ]
-
-stocks      = [ 'MMM',  'AXP', 'AAPL', 'BA', 'CAT',  'CVX',
-                'CSCO', 'KO',  'XOM',  'GS',  'HD',  'INTC',
-                'IBM', 'JNJ',  'JPM',  'MCD', 'MRK', 'MSFT', 
-                'NKE', 'PFE',  'PG',   'TRV', 'UTX', 'UNH', 
-                'VZ',  'WMT',  'WBA', 'DIS'                ]
-
-forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
-                'GBPUSD', 'EURUSD', 'AUDUSD'               ]
-
-velNames    = ETFs + indices + futures
+symbols    = etfs + stocks + futures + indexes
+baseDatDir = '/var/data'
+dfFile     = 'data/dfFile_2020.pkl'
 
 # ***********************************************************************
 # Get data and save to pickle file
 # ***********************************************************************
 
-#df = getDf( quandlDir, piDir, velNames )
+oldDf = utl.mergeSymbols( symbols = symbols,
+                          datDir  = baseDatDir,
+                          fileExt = 'pkl',
+                          minDate = minDate,
+                          logger  = None   )
 
-df = getKibotData( etfs    = ETFs,
-                   futures = futures,
-                   indexes = indices,
-                   nDays   = 3000       )
+newDf = utl.getYahooData( etfs    = etfs,
+                          stocks  = stocks,
+                          futures = futures,
+                          indexes = indexes,
+                          nDays   = 5,
+                          logger  = None  )
+        
+newDf = newDf[ newDf.Date > oldDf.Date.max() ]
+newDf = pd.concat( [ oldDf, newDf ] )
 
-#df = df[ df.Date >= minDate ]
-#df = df[ df.Date <= maxDate ]
-
-df.to_pickle( dfFile, protocol = 4 )
+newDf.to_pickle( dfFile, protocol = 4 )

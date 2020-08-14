@@ -28,9 +28,9 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_3_hours_2020_full_ETF_HASH.json'
+prtFile     = 'portfolios/portfolio_every_3_hours_2020_08_14_num_assets_5.json'
 bkBegDate   = pd.to_datetime( '2020-01-02 09:30:00' )
-bkEndDate   = pd.to_datetime( '2020-05-12 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-08-14 09:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 3 * 60
@@ -43,15 +43,15 @@ maxModTime  = '15:30:00'
 
 modFlag  = True
 dataFlag = False
-numCores = 4
+numCores = 1
 
 baseDir  = '/var/data'
 dfFile   = 'data/dfFile_2020.pkl'
 
-symbols  = list( ETF_HASH.keys() ) + \
-           list( ETF_HASH.values() ) + \
-           FUTURES + \
-           [ 'VIX' ]
+# symbols  = list( ETF_HASH.keys() ) + \
+#            list( ETF_HASH.values() ) + \
+#            FUTURES + \
+#            [ 'VIX' ]
 velNames  = list( ETF_HASH.keys() ) + FUTURES
 assetPool = list( ETF_HASH.keys() )
 
