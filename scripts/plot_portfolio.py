@@ -14,13 +14,13 @@ sys.path.append( '../' )
 
 import utl.utils as utl
 
-from dat.assets import SUB_ETF_HASH as ETF_HASH
+from dat.assets import ETF_HASH 
 
 # ***********************************************************************
 # Input
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_once_a_day_afternoon_2020.json'
+prtFile     = 'portfolios/portfolio_every_3_hours_2020_08_14_num_assets_5.json'
 dfFile      = 'data/dfFile_2020.pkl'
 base        = 'SPY'
 initTotVal  = 20000.0
