@@ -18,8 +18,8 @@ minProb  = 0.496
 maxPrice = 500.0
 tradeFee = 0.75
 
-OPTION_CHAIN_FILE = 'data/option_chain_2020-07.pkl'
-ACT_FILE = 'data/dfFile_2020-07-21 10:45:41.pkl'
+OPTION_CHAIN_FILE = 'data/option_chain_2020-08.pkl'
+ACT_FILE = 'data/dfFile_2020-08-25 10:45:39.pkl'
 
 # ***********************************************************************
 # Read options and actuals files and merge
