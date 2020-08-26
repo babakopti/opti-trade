@@ -1135,6 +1135,80 @@ def sortAssets( symbols,
     return eDf
 
 # ***********************************************************************
+# getDeviationHash(): Get normalized deviations
+# ***********************************************************************
+
+def getDeviationHash( symbols,
+                      dfFile,
+                      curDate,
+                      nAvgDays = 7,
+                      nCurDays = 1,
+                      logger   = None    ):
+
+    assert nAvgDays > nCurDays, \
+        'nAvgDays should be larger nCurDays!'
+        
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    curDate    = pd.to_datetime( curDate )
+    minAvgDate = curDate - pd.DateOffset( days = nAvgDays )
+    minCurDate = curDate - pd.DateOffset( days = nCurDays )
+    
+    df = pd.read_pickle( dfFile )
+
+    assert df.Date.min() <= minAvgDate, \
+        'Insifficient date range!'
+    
+    df = df[ ( df.Date <= curDate ) &
+             ( df.Date >= minAvgDate ) ]
+
+    devHash = {}
+    
+    for symbol in symbols:
+        avgVal = df[ symbol ].mean()
+        stdVal = df[ symbol ].std()
+        curVal = df[ df.Date >= minCurDate ][ symbol ].mean()
+        
+        normFct = stdVal
+        if normFct > 0:
+            normFct = 1.0 / normFct
+
+        devHash[ symbol ] = normFct * ( curVal - avgVal ) 
+        
+    return devHash
+
+# ***********************************************************************
+# filtDeviation(): Apply deviation filter
+# ***********************************************************************
+
+def filtDeviation( symbols,
+                   dfFile,
+                   curDate,
+                   nAvgDays  = 7,
+                   nCurDays  = 1,
+                   threshold = 2.0, 
+                   logger    = None    ):
+
+    if logger is None:
+        logger = getLogger( None, 1 )
+
+    devHash = getDeviationHash( symbols  = symbols,
+                                dfFile   = dfFile,
+                                curDate  = curDate,
+                                nAvgDays = nAvgDays,
+                                nCurDays = nCurDays,
+                                logger   = logger    )
+    
+    retList = []
+
+    for symbol in symbols:
+        if devHash[ symbol ] <= threshold:
+            retList.append( symbol )
+            
+    return retList
+
+# ***********************************************************************
 # evalPrtPerf: Evaluate a model / portfolio performance
 # ***********************************************************************
 
