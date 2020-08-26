@@ -19,7 +19,7 @@ from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
 # Set some parameters and read data
 # ***********************************************************************
 
-etfs    = list( ETF_HASH.keys() ) #+ list( ETF_HASH.values() )
+etfs    = list( ETF_HASH.keys() ) + list( ETF_HASH.values() )
 stocks  = []
 futures = FUTURES
 indexes = []

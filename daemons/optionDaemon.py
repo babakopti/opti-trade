@@ -49,7 +49,7 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
-NUM_WEEKDAYS_BUY    = 2
+NUM_WEEKDAYS_BUY    = 1
 MAX_OPTION_MONTHS   = 3
 MAX_PRICE_CONTRACT  = 500.0
 MAX_PRICE_ASSET     = 500.0

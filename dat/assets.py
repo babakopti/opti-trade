@@ -142,7 +142,7 @@ PI_ETFS = [ 'QQQ',
 
 FUTURES = [ 'ES',
             'NQ',
-            'US',
+#            'US',
             'YM',
             'RTY',
             'EMD',
