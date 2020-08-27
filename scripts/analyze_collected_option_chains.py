@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from datetime import timedelta
 
@@ -118,6 +119,13 @@ print( 'Chosen call count/avg_horizon/min/max/mean/std from monte-carlo: '
            np.mean( tmp_list_call ),
            np.std( tmp_list_call ) ) )
 
+sns.distplot(call_df.Return);
+sns.distplot(ch_call_df.Return);
+plt.legend(['All', 'Chosen'])
+plt.xlabel( 'Return' )
+plt.ylabel( 'Distribution (call options)' )
+plt.show()
+
 if False:
     plt.scatter( ch_call_df.Prob, ch_call_df.Return )
     plt.title( 'Return vs. probability for call options!' )
@@ -223,6 +231,13 @@ print( 'Chosen put count/avg. horizon/min/max/mean/std from monte-carlo: '
            np.max( tmp_list_put ),
            np.mean( tmp_list_put ),
            np.std( tmp_list_put ) ) )
+
+sns.distplot(put_df.Return)
+sns.distplot(ch_put_df.Return)
+plt.legend(['All', 'Chosen'])
+plt.xlabel( 'Return' )
+plt.ylabel( 'Distribution (put options)' )
+plt.show()
 
 if False:
     plt.scatter( ch_put_df.Prob, ch_put_df.Return )
