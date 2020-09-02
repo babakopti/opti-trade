@@ -21,6 +21,9 @@ maxPrice = 500.0
 maxHoldA = 1000.0
 tradeFee = 0.75
 
+minHorizon = 1
+maxHorizon = 90
+
 OPTION_CHAIN_FILE = 'data/option_chain_2020_July_Aug.pkl'
 ACT_FILE = 'data/dfFile_2020-09-01 15:00:40.pkl'
 
@@ -28,7 +31,7 @@ ACT_FILE = 'data/dfFile_2020-09-01 15:00:40.pkl'
 # Read options and actuals files and merge
 # ***********************************************************************
 
-if True:
+if False:
     optDf = pd.read_pickle( OPTION_CHAIN_FILE )
     actDf = pd.read_pickle( ACT_FILE )
 
@@ -103,7 +106,9 @@ print( 'Chosen call median return:',
 
 tmp_list_call = []
 tmp_df = call_df[ (call_df.Prob > minProb) & \
-                  (100 * call_df.unitPrice < maxPrice) ]
+                  (100 * call_df.unitPrice < maxPrice) & \
+                  (call_df.horizon >= minHorizon) & \
+                  (call_df.horizon <= maxHorizon) ]
 
 for itr in range( 1000 ):
     
@@ -144,13 +149,14 @@ print( 'Chosen call count/avg_horizon/min/max/mean/std from monte-carlo: '
 
 print('Summary of selected call options by asset symbol:')
 print(ch_call_df.groupby(['Year', 'assetSymbol'])['Return', 'Prob'].mean())
-      
-sns.distplot(call_df.Return);
-sns.distplot(ch_call_df.Return);
-plt.legend(['All', 'Chosen'])
-plt.xlabel( 'Return' )
-plt.ylabel( 'Distribution (call options)' )
-plt.show()
+
+if False:
+    sns.distplot(call_df.Return);
+    sns.distplot(ch_call_df.Return);
+    plt.legend(['All', 'Chosen'])
+    plt.xlabel( 'Return' )
+    plt.ylabel( 'Distribution (call options)' )
+    plt.show()
 
 if False:
     plt.scatter( ch_call_df.Prob, ch_call_df.Return )
@@ -240,7 +246,10 @@ print( 'Chosen put median return:',
 
 tmp_list_put = []
 tmp_df = put_df[ (put_df.Prob > minProb) & \
-                 (100 * put_df.unitPrice < maxPrice) ]
+                 (100 * put_df.unitPrice < maxPrice) & \
+                  (put_df.horizon >= minHorizon) & \
+                  (put_df.horizon <= maxHorizon) ]
+                 
 
 for itr in range( 1000 ):
     
@@ -282,12 +291,13 @@ print( 'Chosen put count/avg. horizon/min/max/mean/std from monte-carlo: '
 print('Summary of selected put options by asset symbol:')
 print(ch_put_df.groupby(['Year', 'assetSymbol'])['Return', 'Prob'].mean())
 
-sns.distplot(put_df.Return)
-sns.distplot(ch_put_df.Return)
-plt.legend(['All', 'Chosen'])
-plt.xlabel( 'Return' )
-plt.ylabel( 'Distribution (put options)' )
-plt.show()
+if False:
+    sns.distplot(put_df.Return)
+    sns.distplot(ch_put_df.Return)
+    plt.legend(['All', 'Chosen'])
+    plt.xlabel( 'Return' )
+    plt.ylabel( 'Distribution (put options)' )
+    plt.show()
 
 if False:
     plt.scatter( ch_put_df.Prob, ch_put_df.Return )
