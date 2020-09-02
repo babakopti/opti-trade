@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from datetime import timedelta
+from collections import defaultdict
 
 # ***********************************************************************
 # Some Parameters
@@ -17,6 +18,7 @@ from datetime import timedelta
 
 minProb  = 0.496
 maxPrice = 500.0
+maxHoldA = 1000.0
 tradeFee = 0.75
 
 OPTION_CHAIN_FILE = 'data/option_chain_2020_July_Aug.pkl'
@@ -104,11 +106,32 @@ tmp_df = call_df[ (call_df.Prob > minProb) & \
                   (100 * call_df.unitPrice < maxPrice) ]
 
 for itr in range( 1000 ):
-    val = tmp_df.sample( n = 10,
-                         replace = True,
-                         weights = 'Prob',
-                         axis = 0 ).Return.mean()
-    tmp_list_call.append( val )
+    
+    holdHash = defaultdict( float )
+    returns = []    
+    nSelected = 0
+    
+    for i in range( tmp_df.shape[0] ):
+        
+        item = tmp_df.sample( n = 1,
+                              replace = True,
+                              weights = 'Prob',
+                              axis = 0 )
+        
+        assetSymbol = list(item.assetSymbol)[0]
+        price = 100 * list(item.unitPrice)[0]
+
+        if price + holdHash[ assetSymbol ] <= maxHoldA:
+            nSelected += 1
+            holdHash[ assetSymbol ] += price
+            returns.append( list(item.Return)[0] )
+        else:
+            continue
+
+        if nSelected >= 10:
+            break
+    
+    tmp_list_call.append( np.mean( returns ) )
 
 print( 'Chosen call count/avg_horizon/min/max/mean/std from monte-carlo: '
        '%d, %0.2f, %0.2f, %0.2f, %0.2f, %0.2f' % (
@@ -220,11 +243,32 @@ tmp_df = put_df[ (put_df.Prob > minProb) & \
                  (100 * put_df.unitPrice < maxPrice) ]
 
 for itr in range( 1000 ):
-    val = tmp_df.sample( n = 10,
-                         replace = True,
-                         weights = 'Prob',
-                         axis = 0 ).Return.mean()
-    tmp_list_put.append(val)
+    
+    holdHash = defaultdict( float )
+    returns = []    
+    nSelected = 0
+    
+    for i in range( tmp_df.shape[0] ):
+        
+        item = tmp_df.sample( n = 1,
+                              replace = True,
+                              weights = 'Prob',
+                              axis = 0 )
+        
+        assetSymbol = list(item.assetSymbol)[0]
+        price = 100 * list(item.unitPrice)[0]
+
+        if price + holdHash[ assetSymbol ] <= maxHoldA:
+            nSelected += 1
+            holdHash[ assetSymbol ] += price
+            returns.append( list(item.Return)[0] )
+        else:
+            continue
+
+        if nSelected >= 10:
+            break
+    
+    tmp_list_put.append( np.mean( returns ) )
 
 print( 'Chosen put count/avg. horizon/min/max/mean/std from monte-carlo: '
        '%d, %0.2f, %0.2f, %0.2f, %0.2f, %0.2f' % (
