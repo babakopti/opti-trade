@@ -19,14 +19,14 @@ minProb  = 0.496
 maxPrice = 500.0
 tradeFee = 0.75
 
-OPTION_CHAIN_FILE = 'data/option_chain_2020-08.pkl'
-ACT_FILE = 'data/dfFile_2020-08-25 10:45:39.pkl'
+OPTION_CHAIN_FILE = 'data/option_chain_2020_July_Aug.pkl'
+ACT_FILE = 'data/dfFile_2020-09-01 15:00:40.pkl'
 
 # ***********************************************************************
 # Read options and actuals files and merge
 # ***********************************************************************
 
-if False:
+if True:
     optDf = pd.read_pickle( OPTION_CHAIN_FILE )
     actDf = pd.read_pickle( ACT_FILE )
 
@@ -119,6 +119,9 @@ print( 'Chosen call count/avg_horizon/min/max/mean/std from monte-carlo: '
            np.mean( tmp_list_call ),
            np.std( tmp_list_call ) ) )
 
+print('Summary of selected call options by asset symbol:')
+print(ch_call_df.groupby(['Year', 'assetSymbol'])['Return', 'Prob'].mean())
+      
 sns.distplot(call_df.Return);
 sns.distplot(ch_call_df.Return);
 plt.legend(['All', 'Chosen'])
@@ -231,6 +234,9 @@ print( 'Chosen put count/avg. horizon/min/max/mean/std from monte-carlo: '
            np.max( tmp_list_put ),
            np.mean( tmp_list_put ),
            np.std( tmp_list_put ) ) )
+
+print('Summary of selected put options by asset symbol:')
+print(ch_put_df.groupby(['Year', 'assetSymbol'])['Return', 'Prob'].mean())
 
 sns.distplot(put_df.Return)
 sns.distplot(ch_put_df.Return)

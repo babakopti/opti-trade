@@ -28,9 +28,9 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_3_hours_2020_08_14_num_assets_5.json'
-bkBegDate   = pd.to_datetime( '2020-01-02 09:30:00' )
-bkEndDate   = pd.to_datetime( '2020-08-14 09:30:00' )
+prtFile     = 'portfolios/portfolio_every_3_hours_2020_08_26_assets_5_nofallback.json'
+bkBegDate   = pd.to_datetime( '2020-07-01 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-08-26 09:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 3 * 60
@@ -41,7 +41,7 @@ maxModTime  = '15:30:00'
 # Set some parameters and read data
 # ***********************************************************************
 
-modFlag  = True
+modFlag  = False
 dataFlag = False
 numCores = 4
 
@@ -112,7 +112,11 @@ def buildModPrt( snapDate ):
 
         mfdMod.save( modFilePath )
     else:
-        mfdMod = dill.load( open( modFilePath, 'rb' ) )
+        try:
+            mfdMod = dill.load( open( modFilePath, 'rb' ) )
+        except Exception as exc:
+            logging.critical(exc)
+            sys.exit()
 
     print( 'Building portfolio for snapdate', snapDate )
 
@@ -125,14 +129,24 @@ def buildModPrt( snapDate ):
     nPrdTimes = nPrdMinutes #int( nDays * 19 * 60 )
     nRetTimes = int( 30 * 19 * 60 )  
 
-    eDf = utl.sortAssets( symbols   = assetPool,
+    assetList = assetPool
+    
+    # assetList = utl.filtDeviation( assetPool,
+    #                               dfFile,
+    #                               snapDate,
+    #                               nAvgDays  = 7,
+    #                               nCurDays  = 1,
+    #                               threshold = 2.0, 
+    #                               logger    = None    )
+
+    eDf = utl.sortAssets( symbols   = assetList,
                           dfFile    = dfFile,
                           begDate   = snapDate - datetime.timedelta( days = 60 ),
                           endDate   = snapDate,
                           criterion = 'abs_sharpe',                          
                           mode      = 'daily'     )
     assets = list( eDf.asset )[:5]
-    
+
     ecoMfd = mfdMod.ecoMfd
     quoteHash = {}
     for m in range( ecoMfd.nDims ):
@@ -156,15 +170,30 @@ def buildModPrt( snapDate ):
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
                      vType        = vType,
-                     fallBack     = 'macd',
+                     fallBack     = None, #'macd',
                      verbose      = 1          )
 
     dateKey = snapDate.strftime( '%Y-%m-%d %H:%M:00' )
 
-    wtHash[ dateKey ] = mfdPrt.getPortfolio()
+    tmpHash = mfdPrt.getPortfolio()
 
-    pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    
+    # devHash = utl.getDeviationHash( assetPool,
+    #                                 dfFile,
+    #                                 snapDate,
+    #                                 nAvgDays  = 7,
+    #                                 nCurDays  = 1,
+    #                                 logger    = None    )
     
+    # for symbol in tmpHash:
+    #     if devHash[ symbol ] > 2.0:
+    #         tmpHash[symbol] = -abs(tmpHash[symbol])
+    #     elif devHash[ symbol ] < -2.0:
+    #         tmpHash[symbol] = abs(tmpHash[symbol])
+            
+    wtHash[ dateKey ] = tmpHash
+    
+    pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    
+
     print( 'Building portfolio took %d seconds!' % ( time.time() - t0 ) )
 
     return True

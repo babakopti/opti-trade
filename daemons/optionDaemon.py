@@ -53,11 +53,12 @@ NUM_WEEKDAYS_BUY    = 1
 MAX_OPTION_MONTHS   = 3
 MAX_PRICE_CONTRACT  = 500.0
 MAX_PRICE_ASSET     = 500.0
+MAX_HOLDING_ASSET   = 1000.0
 MAX_RATIO_EXPOSURE  = 1.0
 MAX_SELECTION_COUNT = 1
 MIN_PROBABILITY     = 0.496
 OPTION_TRADE_FEE    = 0.75
-OPTION_TRADE_TYPE   = 'call'
+OPTION_TRADE_TYPE   = None
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'
@@ -126,6 +127,7 @@ class OptionPrtBuilder( Daemon ):
                     maxMonths   = MAX_OPTION_MONTHS,
                     maxPriceC   = MAX_PRICE_CONTRACT,
                     maxPriceA   = MAX_PRICE_ASSET,
+                    maxHoldA    = MAX_HOLDING_ASSET,
                     maxRatioExp = MAX_RATIO_EXPOSURE,
                     maxSelCnt   = MAX_SELECTION_COUNT,
                     minProb     = MIN_PROBABILITY,
@@ -162,6 +164,7 @@ class OptionPrtBuilder( Daemon ):
         self.maxMonths   = maxMonths
         self.maxPriceC   = maxPriceC
         self.maxPriceA   = maxPriceA
+        self.maxHoldA    = maxHoldA        
         self.maxRatioExp = maxRatioExp
         self.maxSelCnt   = maxSelCnt
         self.minProb     = minProb
@@ -647,7 +650,13 @@ class OptionPrtBuilder( Daemon ):
             
         self.logger.info( 'Saved option chains for future use.' )
 
-        return options
+        filtOptions = self.filterMaxHolding( options )
+
+        self.logger.info( 'Filtered out %d options to conform with max asset '
+                          'holding constraint of %2.f.',
+                          len( options ) - len( filtOptions ),
+                          self.maxHoldA  )
+        return filtOptions
 
     def saveOptions( self, options ):
 
@@ -705,6 +714,50 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.info( '%s was saved to bucket!', tmpName )        
 
+    def filterMaxHolding( self, options ):
+
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
+        except Exception as e:
+            self.logger.error( e )
+        
+        positions = td.getPositions()
+        holdHash  = defaultdict( float )
+
+        for position in positions:
+
+            sType    = position[ 'instrument' ][ 'assetType' ]
+            longQty  = position[ 'longQuantity' ]
+            shortQty = position[ 'shortQuantity' ]
+
+            if sType != 'OPTION':
+                continue
+
+            if longQty == 0 or shortQty > 0:
+                continue
+
+            symbol      = position[ 'instrument' ][ 'symbol' ]                        
+            assetSymbol = position[ 'instrument' ][ 'underlyingSymbol' ]
+            unitPrice   = td.getQuote( symbol, 'bid' )
+            
+            holdHash[ assetSymbol ] += 100 * unitPrice
+
+        filtOptions = []
+
+        for option in options:
+
+            assetSymbol = option[ 'assetSymbol' ]            
+            oCnt        = option[ 'contractCnt' ]
+            unitPrice   = option[ 'unitPrice' ]
+            price       = oCnt * unitPrice
+
+            if price + holdHash[ assetSymbol ] > self.maxHoldA:
+                continue
+
+            filtOptions.append( option )
+        
+        return filtOptions
+        
     def savePrt( self, selHash, prtFile ):
 
         json.dump( selHash, open( prtFile, 'w' ) )

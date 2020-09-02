@@ -857,6 +857,9 @@ class MfdOptionsPrt:
                     maxSelCnt  = None,
                     optionType = None  ):
 
+        assert optionType in [ 'call', 'put', None ], \
+            'Unkown option type %s' % str( optionType )
+        
         t0      = time.time()
 
         options = self.filterOptions( options,
