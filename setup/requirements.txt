@@ -12,3 +12,4 @@ yfinance
 tdameritrade
 selenium
 pandas_market_calendars
+seaborn

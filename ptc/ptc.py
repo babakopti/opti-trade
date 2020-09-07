@@ -196,6 +196,9 @@ class PTClassifier:
         
     def classify( self ):
 
+        self.logger.info( 'Building a peak/trough classifier for %s',
+                          self.symbol )
+        
         df = self.dayDf
         X  = np.array( df.feature )
         X  = X.reshape( ( len( X ), 1 ) )
@@ -281,4 +284,9 @@ class PTClassifier:
             self.dayDf.feature.apply( lambda x : self.getClassProb( x ) )
 
     def save( self, fileName ):
-        joblib.dump( self, fileName ) 
+
+        self.logger.info( 'Saving the peak / trough classifier to %s...',
+                          fileName )
+        
+        with open( fileName, 'wb' ) as fHd:
+            pk.dump( self.classifier, fHd, pk.HIGHEST_PROTOCOL ) 
