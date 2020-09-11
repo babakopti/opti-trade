@@ -42,6 +42,8 @@ class PTClassifier:
                     nPTAvgDays  = None,                    
                     testRatio   = 0.2,
                     method      = 'bayes',
+                    minVix      = None,
+                    maxVix      = None,
                     minProb     = None,                    
                     logFileName = None,                    
                     verbose     = 1          ):
@@ -53,6 +55,8 @@ class PTClassifier:
         self.nPTAvgDays  = nPTAvgDays                    
         self.testRatio   = testRatio
         self.method      = method
+        self.minVix      = minVix
+        self.maxVix      = maxVix
         self.minProb     = minProb
         self.logFileName = logFileName
         self.verbose     = verbose
@@ -88,9 +92,19 @@ class PTClassifier:
         assert symbol in df.columns, 'Symbol %s not found in %s' \
             % ( symbol, dfFile )
 
+        if self.minVix is not None or self.maxVix is not None:
+                assert 'VIX' in df.columns, 'VIX not found in %s' \
+                    % dfFile
+
+        if self.minVix is not None:
+            df = df[ df.VIX >= self.minVix ]
+            
+        if self.maxVix is not None:
+            df = df[ df.VIX <= self.maxVix ]
+
         df[ 'Date' ]  = df.Date.apply( pd.to_datetime )
         df[ 'Date0' ] = df.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
-
+        
         dayDf = df.groupby( 'Date0', as_index = False )[ symbol ].mean()
         dayDf = dayDf.rename( columns = { 'Date0' : 'Date' } )
 
@@ -155,6 +169,8 @@ class PTClassifier:
                           symbol,
                           dayDf[ dayDf.ptTag == PEAK ].shape[0],
                           dayDf[ dayDf.ptTag == TROUGH ].shape[0]  )
+
+        dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
         
         self.dayDf = dayDf
             
@@ -183,22 +199,30 @@ class PTClassifier:
         df      = self.dayDf
         legends = [ 'All' ]
         
-        plt.plot( df[ symbol ], 'b-' )
+        plt.plot( df[ 'Date' ], df[ symbol ], 'b-' )
 
         if actPeaks:
-            plt.plot( df[ df.ptTag == PEAK ][ symbol ], 'go' )
+            plt.plot( df[ df.ptTag == PEAK ][ 'Date' ],
+                      df[ df.ptTag == PEAK ][ symbol ],
+                      'go' )
             legends.append( 'Peaks' )
 
         if actTroughs:
-            plt.plot( df[ df.ptTag == TROUGH ][ symbol ], 'ys' )
+            plt.plot( df[ df.ptTag == TROUGH ][ 'Date' ],
+                      df[ df.ptTag == TROUGH ][ symbol ],
+                      'ys' )
             legends.append( 'Troughs' )
 
         if prdPeaks:
-            plt.plot( df[ df.ptTagPrd == PEAK ][ symbol ], 'r.' )
+            plt.plot( df[ df.ptTagPrd == PEAK ][ 'Date' ],
+                      df[ df.ptTagPrd == PEAK ][ symbol ],
+                      'r.' )
             legends.append( 'Predicted Peaks' )
 
         if prdTroughs:
-            plt.plot( df[ df.ptTagPrd == TROUGH ][ symbol ], 'c.' )
+            plt.plot( df[ df.ptTagPrd == TROUGH ][ 'Date' ],
+                      df[ df.ptTagPrd == TROUGH ][ symbol ],
+                      'c.' )
             legends.append( 'Predicted Troughs' )
             
         plt.legend( legends )
