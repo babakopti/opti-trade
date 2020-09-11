@@ -59,7 +59,11 @@ class PTClassifier:
         self.logger      = getLogger( logFileName, verbose, 'mod' )
         self.classes     = [ 'not_peak_or_trough', 'peak', 'trough' ] 
         self.dayDf       = None
-        self.classifier  = None 
+        self.classifier  = None
+        self.trnAccuracy = None
+        self.oosAccuracy = None        
+        self.normTrnMat  = None
+        self.normOosMat  = None        
         
         assert method == 'bayes', 'Only Bayes method is supported right now!'
         
@@ -144,6 +148,13 @@ class PTClassifier:
 
         assert set( dayDf.ptTag ) == { PEAK, TROUGH, NOT_PT }, \
             'Unexpected peak/trough tag!'
+
+        self.logger.info( 'A total of %d samples for %s! '
+                          'Found %d peaks and %d troughs!',
+                          dayDf.shape[0],
+                          symbol,
+                          dayDf[ dayDf.ptTag == PEAK ].shape[0],
+                          dayDf[ dayDf.ptTag == TROUGH ].shape[0]  )
         
         self.dayDf = dayDf
             
@@ -213,11 +224,15 @@ class PTClassifier:
 
         gnb = GaussianNB()
         gnb = gnb.fit( XTrn, yTrn )
-
+        
+        self.classifier  = gnb
+        self.trnAccuracy = gnb.score( XTrn, yTrn )
+        self.oosAccuracy = gnb.score( XOos, yOos )
+        
         self.logger.info( 'In-sample accuracy: %0.4f',
-                          gnb.score( XTrn, yTrn ) )
+                          self.trnAccuracy )
         self.logger.info( 'Out-of-sample accuracy: %0.4f',
-                          gnb.score( XOos, yOos ) )
+                          self.oosAccuracy )
 
         yTrnPred = gnb.predict( XTrn )        
         confMat  = confusion_matrix( yTrn, yTrnPred )
@@ -225,19 +240,10 @@ class PTClassifier:
         self.logger.info( 'In-sample confusion matrix:\n %s',
                           str( confMat ) )
 
-        normMat = np.zeros( shape = ( 3, 3 ), dtype = 'd' )
-        
-        for i in range( 3 ):
-            tmp = sum( confMat[i] )
-
-            if tmp > 0:
-                tmp = 1.0 / tmp
-
-            for j in range( 3 ):
-                normMat[i][j] = confMat[i][j] * tmp
+        self.normTrnMat = self.normalizeConfMat( confMat )     
                 
         self.logger.info( 'In-sample norm. confusion matrix:\n %s',
-                          str( normMat ) )
+                          str( self.normTrnMat ) )
 
         yOosPred = gnb.predict( XOos )        
         confMat  = confusion_matrix( yOos, yOosPred )
@@ -245,6 +251,15 @@ class PTClassifier:
         self.logger.info( 'Out-of-sample confusion matrix:\n %s',
                           str( confMat ) )
 
+        self.normOosMat = self.normalizeConfMat( confMat )
+        
+        self.logger.info( 'Out-of-sample norm. confusion matrix:\n %s',
+                          str( self.normOosMat ) )
+        
+        self.setPrd()                        
+
+    def normalizeConfMat( self, confMat ):
+
         normMat = np.zeros( shape = ( 3, 3 ), dtype = 'd' )
         
         for i in range( 3 ):
@@ -255,13 +270,15 @@ class PTClassifier:
 
             for j in range( 3 ):
                 normMat[i][j] = confMat[i][j] * tmp
-                
-        self.logger.info( 'Out-of-sample norm. confusion matrix:\n %s',
-                          str( normMat ) )
-        
-        self.classifier = gnb
 
-        self.setPrd()
+        return normMat
+        
+    def setPrd( self ):
+
+        self.dayDf[ 'ptTagPrd' ] = \
+            self.dayDf.feature.apply( lambda x : self.getClass( x ) )
+        self.dayDf[ 'prdProb' ] = \
+            self.dayDf.feature.apply( lambda x : self.getClassProb( x ) )
         
     def getClass( self, val ):
 
@@ -275,14 +292,15 @@ class PTClassifier:
         probs = self.classifier.predict_proba( X )[0]
         
         return max( probs )
+
+    def getTrnMerits( self ):
+        
+        return self.trnAccuracy, self.normTrnMat
+
+    def getOosMerits( self ):
+        
+        return self.oosAccuracy, self.normOosMat
     
-    def setPrd( self ):
-
-        self.dayDf[ 'ptTagPrd' ] = \
-            self.dayDf.feature.apply( lambda x : self.getClass( x ) )
-        self.dayDf[ 'prdProb' ] = \
-            self.dayDf.feature.apply( lambda x : self.getClassProb( x ) )
-
     def save( self, fileName ):
 
         self.logger.info( 'Saving the peak / trough classifier to %s...',

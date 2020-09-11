@@ -28,9 +28,9 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_3_hours_2020_08_26_assets_5_nofallback.json'
-bkBegDate   = pd.to_datetime( '2020-07-01 09:30:00' )
-bkEndDate   = pd.to_datetime( '2020-08-26 09:30:00' )
+prtFile     = 'portfolios/portfolio_every_3_hours_2020_09_09_assets_5_tc.json'
+bkBegDate   = pd.to_datetime( '2020-08-26 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-09-09 15:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 3 * 60
@@ -53,7 +53,7 @@ dfFile   = 'data/dfFile_2020.pkl'
 #            FUTURES + \
 #            [ 'VIX' ]
 velNames  = list( ETF_HASH.keys() ) + FUTURES
-assetPool = list( ETF_HASH.keys() )
+assetPool = list( SUB_ETF_HASH.keys() )
 
 factor = 4.0e-05
 vType  = 'vel'
@@ -170,26 +170,52 @@ def buildModPrt( snapDate ):
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
                      vType        = vType,
-                     fallBack     = None, #'macd',
+                     fallBack     = 'macd',
                      verbose      = 1          )
 
     dateKey = snapDate.strftime( '%Y-%m-%d %H:%M:00' )
 
     tmpHash = mfdPrt.getPortfolio()
 
-    # devHash = utl.getDeviationHash( assetPool,
-    #                                 dfFile,
-    #                                 snapDate,
-    #                                 nAvgDays  = 7,
-    #                                 nCurDays  = 1,
-    #                                 logger    = None    )
-    
-    # for symbol in tmpHash:
-    #     if devHash[ symbol ] > 2.0:
-    #         tmpHash[symbol] = -abs(tmpHash[symbol])
-    #     elif devHash[ symbol ] < -2.0:
-    #         tmpHash[symbol] = abs(tmpHash[symbol])
-            
+    for symbol in tmpHash:
+
+        df = pd.read_pickle( dfFile )
+
+        df = df[ [ 'Date', symbol ] ]
+
+        df[ 'Date' ] = df.Date.apply( pd.to_datetime )
+        
+        tmpDate = snapDate - pd.DateOffset( days = 60 )
+        
+        df = df[ (df.Date >= tmpDate) & (df.Date <= snapDate) ]
+
+        df[ 'Date0' ] = df.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+
+        dayDf = df.groupby( 'Date0', as_index = False )[ symbol ].mean()
+        dayDf = dayDf.rename( columns = { 'Date0' : 'Date' } )
+
+        dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
+        dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
+
+        dayDf[ 'avgAcl' ] = dayDf.acl.rolling( min_periods = 1,
+                                               window = 7 ).mean()
+        dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl        
+                 
+        obj = pickle.load( open( 'pt_classifiers/ptc_%s.pkl' % symbol, 'rb' ) )
+
+        dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
+        
+        val = list( dayDf.feature )[-1]
+
+        X = np.array( [ val ] ).reshape( ( 1, 1 ) )
+        
+        ptTag = obj.predict( X )[0]
+
+        # if ptTag == 1:
+        #     tmpHash[ symbol ] = -abs( tmpHash[ symbol ] )
+        if ptTag == 2:
+            tmpHash[ symbol ] = abs( tmpHash[ symbol ] )
+
     wtHash[ dateKey ] = tmpHash
     
     pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    

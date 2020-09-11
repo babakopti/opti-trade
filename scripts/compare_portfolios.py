@@ -20,15 +20,19 @@ from dat.assets import ETF_HASH
 # Input
 # ***********************************************************************
 
-prtFiles    = [ 'portfolios/portfolio_every_3_hours_2020_08_14_num_assets_5.json',
-                'portfolios/portfolio_every_3_hours_2020_08_14_num_assets_10.json' ]
+prtFiles    = [ 'portfolios/portfolio_every_3_hours_assets_5.json',
+                'portfolios/portfolio_every_3_hours_assets_5_ptc.json',
+                'portfolios/portfolio_every_3_hours_assets_5_pc.json',                 
+                'portfolios/portfolio_every_3_hours_assets_5_tc.json' ]
 legends     = [ 'Every 3 hours; 5 assets',
-                'Every 3 hours; 10 assets'  ]
+                'Every 3 hours; 5 assets; peak/trough classifier',
+                'Every 3 hours; 5 assets; peak only classifier',                
+                'Every 3 hours; 5 assets; trough only classifier' ]
 
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
-outFile     = 'analysis-results/compare_sorted_ETFs_5_vs_10.csv'
+outFile     = 'analysis-results/compare_ptc.csv'
 
 # ***********************************************************************
 # Get min and max dates
@@ -48,7 +52,7 @@ for prtFile in prtFiles:
 
 minDate = max( minDates )
 maxDate = min( maxDates )
-    
+
 # ***********************************************************************
 # Read portfolios and plot
 # ***********************************************************************
