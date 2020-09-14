@@ -28,8 +28,8 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_3_hours_2020_09_09_assets_5_tc.json'
-bkBegDate   = pd.to_datetime( '2020-08-26 09:30:00' )
+prtFile     = 'portfolios/portfolio_every_3_hours_assets_5.json'
+bkBegDate   = pd.to_datetime( '2020-09-09 15:30:00' )
 bkEndDate   = pd.to_datetime( '2020-09-09 15:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
@@ -83,7 +83,7 @@ def buildModPrt( snapDate ):
     maxOosDt    = snapDate
     maxTrnDt    = maxOosDt - datetime.timedelta( days = nOosDays )
     minTrnDt    = maxTrnDt - datetime.timedelta( days = nTrnDays )
-    modFilePath = 'models/model_' + str( snapDate ) + '.dill'
+    modFilePath = '/Volumes/Public/workarea/opti-trade/scripts/models_2020_09/model_' + str( snapDate ) + '.dill'
     wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
     if modFlag:
@@ -177,44 +177,44 @@ def buildModPrt( snapDate ):
 
     tmpHash = mfdPrt.getPortfolio()
 
-    for symbol in tmpHash:
+    # for symbol in tmpHash:
 
-        df = pd.read_pickle( dfFile )
+    #     df = pd.read_pickle( dfFile )
 
-        df = df[ [ 'Date', symbol ] ]
+    #     df = df[ [ 'Date', symbol ] ]
 
-        df[ 'Date' ] = df.Date.apply( pd.to_datetime )
+    #     df[ 'Date' ] = df.Date.apply( pd.to_datetime )
         
-        tmpDate = snapDate - pd.DateOffset( days = 60 )
+    #     tmpDate = snapDate - pd.DateOffset( days = 60 )
         
-        df = df[ (df.Date >= tmpDate) & (df.Date <= snapDate) ]
+    #     df = df[ (df.Date >= tmpDate) & (df.Date <= snapDate) ]
 
-        df[ 'Date0' ] = df.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+    #     df[ 'Date0' ] = df.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
 
-        dayDf = df.groupby( 'Date0', as_index = False )[ symbol ].mean()
-        dayDf = dayDf.rename( columns = { 'Date0' : 'Date' } )
+    #     dayDf = df.groupby( 'Date0', as_index = False )[ symbol ].mean()
+    #     dayDf = dayDf.rename( columns = { 'Date0' : 'Date' } )
 
-        dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
-        dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
+    #     dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
+    #     dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
 
-        dayDf[ 'avgAcl' ] = dayDf.acl.rolling( min_periods = 1,
-                                               window = 7 ).mean()
-        dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl        
+    #     dayDf[ 'avgAcl' ] = dayDf.acl.rolling( min_periods = 1,
+    #                                            window = 7 ).mean()
+    #     dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl        
                  
-        obj = pickle.load( open( 'pt_classifiers/ptc_%s.pkl' % symbol, 'rb' ) )
+    #     obj = pickle.load( open( 'pt_classifiers/ptc_%s.pkl' % symbol, 'rb' ) )
 
-        dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
+    #     dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
         
-        val = list( dayDf.feature )[-1]
+    #     val = list( dayDf.feature )[-1]
 
-        X = np.array( [ val ] ).reshape( ( 1, 1 ) )
+    #     X = np.array( [ val ] ).reshape( ( 1, 1 ) )
         
-        ptTag = obj.predict( X )[0]
+    #     ptTag = obj.predict( X )[0]
 
-        # if ptTag == 1:
-        #     tmpHash[ symbol ] = -abs( tmpHash[ symbol ] )
-        if ptTag == 2:
-            tmpHash[ symbol ] = abs( tmpHash[ symbol ] )
+    #     # if ptTag == 1:
+    #     #     tmpHash[ symbol ] = -abs( tmpHash[ symbol ] )
+    #     if ptTag == 2:
+    #         tmpHash[ symbol ] = abs( tmpHash[ symbol ] )
 
     wtHash[ dateKey ] = tmpHash
     
