@@ -22,10 +22,10 @@ vixMrgFlag = False
 
 prtFile    = 'portfolios/portfolio_every_3_hours_assets_5.json'
 minVix     = None
-maxVix     = 35
+maxVix     = 40
 datDir     = 'data'
 ptcDir     = 'pt_classifiers'
-outPrtFile = 'portfolios/test_max_vix_35.json'
+outPrtFile = 'portfolios/test_max_vix_40.json'
 
 # ***********************************************************************
 # Read original portfolio and get symbols
@@ -69,7 +69,7 @@ if ptcFlag:
                                ptThreshold = 1.0e-2,
                                nAvgDays    = 7,
                                nPTAvgDays  = None,
-                               testRatio   = 0.2,
+                               testRatio   = 0,
                                method      = 'bayes',
                                minVix      = minVix,
                                maxVix      = maxVix,

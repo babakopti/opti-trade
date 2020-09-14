@@ -238,25 +238,30 @@ class PTClassifier:
         X  = np.array( df.feature )
         X  = X.reshape( ( len( X ), 1 ) )
         y  = np.array( df.ptTag )
-        
-        XTrn, XOos, yTrn, yOos = train_test_split(
-            X,
-            y,
-            test_size    = self.testRatio,
-            random_state = 0
-        )
+
+        if self.testRatio == 0:
+            XTrn = X
+            yTrn = y
+        else:            
+            XTrn, XOos, yTrn, yOos = train_test_split(
+                X,
+                y,
+                test_size    = self.testRatio,
+                random_state = 0
+            )
 
         gnb = GaussianNB()
         gnb = gnb.fit( XTrn, yTrn )
         
         self.classifier  = gnb
         self.trnAccuracy = gnb.score( XTrn, yTrn )
-        self.oosAccuracy = gnb.score( XOos, yOos )
-        
         self.logger.info( 'In-sample accuracy: %0.4f',
                           self.trnAccuracy )
-        self.logger.info( 'Out-of-sample accuracy: %0.4f',
-                          self.oosAccuracy )
+        
+        if self.testRatio != 0:
+            self.oosAccuracy = gnb.score( XOos, yOos )
+            self.logger.info( 'Out-of-sample accuracy: %0.4f',
+                              self.oosAccuracy )
 
         yTrnPred = gnb.predict( XTrn )        
         confMat  = confusion_matrix( yTrn, yTrnPred )
@@ -269,16 +274,17 @@ class PTClassifier:
         self.logger.info( 'In-sample norm. confusion matrix:\n %s',
                           str( self.normTrnMat ) )
 
-        yOosPred = gnb.predict( XOos )        
-        confMat  = confusion_matrix( yOos, yOosPred )
+        if self.testRatio != 0:
+            yOosPred = gnb.predict( XOos )        
+            confMat  = confusion_matrix( yOos, yOosPred )
 
-        self.logger.info( 'Out-of-sample confusion matrix:\n %s',
-                          str( confMat ) )
+            self.logger.info( 'Out-of-sample confusion matrix:\n %s',
+                              str( confMat ) )
 
-        self.normOosMat = self.normalizeConfMat( confMat )
-        
-        self.logger.info( 'Out-of-sample norm. confusion matrix:\n %s',
-                          str( self.normOosMat ) )
+            self.normOosMat = self.normalizeConfMat( confMat )
+            
+            self.logger.info( 'Out-of-sample norm. confusion matrix:\n %s',
+                              str( self.normOosMat ) )
         
         self.setPrd()                        
 
