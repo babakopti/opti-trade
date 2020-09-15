@@ -54,6 +54,7 @@ MAX_OPT_ITRS  = 500
 OPT_TOL       = 1.0e-3
 REG_COEF      = 5.0e-3                    
 FACTOR        = 4.0e-05
+PTC_FLAG      = True
 NUM_PTC_DAYS  = 7
 PTC_MIN_VIX   = None
 PTC_MAX_VIX   = 40.0
@@ -360,7 +361,7 @@ class MfdPrtBuilder( Daemon ):
 
         self.logger.info( 'Reading available data...' )
         
-        oldDf = utl.mergeSymbols( symbols = symbols,
+        oldDf = utl.mergeSymbols( symbols = symbols + [ 'VIX' ],
                                   datDir  = self.baseDatDir,
                                   fileExt = 'pkl',
                                   minDate = minDate,
@@ -372,7 +373,7 @@ class MfdPrtBuilder( Daemon ):
             newDf = utl.getYahooData( etfs    = self.etfs,
                                       stocks  = self.stocks,
                                       futures = self.futures,
-                                      indexes = self.indexes,
+                                      indexes = self.indexes + [ 'VIX' ],
                                       nDays   = 5,
                                       logger  = self.logger  )
         
@@ -506,6 +507,9 @@ class MfdPrtBuilder( Daemon ):
 
     def buildPTC( self, symbols ):
 
+        if not PTC_FLAG:
+            return
+        
         for symbol in symbols:
 
             symFile = os.path.join( self.baseDatDir,
@@ -536,6 +540,9 @@ class MfdPrtBuilder( Daemon ):
             ptcObj.save( ptcFile )
 
     def adjustPTC( self, wtHash, snapDate ):
+
+        if not PTC_FLAG:
+            return wtHash
 
         self.logger.info( 'Applying peak classifiers to portfolio!' )
         
