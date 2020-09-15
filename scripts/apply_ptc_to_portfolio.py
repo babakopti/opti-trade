@@ -50,23 +50,6 @@ if ptcFlag:
         symFile = '%s/%s.pkl' % ( datDir, symbol )
         vixFile = '%s/VIX.pkl' % datDir
 
-        # ptcDfFile = '%s/%s_VIX_daily.pkl' % ( datDir, symbol )
-        
-        # if vixMrgFlag:
-        #     symDf = pd.read_pickle( '%s/%s.pkl' % ( datDir, symbol ) )
-        #     symDf[ 'Date' ] = symDf.Date.apply( \
-        #                     lambda x : x.strftime( '%Y-%m-%d' ) )
-        #     symDf = symDf.groupby( 'Date', as_index = False ).mean()
-
-        #     vixDf = pd.read_pickle( '%s/VIX.pkl' % datDir )
-        #     vixDf[ 'Date' ] = vixDf.Date.apply( \
-        #                     lambda x : x.strftime( '%Y-%m-%d' ) )
-        #     vixDf = vixDf.groupby( 'Date', as_index = False ).mean()
-            
-        #     symDf = symDf.merge( vixDf, on = 'Date', how = 'left' )            
-        #     symDf = symDf.interpolate( method = 'linear' )
-        #     symDf.to_pickle( ptcDfFile )
-
         ptcObj = PTClassifier( symbol      = symbol,
                                symFile     = symFile,
                                vixFile     = vixFile,
@@ -90,6 +73,9 @@ if ptcFlag:
 
 allDates = sorted( list( prtWtsHash.keys() ) )
 
+peakAdjCnt = 0
+peakAdjDates  = []
+
 for dateStr in allDates:
 
     print( 'Adjsuting snapDate %s' % dateStr )
@@ -101,48 +87,54 @@ for dateStr in allDates:
     
     df[ 'Date' ] = df.Date.astype( 'datetime64[ns]' )
     
-    tmpDate = snapDate - pd.DateOffset( days = 30 )
+    tmpDate = snapDate - pd.DateOffset( days = 21 )
     
     df = df[ ( df.Date >= tmpDate ) & ( df.Date <= snapDate ) ]
     
     df[ 'Date' ] = df.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
     
     dayDf = df.groupby( 'Date', as_index = False ).mean()
+    
+    dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
+    
+    dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
 
+    vixVal = list( dayDf.VIX )[-1]
+    
+    if minVix is not None and vixVal < minVix:
+        continue
+
+    if maxVix is not None and vixVal > maxVix:
+        continue
+    
     for symbol in tmpHash:
- 
+        
         dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
         dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
-
-        dayDf[ 'avgAcl' ] = dayDf.acl.rolling( min_periods = 1,
-                                               window = 7 ).mean()
-        dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl        
-
+        
+        tmpDate = snapDate - pd.DateOffset( days = 7 )
+        avgAcl = dayDf[ dayDf.Date >= tmpDate ].acl.mean()
+        symVal = list( dayDf.acl )[-1] - avgAcl
+        
         obj = pickle.load( open( '%s/ptc_%s.pkl' % ( ptcDir, symbol ), 'rb' ) )
 
-        dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
-        
-        val = list( dayDf.feature )[-1]
-
-        X = np.array( [ val ] ).reshape( ( 1, 1 ) )
+        X = np.array( [ symVal ] ).reshape( ( 1, 1 ) )
         
         ptTag = obj.predict( X )[0]
-
-        vixVal = list( dayDf.VIX )[-1]
-
-        if minVix is not None and vixVal < minVix:
-            continue
-
-        if maxVix is not None and vixVal > maxVix:
-            continue
         
         if ptTag == 1:
-            tmpHash[ symbol ] = -abs( tmpHash[ symbol ] )
-            print( 'Peak detected for %s at %s' % (symbol, dateStr))
+            print( 'Peak detected for %s at %s' % (symbol, dateStr))            
+            if tmpHash[ symbol ] > 0:
+                tmpHash[ symbol ] = -tmpHash[ symbol ]
+                peakAdjCnt += 1
+                peakAdjDates.append( dateStr )
         # if ptTag == 2:
         #     tmpHash[ symbol ] = abs( tmpHash[ symbol ] )
 
     prtWtsHash[ dateStr ] = tmpHash
+
+print( 'Changed weight sign %d times' % peakAdjCnt )
+print( 'Changed weights on dates: %s' % str(set(peakAdjDates)) )
 
 # ***********************************************************************
 # Write the adjusted portfolio

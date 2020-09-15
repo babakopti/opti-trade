@@ -25,6 +25,7 @@ from daemonBase import Daemon, EmailTemplate
 sys.path.append( os.path.abspath( '../' ) )
 
 import utl.utils as utl
+import ptc.ptc as ptc
 
 from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
 from mod.mfdMod import MfdMod
@@ -48,17 +49,22 @@ NUM_ASSET_EVAL_DAYS = 60
 NUM_TRN_DAYS  = 360
 NUM_OOS_DAYS  = 3
 NUM_PRD_MINS  = 1 * 24 * 60
-NUM_MAD_DAYS  = 30                    
+NUM_MAD_DAYS  = 30
 MAX_OPT_ITRS  = 500
 OPT_TOL       = 1.0e-3
 REG_COEF      = 5.0e-3                    
 FACTOR        = 4.0e-05
+NUM_PTC_DAYS  = 7
+PTC_MIN_VIX   = None
+PTC_MAX_VIX   = 40.0
 MOD_HEAD      = 'mfd_model_'
-PRT_HEAD      = 'prt_weights_'                    
+PRT_HEAD      = 'prt_weights_'
+PTC_HEAD      = 'ptc_'
 MOD_DIR       = '/var/mfd_models'
 PRT_DIR       = '/var/prt_weights'
 DAT_DIR       = '/var/mfd_data'
 BASE_DAT_DIR  = '/var/data'
+PTC_DIR       = '/var/pt_classifiers'
 TIME_ZONE     = 'America/New_York'
 SCHED_TIMES   = [ '09:30', '12:30', '15:30' ]
 LOG_FILE_NAME = '/var/log/mfd_prt_builder.log'
@@ -122,10 +128,12 @@ class MfdPrtBuilder( Daemon ):
                     factor      = FACTOR,
                     modHead     = MOD_HEAD,
                     prtHead     = PRT_HEAD,
+                    ptcHead     = PTC_HEAD,
                     modDir      = MOD_DIR,
                     prtDir      = PRT_DIR,
                     datDir      = DAT_DIR,
                     baseDatDir  = BASE_DAT_DIR,
+                    ptcDir      = PTC_DIR,                    
                     timeZone    = TIME_ZONE,
                     schedTimes  = SCHED_TIMES,
                     logFileName = LOG_FILE_NAME,
@@ -149,11 +157,13 @@ class MfdPrtBuilder( Daemon ):
         self.regCoef     = regCoef
         self.factor      = factor
         self.modHead     = modHead
-        self.prtHead     = prtHead        
+        self.prtHead     = prtHead
+        self.ptcHead     = ptcHead                
         self.modDir      = modDir
         self.prtDir      = prtDir
         self.datDir      = datDir
-        self.baseDatDir  = baseDatDir        
+        self.baseDatDir  = baseDatDir
+        self.ptcDir      = ptcDir
         self.timeZone    = timeZone
         self.schedTimes  = schedTimes
         self.logFileName = logFileName        
@@ -294,6 +304,18 @@ class MfdPrtBuilder( Daemon ):
             msgStr = e + '; Portfolio build was unsuccessful!'
             self.logger.error( msgStr )
 
+        try:
+            self.buildPTC( quoteHash.keys() )
+        except Exception as e:
+            msgStr = e + '; PTC build was unsuccessful!'
+            self.logger.error( msgStr )
+
+        try:
+            wtHash = self.adjustPTC( wtHash, snapDate )
+        except Exception as e:
+            msgStr = e + '; PTC adjustment was unsuccessful!'
+            self.logger.error( msgStr )            
+            
         self.savePrt( wtHash, prtFile )
             
         if not os.path.exists( prtFile ):
@@ -481,6 +503,106 @@ class MfdPrtBuilder( Daemon ):
             self.logger.info( 'Got a quote for %s...', asset )            
 
         return quoteHash
+
+    def buildPTC( self, symbols ):
+
+        for symbol in symbols:
+
+            symFile = os.path.join( self.baseDatDir,
+                                    '%s.pkl' % symbol )
+            vixFile = os.path.join( self.baseDatDir,
+                                    'VIX.pkl' )            
+
+            ptcObj  = ptc.PTClassifier( symbol      = symbol,
+                                        symFile     = symFile,
+                                        vixFile     = vixFile,
+                                        ptThreshold = 1.0e-2,
+                                        nAvgDays    = NUM_PTC_DAYS,
+                                        nPTAvgDays  = None,
+                                        testRatio   = 0,
+                                        method      = 'bayes',
+                                        minVix      = PTC_MIN_VIX,
+                                        maxVix      = PTC_MAX_VIX,
+                                        logFileName = None,                    
+                                        verbose     = 1          )
+
+            ptcObj.classify()
+
+            ptcFile = os.path.join( self.ptcDir,
+                                    self.ptcHead + symbol + '.pkl' )
+            
+            self.logger.info( 'Saving the classifier to %s', ptcFile )
+            
+            ptcObj.save( ptcFile )
+
+    def adjustPTC( self, wtHash, snapDate ):
+
+        self.logger.info( 'Applying peak classifiers to portfolio!' )
+        
+        dayDf = pd.read_pickle( self.dfFile )        
+
+        dayDf[ 'Date' ] = df.Date.astype( 'datetime64[ns]' )
+    
+        minDate = snapDate - \
+            pd.DateOffset( days = 3 * NUM_PTC_DAYS )
+    
+        dayDf = dayDf[ ( dayDf.Date >= minDate ) &
+                       ( dayDf.Date <= snapDate ) ]
+    
+        dayDf[ 'Date' ] = dayDf.Date.\
+            apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+    
+        dayDf = dayDf.groupby( 'Date', as_index = False ).mean()
+
+        dayDf[ 'Date' ] = df.Date.astype( 'datetime64[ns]' )
+        
+        dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
+
+        vixVal = list( dayDf.VIX )[-1]
+
+        if PTC_MIN_VIX is not None and vixVal < PTC_MIN_VIX:
+            self.logger.critical( 'Did not use PTC as current VIX of '
+                                  '%0.2f is not in range!',
+                                  vixVal )
+            return wtHash
+
+        if PTC_MAX_VIX is not None and vixVal > PTC_MAX_VIX:
+            self.logger.critical( 'Did not use PTC as current VIX of '
+                                  '%0.2f is not in range!',
+                                  vixVal )
+            return wtHash
+
+        for symbol in wtHash:
+            
+            dayDf[ 'vel' ]    = np.gradient( dayDf[ symbol ], 2 )
+            dayDf[ 'acl' ]    = np.gradient( dayDf[ 'vel' ], 2 )
+
+            tmpDate = snapDate - pd.DateOffset( days = NUM_PTC_DAYS )
+            avgAcl = dayDf[ dayDf.Date >= tmpDate ].acl.mean()
+            symVal = list( dayDf.acl )[-1] - avgAcl
+            
+            ptcFile = os.path.join( self.ptcDir,
+                                    self.ptcHead + symbol + '.pkl' )
+            
+            obj = pickle.load( open( ptcFile, 'rb' ) )
+
+            X = np.array( [ symVal ] ).reshape( ( 1, 1 ) )
+        
+            ptTag = obj.predict( X )[0]
+
+            if ptTag == ptc.PEAK:
+                self.logger.critical( 'A peak is detected for %s', symbol )
+                
+                if wtHash[ symbol ] > 0:
+                    self.logger.info( 'Changing weight for %s from %0.2f to '
+                                      '%0.2f as a peak was detected!',
+                                      symbol,
+                                      wtHash[ symbol ],
+                                      -wtHash[ symbol ] )
+                    
+                    wtHash[ symbol ] = -wtHash[ symbol ]
+
+        return wtHash
     
     def savePrt( self, wtHash, prtFile ):
 
