@@ -36,7 +36,8 @@ class PTClassifier:
 
     def __init__(   self,
                     symbol,
-                    dfFile,
+                    symFile,
+                    vixFile     = None,
                     ptThreshold = 1.0e-2,
                     nAvgDays    = 7,
                     nPTAvgDays  = None,                    
@@ -49,7 +50,8 @@ class PTClassifier:
                     verbose     = 1          ):
 
         self.symbol      = symbol
-        self.dfFile      = dfFile
+        self.symFile     = symFile
+        self.vixFile     = vixFile
         self.ptThreshold = ptThreshold
         self.nAvgDays    = nAvgDays
         self.nPTAvgDays  = nPTAvgDays                    
@@ -60,7 +62,7 @@ class PTClassifier:
         self.minProb     = minProb
         self.logFileName = logFileName
         self.verbose     = verbose
-        self.logger      = getLogger( logFileName, verbose, 'mod' )
+        self.logger      = getLogger( logFileName, verbose, 'ptc' )
         self.classes     = [ 'not_peak_or_trough', 'peak', 'trough' ] 
         self.dayDf       = None
         self.classifier  = None
@@ -76,37 +78,49 @@ class PTClassifier:
     def setDf( self ):
 
         symbol     = self.symbol
-        dfFile     = self.dfFile
+        symFile    = self.symFile
+        vixFile    = self.vixFile        
         thres      = self.ptThreshold
         nAvgDays   = self.nAvgDays
         nPTAvgDays = self.nPTAvgDays
-        fileExt    = dfFile.split( '.' )[-1]
+        fileExt    = symFile.split( '.' )[-1]
         
         if fileExt == 'csv':
-            df = pd.read_csv( dfFile ) 
+            dayDf = pd.read_csv( symFile ) 
         elif fileExt == 'pkl':
-            df = pd.read_pickle( dfFile ) 
+            dayDf = pd.read_pickle( symFile ) 
         else:
             assert False, 'Unknown input file extension %s' % fileExt
-
-        assert symbol in df.columns, 'Symbol %s not found in %s' \
-            % ( symbol, dfFile )
-
-        if self.minVix is not None or self.maxVix is not None:
-                assert 'VIX' in df.columns, 'VIX not found in %s' \
-                    % dfFile
-
-        if self.minVix is not None:
-            df = df[ df.VIX >= self.minVix ]
             
-        if self.maxVix is not None:
-            df = df[ df.VIX <= self.maxVix ]
+        assert symbol in dayDf.columns, 'Symbol %s not found in %s' \
+            % ( symbol, symFile )
 
-        df[ 'Date' ]  = df.Date.apply( pd.to_datetime )
-        df[ 'Date0' ] = df.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+        dayDf[ 'Date' ] = \
+            dayDf.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
         
-        dayDf = df.groupby( 'Date0', as_index = False )[ symbol ].mean()
-        dayDf = dayDf.rename( columns = { 'Date0' : 'Date' } )
+        dayDf = dayDf.groupby( 'Date', as_index = False ).mean()
+        
+        if self.minVix is not None or self.maxVix is not None:
+
+            fileExt = vixFile.split( '.' )[-1]
+        
+            if fileExt == 'csv':
+                vixDf = pd.read_csv( vixFile ) 
+            elif fileExt == 'pkl':
+                vixDf = pd.read_pickle( vixFile ) 
+            else:
+                assert False, 'Unknown input file extension %s' % fileExt
+            
+            assert 'VIX' in vixDf.columns, 'VIX not found in %s' \
+                % vixFile
+
+            vixDf[ 'Date' ] = \
+                vixDf.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+            
+            vixDf = vixDf.groupby( 'Date', as_index = False ).mean()
+
+            dayDf = dayDf.merge( vixDf, on = 'Date', how = 'left' )            
+            dayDf = dayDf.interpolate( method = 'linear' )
 
         dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
         dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
@@ -121,7 +135,7 @@ class PTClassifier:
         dayDf[ 'avgAcl' ] = dayDf.acl.rolling( min_periods = 1,
                                                 window = nAvgDays ).mean()
 
-        dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl
+        dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl        
 
         if nPTAvgDays is None:
             tmpDf = dayDf[ ( ( dayDf[ symbol ] - dayDf[ symbol ].shift(1) ) >
@@ -163,14 +177,20 @@ class PTClassifier:
         assert set( dayDf.ptTag ) == { PEAK, TROUGH, NOT_PT }, \
             'Unexpected peak/trough tag!'
 
+        if self.minVix is not None:
+            dayDf = dayDf[ dayDf.VIX >= self.minVix ]
+            
+        if self.maxVix is not None:
+            dayDf = dayDf[ dayDf.VIX <= self.maxVix ]
+
+        dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
+        
         self.logger.info( 'A total of %d samples for %s! '
                           'Found %d peaks and %d troughs!',
                           dayDf.shape[0],
                           symbol,
                           dayDf[ dayDf.ptTag == PEAK ].shape[0],
                           dayDf[ dayDf.ptTag == TROUGH ].shape[0]  )
-
-        dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
         
         self.dayDf = dayDf
             

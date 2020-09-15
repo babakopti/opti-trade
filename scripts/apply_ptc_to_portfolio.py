@@ -47,25 +47,29 @@ if ptcFlag:
 
     for symbol in symbols:
 
-        ptcDfFile = '%s/%s_VIX_daily.pkl' % ( datDir, symbol )
-        
-        if vixMrgFlag:
-            symDf = pd.read_pickle( '%s/%s.pkl' % ( datDir, symbol ) )
-            symDf[ 'Date' ] = symDf.Date.apply( \
-                            lambda x : x.strftime( '%Y-%m-%d' ) )
-            symDf = symDf.groupby( 'Date', as_index = False ).mean()
+        symFile = '%s/%s.pkl' % ( datDir, symbol )
+        vixFile = '%s/VIX.pkl' % datDir
 
-            vixDf = pd.read_pickle( '%s/VIX.pkl' % datDir )
-            vixDf[ 'Date' ] = vixDf.Date.apply( \
-                            lambda x : x.strftime( '%Y-%m-%d' ) )
-            vixDf = vixDf.groupby( 'Date', as_index = False ).mean()
+        # ptcDfFile = '%s/%s_VIX_daily.pkl' % ( datDir, symbol )
+        
+        # if vixMrgFlag:
+        #     symDf = pd.read_pickle( '%s/%s.pkl' % ( datDir, symbol ) )
+        #     symDf[ 'Date' ] = symDf.Date.apply( \
+        #                     lambda x : x.strftime( '%Y-%m-%d' ) )
+        #     symDf = symDf.groupby( 'Date', as_index = False ).mean()
+
+        #     vixDf = pd.read_pickle( '%s/VIX.pkl' % datDir )
+        #     vixDf[ 'Date' ] = vixDf.Date.apply( \
+        #                     lambda x : x.strftime( '%Y-%m-%d' ) )
+        #     vixDf = vixDf.groupby( 'Date', as_index = False ).mean()
             
-            symDf = symDf.merge( vixDf, on = 'Date', how = 'left' )            
-            symDf = symDf.interpolate( method = 'linear' )
-            symDf.to_pickle( ptcDfFile )
+        #     symDf = symDf.merge( vixDf, on = 'Date', how = 'left' )            
+        #     symDf = symDf.interpolate( method = 'linear' )
+        #     symDf.to_pickle( ptcDfFile )
 
         ptcObj = PTClassifier( symbol      = symbol,
-                               dfFile      = ptcDfFile,
+                               symFile     = symFile,
+                               vixFile     = vixFile,
                                ptThreshold = 1.0e-2,
                                nAvgDays    = 7,
                                nPTAvgDays  = None,
