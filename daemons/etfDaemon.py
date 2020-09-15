@@ -548,7 +548,7 @@ class MfdPrtBuilder( Daemon ):
         
         dayDf = pd.read_pickle( self.dfFile )        
 
-        dayDf[ 'Date' ] = df.Date.astype( 'datetime64[ns]' )
+        dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
     
         minDate = snapDate - \
             pd.DateOffset( days = 3 * NUM_PTC_DAYS )
@@ -561,7 +561,7 @@ class MfdPrtBuilder( Daemon ):
     
         dayDf = dayDf.groupby( 'Date', as_index = False ).mean()
 
-        dayDf[ 'Date' ] = df.Date.astype( 'datetime64[ns]' )
+        dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
         
         dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
 
