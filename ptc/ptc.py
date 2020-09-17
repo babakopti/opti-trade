@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import confusion_matrix
+from sklearn.gaussian_process import GaussianProcessClassifier
 
 sys.path.append( os.path.abspath( '../' ) )
 
@@ -71,7 +72,8 @@ class PTClassifier:
         self.normTrnMat  = None
         self.normOosMat  = None        
         
-        assert method == 'bayes', 'Only Bayes method is supported right now!'
+        assert method in [ 'bayes', 'gp' ], \
+            'Method %s is not supported right now!' % method
         
         self.setDf()
 
@@ -248,6 +250,29 @@ class PTClassifier:
         plt.legend( legends )
         plt.ylabel( symbol )
         plt.show()
+
+    def plotScatter( self ):
+
+        df = self.dayDf
+
+        plt.scatter( df[ df.ptTag == NOT_PT ][ 'feature' ],
+                     df[ df.ptTag == NOT_PT ][ self.symbol ],
+                     color = 'orange', marker = 'o' )
+        
+        plt.scatter( df[ df.ptTag == PEAK ][ 'feature' ],
+                     df[ df.ptTag == PEAK ][ self.symbol ],
+                     c = 'red',
+                     marker = 'o' )
+
+        plt.scatter( df[ df.ptTag == TROUGH ][ 'feature' ],
+                     df[ df.ptTag == TROUGH ][ self.symbol ],
+                     c = 'blue',
+                     marker = 's' )
+        
+        plt.legend( [ 'Peak', 'Trough', 'Not peak / trough' ] )
+        plt.xlabel( 'Feature' )
+        plt.ylabel( self.symbol )
+        plt.show()
         
     def classify( self ):
 
@@ -270,20 +295,26 @@ class PTClassifier:
                 random_state = 0
             )
 
-        gnb = GaussianNB()
-        gnb = gnb.fit( XTrn, yTrn )
+        if self.method == 'bayes':
+            obj = GaussianNB()
+        elif self.method == 'gp':
+            obj = GaussianProcessClassifier()
+        else:
+            assert False, 'Method %s not supported!' % self.method
+            
+        obj = obj.fit( XTrn, yTrn )
         
-        self.classifier  = gnb
-        self.trnAccuracy = gnb.score( XTrn, yTrn )
+        self.classifier  = obj
+        self.trnAccuracy = obj.score( XTrn, yTrn )
         self.logger.info( 'In-sample accuracy: %0.4f',
                           self.trnAccuracy )
         
         if self.testRatio != 0:
-            self.oosAccuracy = gnb.score( XOos, yOos )
+            self.oosAccuracy = obj.score( XOos, yOos )
             self.logger.info( 'Out-of-sample accuracy: %0.4f',
                               self.oosAccuracy )
 
-        yTrnPred = gnb.predict( XTrn )        
+        yTrnPred = obj.predict( XTrn )        
         confMat  = confusion_matrix( yTrn, yTrnPred )
 
         self.logger.info( 'In-sample confusion matrix:\n %s',
@@ -295,7 +326,7 @@ class PTClassifier:
                           str( self.normTrnMat ) )
 
         if self.testRatio != 0:
-            yOosPred = gnb.predict( XOos )        
+            yOosPred = obj.predict( XOos )        
             confMat  = confusion_matrix( yOos, yOosPred )
 
             self.logger.info( 'Out-of-sample confusion matrix:\n %s',

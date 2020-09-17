@@ -7,23 +7,26 @@ sys.path.append( '..' )
 from ptc.ptc import PTClassifier
 
 ptcObj = PTClassifier( symbol      = 'AGQ',
-                       dfFile      = 'data/SPY_AGQ_VIX_daily.pkl',
+                       symFile     = 'data/AGQ.pkl',
+                       vixFile     = 'data/VIX.pkl',
                        ptThreshold = 1.0e-2,
                        nAvgDays    = 7,
                        nPTAvgDays  = None,
                        testRatio   = 0.2,
                        method      = 'bayes',
                        minVix      = None,
-                       maxVix      = 35,
+                       maxVix      = None,
                        logFileName = None,                    
                        verbose     = 1          )
 
-ptcObj.plotDists()
+#ptcObj.plotDists()
 
 ptcObj.classify()
 
-ptcObj.plotSymbol( actPeaks = True, prdPeaks = True )
-ptcObj.plotSymbol( actTroughs = True, prdTroughs = True )
+#ptcObj.plotSymbol( actPeaks = True, prdPeaks = True )
+#ptcObj.plotSymbol( actTroughs = True, prdTroughs = True )
+
+ptcObj.plotScatter()
 
 #ptcObj.save('test.pkl')
 
