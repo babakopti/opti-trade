@@ -21,14 +21,12 @@ from dat.assets import ETF_HASH
 # ***********************************************************************
 
 prtFiles = [
-    'portfolios/portfolio_every_3_hours_assets_5.json',
-    'portfolios/test_max_vix_40.json',
-    'portfolios/portfolio_every_3_hours_assets_5_pc_max_vix_40.json',
+    'portfolios/subset_minute_mad_mean_sorted_ETFs_portfolio_60_eval_days.txt',
+    'portfolios/prt_20182019_pc.json',
 ]
 
 legends = [
-    'Every 3 hours; 5 assets',
-    'Test',
+    'sorted_ETFs_portfolio_60_eval_days',
     'Peak only classifier; max VIX 40.0',
 ]
 

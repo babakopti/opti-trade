@@ -14,17 +14,17 @@ ptcObj = PTClassifier( symbol      = 'AGQ',
                        nPTAvgDays  = None,
                        testRatio   = 0.2,
                        method      = 'bayes',
-                       minVix      = None,
+                       minVix      = 40.0,
                        maxVix      = None,
                        logFileName = None,                    
                        verbose     = 1          )
 
-#ptcObj.plotDists()
+ptcObj.plotDists()
 
 ptcObj.classify()
 
-#ptcObj.plotSymbol( actPeaks = True, prdPeaks = True )
-#ptcObj.plotSymbol( actTroughs = True, prdTroughs = True )
+ptcObj.plotSymbol( actPeaks = True, prdPeaks = True )
+ptcObj.plotSymbol( actTroughs = True, prdTroughs = True )
 
 ptcObj.plotScatter()
 

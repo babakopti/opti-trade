@@ -4,6 +4,7 @@
 
 import os
 import sys
+import ast
 import json
 import pickle
 import numpy as np
@@ -18,20 +19,22 @@ import ptc.ptc as ptc
 # ***********************************************************************
 
 ptcFlag    = True
-vixMrgFlag = False
 
-prtFile    = 'portfolios/portfolio_every_3_hours_assets_5.json'
+prtFile    = 'portfolios/subset_minute_mad_mean_sorted_ETFs_portfolio_60_eval_days.txt'
 minVix     = None
 maxVix     = 40
 datDir     = 'data'
 ptcDir     = 'pt_classifiers'
-outPrtFile = 'portfolios/test_max_vix_40.json'
+outPrtFile = 'portfolios/prt_20182019_pc.json'
 
 # ***********************************************************************
 # Read original portfolio and get symbols
 # ***********************************************************************
 
-prtWtsHash = json.load( open( prtFile, 'r' ) )
+if prtFile.split( '.' )[-1] == 'json':
+    prtWtsHash = json.load( open( prtFile, 'r' ) )
+else:
+    prtWtsHash = ast.literal_eval( open( prtFile, 'r' ).read() )
 
 symbols = []
 for dateStr in prtWtsHash:
@@ -76,7 +79,7 @@ def buildPTC( symList ):
 
 def adjustPTC( wtHash, snapDate ):
 
-    dayDf = pd.read_pickle( 'data/dfFile_2020.pkl' )        
+    dayDf = pd.read_pickle( 'data/dfFile_2017plus.pkl' )        
 
     dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
     
@@ -131,7 +134,12 @@ def adjustPTC( wtHash, snapDate ):
                          wtHash[ symbol ],
                          -wtHash[ symbol ] ) )
                 
-            wtHash[ symbol ] = -wtHash[ symbol ]
+                wtHash[ symbol ] = -wtHash[ symbol ]
+
+        # elif ptTag == ptc.TROUGH:
+        #     print( 'A trough is detected for %s' % symbol )
+            
+            wtHash[ symbol ] = abs(wtHash[ symbol ])
 
     return wtHash
 

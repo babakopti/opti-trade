@@ -20,11 +20,11 @@ from dat.assets import ETF_HASH
 # Input
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_3_hours_assets_5.json'
-dfFile      = 'data/dfFile_2020.pkl'
+prtFile     = 'portfolios/subset_minute_mad_mean_sorted_ETFs_portfolio_60_eval_days.txt'
+dfFile      = 'data/dfFile_2017plus.pkl'
 base        = 'SPY'
 initTotVal  = 20000.0
-minDate     = '2020-01-22'
+minDate     = '2018-01-01'
 
 # ***********************************************************************
 # Read portfolio dates, assets
