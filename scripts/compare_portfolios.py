@@ -21,13 +21,21 @@ from dat.assets import ETF_HASH
 # ***********************************************************************
 
 prtFiles = [
-    'portfolios/subset_minute_mad_mean_sorted_ETFs_portfolio_60_eval_days.txt',
-    'portfolios/prt_20182019_pc.json',
+    'portfolios/portfolio_every_3_hours_assets_5.json',
+    'portfolios/portfolio_every_3_hours_assets_5_pc_max_vix_40.json',
+    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols.json',    
+    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols_max_vix_60.json',
+    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols_max_vix_65.json',
+    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols_max_vix_75.json',    
 ]
 
 legends = [
-    'sorted_ETFs_portfolio_60_eval_days',
-    'Peak only classifier; max VIX 40.0',
+    'Sorted 5 ETFs, 60 eval days, every 3 hours',
+    'Peak only classifier; max VIX 40',
+    'Peak with inverse symbols',
+    'Peak with inverse symbols, max VIX 60',
+    'Peak with inverse symbols, max VIX 65',
+    'Peak with inverse symbols, max VIX 75',    
 ]
 
 dfFile      = 'data/dfFile_2020.pkl'
@@ -53,7 +61,7 @@ for prtFile in prtFiles:
 
 minDate = max( minDates )
 maxDate = min( maxDates )
-#minDate = '2020-05-01'
+#minDate = '2020-04-01'
 # ***********************************************************************
 # Read portfolios and plot
 # ***********************************************************************

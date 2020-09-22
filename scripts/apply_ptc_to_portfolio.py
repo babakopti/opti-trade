@@ -14,18 +14,19 @@ sys.path.append( '..' )
 
 import ptc.ptc as ptc
 
+from dat.assets import SUB_ETF_HASH
+
 # ***********************************************************************
 # Main input params
 # ***********************************************************************
 
 ptcFlag    = True
-
-prtFile    = 'portfolios/subset_minute_mad_mean_sorted_ETFs_portfolio_60_eval_days.txt'
+prtFile    = 'portfolios/portfolio_every_3_hours_assets_5.json'
 minVix     = None
-maxVix     = 40
+maxVix     = 75
 datDir     = 'data'
 ptcDir     = 'pt_classifiers'
-outPrtFile = 'portfolios/prt_20182019_pc.json'
+outPrtFile = 'portfolios/test.json'
 
 # ***********************************************************************
 # Read original portfolio and get symbols
@@ -42,6 +43,8 @@ for dateStr in prtWtsHash:
 
 symbols = list( set( symbols ) )
 
+invSymbols = [ SUB_ETF_HASH[ item ] for item in symbols ]
+
 # ***********************************************************************
 # Some utility defines
 # ***********************************************************************
@@ -50,16 +53,16 @@ def buildPTC( symList ):
 
     for symbol in symList:
 
+        vixFile = os.path.join( 'data',
+                                'VIX.pkl' )
+        
         symFile = os.path.join( 'data',
                                 '%s.pkl' % symbol )
-        vixFile = os.path.join( 'data',
-                                'VIX.pkl' )            
 
         ptcObj  = ptc.PTClassifier( symbol      = symbol,
                                     symFile     = symFile,
                                     vixFile     = vixFile,
                                     ptThreshold = 1.0e-2,
-                                    nAvgDays    = 7,
                                     nPTAvgDays  = None,
                                     testRatio   = 0,
                                     method      = 'bayes',
@@ -79,12 +82,12 @@ def buildPTC( symList ):
 
 def adjustPTC( wtHash, snapDate ):
 
-    dayDf = pd.read_pickle( 'data/dfFile_2017plus.pkl' )        
+    dayDf = pd.read_pickle( 'data/dfFile_2020.pkl' )        
 
     dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
     
     minDate = snapDate - \
-        pd.DateOffset( days = 3 * 7 )
+        pd.DateOffset( days = 7 )
     
     dayDf = dayDf[ ( dayDf.Date >= minDate ) &
                    ( dayDf.Date <= snapDate ) ]
@@ -107,23 +110,27 @@ def adjustPTC( wtHash, snapDate ):
         return wtHash
 
     for symbol in wtHash:
-            
-        dayDf[ 'vel' ]    = np.gradient( dayDf[ symbol ], 2 )
-        dayDf[ 'acl' ]    = np.gradient( dayDf[ 'vel' ], 2 )
 
-        tmpDate = snapDate - pd.DateOffset( days = 7 )
-        avgAcl = dayDf[ dayDf.Date >= tmpDate ].acl.mean()
-        symVal = list( dayDf.acl )[-1] - avgAcl
-            
+        invSymbol = SUB_ETF_HASH[ symbol ]
+        
+        dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
+        dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
+        fea1 = list( dayDf.acl )[-1]
         ptcFile = os.path.join( ptcDir,
                                 'ptc_' + symbol + '.pkl' )
-            
         obj = pickle.load( open( ptcFile, 'rb' ) )
-        
-        X = np.array( [ symVal ] ).reshape( ( 1, 1 ) )
-        
+        X = np.array( [ [ fea1 ] ] )
         ptTag = obj.predict( X )[0]
 
+        dayDf[ 'invVel' ] = np.gradient( dayDf[ invSymbol ], 2 )
+        dayDf[ 'invAcl' ] = np.gradient( dayDf[ 'invVel' ], 2 )
+        invFea1 = list( dayDf.invAcl )[-1]
+        invPtcFile = os.path.join( ptcDir,
+                                'ptc_' + invSymbol + '.pkl' )
+        invObj = pickle.load( open( invPtcFile, 'rb' ) )        
+        X = np.array( [ [ invFea1 ] ] )
+        invPtTag = invObj.predict( X )[0]
+        
         if ptTag == ptc.PEAK:
             print( 'A peak is detected for %s' % symbol )
             
@@ -135,11 +142,18 @@ def adjustPTC( wtHash, snapDate ):
                          -wtHash[ symbol ] ) )
                 
                 wtHash[ symbol ] = -wtHash[ symbol ]
-
-        # elif ptTag == ptc.TROUGH:
-        #     print( 'A trough is detected for %s' % symbol )
+                
+        elif invPtTag == ptc.PEAK:
+            print( 'INVERSE: A peak is detected for %s' % invSymbol )
             
-            wtHash[ symbol ] = abs(wtHash[ symbol ])
+            if wtHash[ symbol ] < 0:
+                print( 'Changing weight for %s from %0.2f to '
+                       '%0.2f as a peak was detected!' %
+                       ( symbol,
+                         wtHash[ symbol ],
+                         -wtHash[ symbol ] ) )
+                
+                wtHash[ symbol ] = -wtHash[ symbol ]
 
     return wtHash
 
@@ -149,6 +163,7 @@ def adjustPTC( wtHash, snapDate ):
 
 if ptcFlag:
     buildPTC( symbols )
+    buildPTC( invSymbols )
 
 # ***********************************************************************
 # Apply ptc model
