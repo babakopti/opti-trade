@@ -55,7 +55,6 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 5.0e-3                    
 FACTOR        = 4.0e-05
 PTC_FLAG      = True
-NUM_PTC_DAYS  = 7
 PTC_MIN_VIX   = None
 PTC_MAX_VIX   = 40.0
 MOD_HEAD      = 'mfd_model_'
@@ -521,7 +520,6 @@ class MfdPrtBuilder( Daemon ):
                                         symFile     = symFile,
                                         vixFile     = vixFile,
                                         ptThreshold = 1.0e-2,
-                                        nAvgDays    = NUM_PTC_DAYS,
                                         nPTAvgDays  = None,
                                         testRatio   = 0,
                                         method      = 'bayes',
@@ -551,7 +549,7 @@ class MfdPrtBuilder( Daemon ):
         dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
     
         minDate = snapDate - \
-            pd.DateOffset( days = 3 * NUM_PTC_DAYS )
+            pd.DateOffset( days = 7 )
     
         dayDf = dayDf[ ( dayDf.Date >= minDate ) &
                        ( dayDf.Date <= snapDate ) ]
@@ -584,16 +582,14 @@ class MfdPrtBuilder( Daemon ):
             dayDf[ 'vel' ]    = np.gradient( dayDf[ symbol ], 2 )
             dayDf[ 'acl' ]    = np.gradient( dayDf[ 'vel' ], 2 )
 
-            tmpDate = snapDate - pd.DateOffset( days = NUM_PTC_DAYS )
-            avgAcl = dayDf[ dayDf.Date >= tmpDate ].acl.mean()
-            symVal = list( dayDf.acl )[-1] - avgAcl
+            symVal = list( dayDf.acl )[-1] 
             
             ptcFile = os.path.join( self.ptcDir,
                                     self.ptcHead + symbol + '.pkl' )
             
             obj = pickle.load( open( ptcFile, 'rb' ) )
 
-            X = np.array( [ symVal ] ).reshape( ( 1, 1 ) )
+            X = np.array( [ [ symVal ] ] )
         
             ptTag = obj.predict( X )[0]
 

@@ -16,6 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import confusion_matrix
 from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.linear_model import LogisticRegression
 
 sys.path.append( os.path.abspath( '../' ) )
 
@@ -40,7 +41,6 @@ class PTClassifier:
                     symFile,
                     vixFile     = None,
                     ptThreshold = 1.0e-2,
-                    nAvgDays    = 7,
                     nPTAvgDays  = None,                    
                     testRatio   = 0.2,
                     method      = 'bayes',
@@ -54,7 +54,6 @@ class PTClassifier:
         self.symFile     = symFile
         self.vixFile     = vixFile
         self.ptThreshold = ptThreshold
-        self.nAvgDays    = nAvgDays
         self.nPTAvgDays  = nPTAvgDays                    
         self.testRatio   = testRatio
         self.method      = method
@@ -64,7 +63,8 @@ class PTClassifier:
         self.logFileName = logFileName
         self.verbose     = verbose
         self.logger      = getLogger( logFileName, verbose, 'ptc' )
-        self.classes     = [ 'not_peak_or_trough', 'peak', 'trough' ] 
+        self.classes     = [ 'not_peak_or_trough', 'peak', 'trough' ]
+        self.features    = [ 'feature1' ]
         self.dayDf       = None
         self.classifier  = None
         self.trnAccuracy = None
@@ -72,7 +72,7 @@ class PTClassifier:
         self.normTrnMat  = None
         self.normOosMat  = None        
         
-        assert method in [ 'bayes', 'gp' ], \
+        assert method in [ 'bayes', 'gp', 'log' ], \
             'Method %s is not supported right now!' % method
         
         self.setDf()
@@ -83,7 +83,6 @@ class PTClassifier:
         symFile    = self.symFile
         vixFile    = self.vixFile        
         thres      = self.ptThreshold
-        nAvgDays   = self.nAvgDays
         nPTAvgDays = self.nPTAvgDays
         fileExt    = symFile.split( '.' )[-1]
         
@@ -133,12 +132,15 @@ class PTClassifier:
                          window = nPTAvgDays ).mean()
             dayDf[ 'avgFwd' ] = dayDf[ symbol ].shift( -nPTAvgDays ).\
                 rolling( min_periods = 1,
-                         window = nAvgDays ).mean()        
-        dayDf[ 'avgAcl' ] = dayDf.acl.rolling( min_periods = 1,
-                                                window = nAvgDays ).mean()
+                         window = nAvgPTDays ).mean()
 
-        dayDf[ 'feature' ] = dayDf.acl - dayDf.avgAcl        
+        dayDf[ 'feature1' ] = dayDf.acl 
 
+        dayDf[ 'feature2' ] = dayDf[ symbol ] - \
+            dayDf[ symbol ].shift(1) 
+            
+        dayDf = dayDf.dropna()
+        
         if nPTAvgDays is None:
             tmpDf = dayDf[ ( ( dayDf[ symbol ] - dayDf[ symbol ].shift(1) ) >
                              thres * dayDf[ symbol ] ) &
@@ -193,24 +195,36 @@ class PTClassifier:
                           symbol,
                           dayDf[ dayDf.ptTag == PEAK ].shape[0],
                           dayDf[ dayDf.ptTag == TROUGH ].shape[0]  )
-        
+
         self.dayDf = dayDf
             
     def plotDists( self ):
 
         df = self.dayDf
         
-        sns.distplot( df[ df.ptTag == PEAK ][ 'feature' ] )
-        sns.distplot( df[ df.ptTag == TROUGH ][ 'feature' ] )
-        sns.distplot( df[ df.ptTag == NOT_PT ][ 'feature' ] )
+        sns.distplot( df[ df.ptTag == PEAK ][ 'feature1' ] )
+        sns.distplot( df[ df.ptTag == TROUGH ][ 'feature1' ] )
+        sns.distplot( df[ df.ptTag == NOT_PT ][ 'feature1' ] )
         
         plt.legend( [ 'Peak',
                       'Trough',
                       'Not Peak or Trough' ] )
-        plt.xlabel( 'Feature' )
-        plt.ylabel( 'Distribution' + self.symbol )
+        plt.xlabel( 'Feature1' )
+        plt.ylabel( 'Distribution of ' + self.symbol )
         plt.show()
 
+        if 'feature2' in self.features:
+            sns.distplot( df[ df.ptTag == PEAK ][ 'feature2' ] )
+            sns.distplot( df[ df.ptTag == TROUGH ][ 'feature2' ] )
+            sns.distplot( df[ df.ptTag == NOT_PT ][ 'feature2' ] )
+        
+            plt.legend( [ 'Peak',
+                          'Trough',
+                          'Not Peak or Trough' ] )
+            plt.xlabel( 'Feature2' )
+            plt.ylabel( 'Distribution of ' + self.symbol )
+            plt.show()
+        
     def plotSymbol( self,
                     actPeaks   = False,
                     actTroughs = False,
@@ -255,22 +269,22 @@ class PTClassifier:
 
         df = self.dayDf
 
-        plt.scatter( df[ df.ptTag == NOT_PT ][ 'feature' ],
-                     df[ df.ptTag == NOT_PT ][ self.symbol ],
+        plt.scatter( df[ df.ptTag == NOT_PT ][ 'feature1' ],
+                     df[ df.ptTag == NOT_PT ][ 'feature2' ],
                      color = 'orange', marker = 'o' )
         
-        plt.scatter( df[ df.ptTag == PEAK ][ 'feature' ],
-                     df[ df.ptTag == PEAK ][ self.symbol ],
+        plt.scatter( df[ df.ptTag == PEAK ][ 'feature1' ],
+                     df[ df.ptTag == PEAK ][ 'feature2' ],
                      c = 'red',
                      marker = 'o' )
 
-        plt.scatter( df[ df.ptTag == TROUGH ][ 'feature' ],
-                     df[ df.ptTag == TROUGH ][ self.symbol ],
+        plt.scatter( df[ df.ptTag == TROUGH ][ 'feature1' ],
+                     df[ df.ptTag == TROUGH ][ 'feature2' ],
                      c = 'blue',
                      marker = 's' )
         
-        plt.legend( [ 'Peak', 'Trough', 'Not peak / trough' ] )
-        plt.xlabel( 'Feature' )
+        plt.legend( [ 'Not peak / trough', 'Peak', 'Trough' ] )
+        plt.xlabel( 'feature1' )
         plt.ylabel( self.symbol )
         plt.show()
         
@@ -280,8 +294,7 @@ class PTClassifier:
                           self.symbol )
         
         df = self.dayDf
-        X  = np.array( df.feature )
-        X  = X.reshape( ( len( X ), 1 ) )
+        X  = np.array( df[ self.features ] )
         y  = np.array( df.ptTag )
 
         if self.testRatio == 0:
@@ -299,6 +312,8 @@ class PTClassifier:
             obj = GaussianNB()
         elif self.method == 'gp':
             obj = GaussianProcessClassifier()
+        elif self.method == 'log':
+            obj = LogisticRegression()            
         else:
             assert False, 'Method %s not supported!' % self.method
             
@@ -357,19 +372,20 @@ class PTClassifier:
     def setPrd( self ):
 
         self.dayDf[ 'ptTagPrd' ] = \
-            self.dayDf.feature.apply( lambda x : self.getClass( x ) )
+            self.dayDf[ self.features ].apply( self.getClass, axis = 1 )
         self.dayDf[ 'prdProb' ] = \
-            self.dayDf.feature.apply( lambda x : self.getClassProb( x ) )
+            self.dayDf[ self.features ].apply( self.getClassProb, axis = 1 )
         
-    def getClass( self, val ):
+    def getClass( self, vals ):
 
-        X = np.array( [ val ] ).reshape( ( 1, 1 ) )
-        
+        X = np.array( [ vals ] )
+
         return self.classifier.predict( X )[0]
 
-    def getClassProb( self, val ):
+    def getClassProb( self, vals ):
 
-        X     = np.array( [ val ] ).reshape( ( 1, 1 ) )
+        X     = np.array( [ vals ] )
+
         probs = self.classifier.predict_proba( X )[0]
         
         return max( probs )
