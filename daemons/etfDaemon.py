@@ -56,7 +56,7 @@ REG_COEF      = 5.0e-3
 FACTOR        = 4.0e-05
 PTC_FLAG      = True
 PTC_MIN_VIX   = None
-PTC_MAX_VIX   = 40.0
+PTC_MAX_VIX   = 60.0
 MOD_HEAD      = 'mfd_model_'
 PRT_HEAD      = 'prt_weights_'
 PTC_HEAD      = 'ptc_'
@@ -305,7 +305,9 @@ class MfdPrtBuilder( Daemon ):
             self.logger.error( msgStr )
 
         try:
-            self.buildPTC( quoteHash.keys() )
+            ptcAssets = list( quoteHash.keys() ) + \
+                [ ETF_HASH[ symbol ] for symbol in quoteHash.keys() ]
+            self.buildPTC( ptcAssets )
         except Exception as e:
             msgStr = e + '; PTC build was unsuccessful!'
             self.logger.error( msgStr )
@@ -578,9 +580,9 @@ class MfdPrtBuilder( Daemon ):
             return wtHash
 
         for symbol in wtHash:
-            
-            dayDf[ 'vel' ]    = np.gradient( dayDf[ symbol ], 2 )
-            dayDf[ 'acl' ]    = np.gradient( dayDf[ 'vel' ], 2 )
+        
+            dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
+            dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
 
             symVal = list( dayDf.acl )[-1] 
             
@@ -593,15 +595,48 @@ class MfdPrtBuilder( Daemon ):
         
             ptTag = obj.predict( X )[0]
 
+            invSymbol = ETF_HASH[ symbol ]
+            
+            dayDf[ 'invVel' ] = np.gradient( dayDf[ invSymbol ], 2 )
+            
+            dayDf[ 'invAcl' ] = np.gradient( dayDf[ 'invVel' ], 2 )
+            
+            invSymVal = list( dayDf.invAcl )[-1]
+            
+            invPtcFile = os.path.join( ptcDir,
+                                'ptc_' + invSymbol + '.pkl' )
+            
+            invObj = pickle.load( open( invPtcFile, 'rb' ) )
+            
+            X = np.array( [ [ invSymVal ] ] )
+            
+            invPtTag = invObj.predict( X )[0]
+
             if ptTag == ptc.PEAK:
-                self.logger.critical( 'A peak is detected for %s', symbol )
+                
+                self.logger.critical( 'A peak is detected for %s!', symbol )
                 
                 if wtHash[ symbol ] > 0:
-                    self.logger.info( 'Changing weight for %s from %0.2f to '
-                                      '%0.2f as a peak was detected!',
+                    self.logger.critical( 'Changing weight for %s from %0.2f to '
+                                          '%0.2f as a peak was detected!',
+                                          symbol,
+                                          wtHash[ symbol ],
+                                          -wtHash[ symbol ] )
+                    
+                    wtHash[ symbol ] = -wtHash[ symbol ]
+                    
+            elif invPtTag == ptc.PEAK:
+
+                self.logger.critical( 'A trough (peak) is detected for %s (%s)!',
                                       symbol,
-                                      wtHash[ symbol ],
-                                      -wtHash[ symbol ] )
+                                      invSymbol )                
+            
+                if wtHash[ symbol ] < 0:
+                    self.logger.critical( 'Changing weight for %s from %0.2f to '
+                                          '%0.2f as a peak was detected!',
+                                          symbol,
+                                          wtHash[ symbol ],
+                                          -wtHash[ symbol ] )
                     
                     wtHash[ symbol ] = -wtHash[ symbol ]
 
