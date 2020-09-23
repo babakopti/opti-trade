@@ -358,11 +358,13 @@ class MfdPrtBuilder( Daemon ):
         maxDate = pd.to_datetime( snapDate )
         minDate = maxDate - datetime.timedelta( days = nDays )
 
-        symbols = self.etfs + self.stocks + self.futures + self.indexes
-
+        invETFs = [ ETF_HASH[ symbol ] for symbol in self.assets ]        
+        symbols = self.etfs + invETFs + self.stocks + \
+                  self.futures + self.indexes + [ 'VIX' ]
+        
         self.logger.info( 'Reading available data...' )
         
-        oldDf = utl.mergeSymbols( symbols = symbols + [ 'VIX' ],
+        oldDf = utl.mergeSymbols( symbols = symbols,
                                   datDir  = self.baseDatDir,
                                   fileExt = 'pkl',
                                   minDate = minDate,
@@ -371,7 +373,7 @@ class MfdPrtBuilder( Daemon ):
         self.logger.info( 'Getting new data...' )
 
         try:
-            newDf = utl.getYahooData( etfs    = self.etfs,
+            newDf = utl.getYahooData( etfs    = self.etfs + invETFs,
                                       stocks  = self.stocks,
                                       futures = self.futures,
                                       indexes = self.indexes + [ 'VIX' ],
@@ -602,12 +604,12 @@ class MfdPrtBuilder( Daemon ):
             dayDf[ 'invAcl' ] = np.gradient( dayDf[ 'invVel' ], 2 )
             
             invSymVal = list( dayDf.invAcl )[-1]
-            
-            invPtcFile = os.path.join( ptcDir,
-                                'ptc_' + invSymbol + '.pkl' )
-            
+
+            invPtcFile = os.path.join( self.ptcDir,
+                                       self.ptcHead + invSymbol + '.pkl' )
+
             invObj = pickle.load( open( invPtcFile, 'rb' ) )
-            
+
             X = np.array( [ [ invSymVal ] ] )
             
             invPtTag = invObj.predict( X )[0]
