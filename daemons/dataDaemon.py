@@ -139,8 +139,8 @@ class DataCollector( Daemon ):
         
         df[ 'change' ] = df[ symbol ].pct_change()
         
-        splitDf = df[ ( df.change <= -0.5 ) |
-                      ( df.change >= 1.0 )    ]
+        splitDf = df[ ( df.change <= -0.40 ) |
+                      ( df.change >= 0.90  )    ]
 
         dates   = list( splitDf.Date )
         changes = list( splitDf.change )
@@ -149,12 +149,12 @@ class DataCollector( Daemon ):
             
             change = changes[itr]
             
-            if change >= 1.0:
+            if change >= 0.90:
                 self.logger.critical( 'Possible 1:%d reverse split detected for %s on %s!',
                                       round( 1 + change ),
                                       symbol,
                                       str( dates[itr] ) )
-            elif change <= -0.5:
+            elif change <= -0.40:
                 self.logger.critical( 'Possible %d:1 split detected for %s on %s!',
                                       round( 1 / ( 1 + change ) ),
                                       symbol,
