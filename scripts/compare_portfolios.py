@@ -21,27 +21,25 @@ from dat.assets import ETF_HASH
 # ***********************************************************************
 
 prtFiles = [
-    'portfolios/portfolio_every_3_hours_assets_5.json',
-    'portfolios/portfolio_every_3_hours_assets_5_pc_max_vix_40.json',
-    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols.json',    
-    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols_max_vix_60.json',
-    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols_max_vix_65.json',
-    'portfolios/portfolio_every_3_hours_assets_5_pc_inverse_symbols_max_vix_75.json',    
+    'portfolios/nTrnDays_360_ptc.json',
+    'portfolios/nTrnDays_30_ptc.json', 
+    'portfolios/nTrnDays_60_ptc.json',
+    'portfolios/nTrnDays_720_ptc.json',
+    'portfolios/nTrnDays_1080_ptc.json',    
 ]
 
 legends = [
-    'Sorted 5 ETFs, 60 eval days, every 3 hours',
-    'Peak only classifier; max VIX 40',
-    'Peak with inverse symbols',
-    'Peak with inverse symbols, max VIX 60',
-    'Peak with inverse symbols, max VIX 65',
-    'Peak with inverse symbols, max VIX 75',    
+    'nTrnDays 360 PTC',
+    'nTrnDays 30 PTC',
+    'nTrnDays 60 PTC',
+    'nTrnDays 720 PTC',
+    'nTrnDays 1080 PTC',
 ]
 
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
-outFile     = 'analysis-results/compare_ptc.csv'
+outFile     = 'analysis-results/compare_nTrnDays.csv'
 
 # ***********************************************************************
 # Get min and max dates
