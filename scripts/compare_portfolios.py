@@ -20,27 +20,45 @@ from dat.assets import ETF_HASH
 # Input
 # ***********************************************************************
 
+actFlag = True
+
 prtFiles = [
-    'portfolios/nTrnDays_360_ptc.json',
-    'portfolios/nTrnDays_30_ptc.json', 
-    'portfolios/nTrnDays_60_ptc.json',
+    'portfolios/portfolio_every_3_hours_assets_5.json',
+    'portfolios/nTrnDays_360_ptc.json',    
     'portfolios/nTrnDays_720_ptc.json',
-    'portfolios/nTrnDays_1080_ptc.json',    
+    'portfolios/nTrnDays_360_intraday_sort_assets.json',
+    'portfolios/intraday_sort_assets_24hour_trend.json',
+    'portfolios/actual_wt_hash_oct9_2020.json',    
 ]
 
 legends = [
+    'nTrnDays 360',
     'nTrnDays 360 PTC',
-    'nTrnDays 30 PTC',
-    'nTrnDays 60 PTC',
     'nTrnDays 720 PTC',
-    'nTrnDays 1080 PTC',
+    'Intraday sort assets',
+    'Intraday sort assets + 24 hour trend horizon',
+    'Actual from portfolio',    
 ]
 
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
+actFile     = 'data/td_ametritade_balances_Oct9.csv'
 outFile     = 'analysis-results/compare_nTrnDays.csv'
 
+ETF_HASH[ 'UJB' ] = 'SJB'
+
+# ***********************************************************************
+# Get actual data id applicable
+# ***********************************************************************
+
+if actFlag:
+    actDf = pd.read_csv( actFile )
+    actDf.Date = actDf.Date.apply( pd.to_datetime )
+    actDf[ 'Account value' ] = actDf[ 'Account value' ].apply(
+        lambda x : float(x.replace(',',''))
+        )
+    
 # ***********************************************************************
 # Get min and max dates
 # ***********************************************************************
@@ -57,9 +75,14 @@ for prtFile in prtFiles:
     minDates.append( min( prtWtsHash.keys() ) )
     maxDates.append( max( prtWtsHash.keys() ) )
 
-minDate = max( minDates )
-maxDate = min( maxDates )
+minDate = max( minDates ) 
+maxDate = min( maxDates ) 
 #minDate = '2020-04-01'
+
+if actFlag:
+    actDf = actDf[ ( actDf.Date >= minDate ) & ( actDf.Date <= maxDate ) ]
+    initTotVal = list(actDf[ 'Account value' ])[0]
+    
 # ***********************************************************************
 # Read portfolios and plot
 # ***********************************************************************
@@ -84,6 +107,10 @@ for prtFile in prtFiles:
 
     plt.plot( retDf.Date, retDf.EndVal )
 
+if actFlag:
+    plt.plot( actDf.Date, actDf[ 'Account value' ] )
+    legends.append( 'Actual' )
+    
 plt.xlabel( 'Date' )
 plt.ylabel( 'Value ($)' )
 plt.legend( legends )

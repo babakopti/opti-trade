@@ -28,8 +28,8 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/portfolio_every_3_hours_assets_5.json'
-bkBegDate   = pd.to_datetime( '2020-09-09 15:30:00' )
+prtFile     = 'portfolios/test.json'
+bkBegDate   = pd.to_datetime( '2020-08-01 09:30:00' )
 bkEndDate   = pd.to_datetime( '2020-09-09 15:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
@@ -43,7 +43,7 @@ maxModTime  = '15:30:00'
 
 modFlag  = False
 dataFlag = False
-numCores = 4
+numCores = 3
 
 baseDir  = '/var/data'
 dfFile   = 'data/dfFile_2020.pkl'
@@ -83,7 +83,7 @@ def buildModPrt( snapDate ):
     maxOosDt    = snapDate
     maxTrnDt    = maxOosDt - datetime.timedelta( days = nOosDays )
     minTrnDt    = maxTrnDt - datetime.timedelta( days = nTrnDays )
-    modFilePath = '/Volumes/Public/workarea/opti-trade/scripts/models_2020_09/model_' + str( snapDate ) + '.dill'
+    modFilePath = 'models/model_' + str( snapDate ) + '.dill'
     wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
     if modFlag:

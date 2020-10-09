@@ -284,7 +284,7 @@ class MfdPrtBuilder( Daemon ):
         nPrdTimes = self.nPrdMinutes
         nRetTimes = int( self.nMadDays * 19 * 60 )
 
-        quoteHash = self.getQuoteHash( snapDate )
+        quoteHash = self.getQuoteHash( snapDate, 'model', mfdMod )
         
         mfdPrt = MfdPrt( modFile      = modFile,
                          quoteHash    = quoteHash,
@@ -467,7 +467,7 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             self.logger.error( e )
 
-    def getQuoteHash( self, snapDate ):
+    def getQuoteHash( self, snapDate, method, mfdMod ):
 
         self.logger.info( 'Getting quotes...' )
         
@@ -478,11 +478,13 @@ class MfdPrtBuilder( Daemon ):
             assets = self.assets
         else:
             try:
-                eDf = utl.sortAssets( symbols = self.assets,
-                                      dfFile  = self.dfFile,
-                                      begDate = begDate,
-                                      endDate = endDate,
-                                      logger  = self.logger     )
+                eDf = utl.sortAssets( symbols   = self.assets,
+                                      dfFile    = self.dfFile,
+                                      begDate   = begDate,
+                                      endDate   = endDate,
+                                      criterion = 'abs_sharpe',                          
+                                      mode      = 'daily',
+                                      logger    = self.logger )
                 assets = list( eDf.asset )[:self.maxAssets]
             except Exception as e:
                 self.logger.error( e )
@@ -492,20 +494,35 @@ class MfdPrtBuilder( Daemon ):
         
         self.logger.info( 'Connecting to Tdam to get quotes...' )
 
-        try:
-            td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
-            self.logger.info( 'Connected to Tdam!' )
-        except Exception as e:
-            self.logger.error( e )
-
         quoteHash = {}
-    
-        for asset in assets:
+        
+        if method == 'td':
+            try:
+                td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+                self.logger.info( 'Connected to Tdam!' )
+            except Exception as e:
+                self.logger.error( e )
             
-            quoteHash[ asset ] = td.getQuote( asset, 'last' )
-            
-            self.logger.info( 'Got a quote for %s...', asset )            
+            for asset in assets:
+                quoteHash[ asset ] = td.getQuote( asset, 'last' )
+                self.logger.info( 'Got a quote for %s...', asset )
+        else:
+            ecoMfd = mfdMod.ecoMfd
 
+            for m in range( ecoMfd.nDims ):
+
+                asset = ecoMfd.velNames[m]
+
+                if asset not in assets:
+                    continue
+        
+                tmp       = ecoMfd.deNormHash[ asset ]
+                slope     = tmp[0]
+                intercept = tmp[1]
+        
+                quoteHash[ asset ] = \
+                    slope * ecoMfd.actOosSol[m][-1] + intercept
+            
         return quoteHash
 
     def buildPTC( self, symbols ):
