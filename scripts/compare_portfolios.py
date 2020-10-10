@@ -23,20 +23,16 @@ from dat.assets import ETF_HASH
 actFlag = True
 
 prtFiles = [
-    'portfolios/portfolio_every_3_hours_assets_5.json',
+    'portfolios/nTrnDays_360.json',
     'portfolios/nTrnDays_360_ptc.json',    
-    'portfolios/nTrnDays_720_ptc.json',
     'portfolios/nTrnDays_360_intraday_sort_assets.json',
-    'portfolios/intraday_sort_assets_24hour_trend.json',
     'portfolios/actual_wt_hash_oct9_2020.json',    
 ]
 
 legends = [
     'nTrnDays 360',
     'nTrnDays 360 PTC',
-    'nTrnDays 720 PTC',
     'Intraday sort assets',
-    'Intraday sort assets + 24 hour trend horizon',
     'Actual from portfolio',    
 ]
 
