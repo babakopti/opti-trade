@@ -24,15 +24,17 @@ actFlag = True
 
 prtFiles = [
     'portfolios/nTrnDays_360.json',
-    'portfolios/nTrnDays_360_ptc.json',    
-    'portfolios/nTrnDays_360_intraday_sort_assets.json',
+    'portfolios/nTrnDays_360_ptc.json',
+    'portfolios/nTrnDays_360_two_hours.json',
+    'portfolios/nTrnDays_360_two_hours_ptc.json',    
     'portfolios/actual_wt_hash_oct9_2020.json',    
 ]
 
 legends = [
-    'nTrnDays 360',
-    'nTrnDays 360 PTC',
-    'Intraday sort assets',
+    'every 3 hours',
+    'every 3 hours PTC',
+    'every 2 hour',
+    'every 2 hour PTC',
     'Actual from portfolio',    
 ]
 
@@ -73,7 +75,7 @@ for prtFile in prtFiles:
 
 minDate = max( minDates ) 
 maxDate = min( maxDates ) 
-#minDate = '2020-04-01'
+#minDate = '2020-09-09'
 
 if actFlag:
     actDf = actDf[ ( actDf.Date >= minDate ) & ( actDf.Date <= maxDate ) ]

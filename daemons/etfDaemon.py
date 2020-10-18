@@ -46,9 +46,9 @@ ASSETS   = list( SUB_ETF_HASH.keys() )
 MAX_NUM_ASSETS = 5
 NUM_ASSET_EVAL_DAYS = 60
 
-NUM_TRN_DAYS  = 720
+NUM_TRN_DAYS  = 360
 NUM_OOS_DAYS  = 3
-NUM_PRD_MINS  = 3 * 60
+NUM_PRD_MINS  = 2 * 60
 NUM_MAD_DAYS  = 30
 MAX_OPT_ITRS  = 500
 OPT_TOL       = 1.0e-3
@@ -66,7 +66,7 @@ DAT_DIR       = '/var/mfd_data'
 BASE_DAT_DIR  = '/var/data'
 PTC_DIR       = '/var/pt_classifiers'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIMES   = [ '09:30', '12:30', '15:30' ]
+SCHED_TIMES   = [ '09:30', '11:30', '13:30', '15:30' ]
 LOG_FILE_NAME = '/var/log/mfd_prt_builder.log'
 VERBOSE       = 1
 

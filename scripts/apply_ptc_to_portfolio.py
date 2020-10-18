@@ -21,12 +21,12 @@ from dat.assets import SUB_ETF_HASH
 # ***********************************************************************
 
 ptcFlag    = True
-prtFile    = 'portfolios/nTrnDays_360.json'
+prtFile    = 'portfolios/nTrnDays_360_two_hours.json'
 minVix     = None
 maxVix     = 60
 datDir     = 'data'
 ptcDir     = 'pt_classifiers'
-outPrtFile = 'portfolios/nTrnDays_360_ptc.json'
+outPrtFile = 'portfolios/nTrnDays_360_two_hours_ptc.json'
 
 # ***********************************************************************
 # Read original portfolio and get symbols
