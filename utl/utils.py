@@ -861,7 +861,7 @@ def calcBacktestReturns( prtWtsHash,
                          initTotVal,
                          shortFlag = True,
                          invHash   = None,
-                         hourOset  = 0,
+                         minsOset  = 0,
                          minAbsWt  = 1.0e-4,
                          minDate   = None,
                          maxDate   = None   ):
@@ -948,11 +948,11 @@ def calcBacktestReturns( prtWtsHash,
             continue
 
         begDate = pd.to_datetime( dates[itr] )
-        begDate = begDate + datetime.timedelta( hours = hourOset )
+        begDate = begDate + datetime.timedelta( minutes = minsOset )
 
         if itr < nDates - 1:
             endDate = pd.to_datetime( dates[itr+1] )
-            endDate = endDate + datetime.timedelta( hours = hourOset )
+            endDate = endDate + datetime.timedelta( minutes = minsOset )
         elif itr == nDates - 1:
             tmp1    = pd.to_datetime( dates[nDates-1] )
             tmp2    = pd.to_datetime( dates[nDates-2] )
