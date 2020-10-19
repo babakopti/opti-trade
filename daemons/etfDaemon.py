@@ -77,7 +77,7 @@ USR_EMAIL_TEMPLATE = '/home/babak/opti-trade/daemons/templates/user_portfolio_em
 DEV_LIST = [ 'babak.emami@gmail.com' ]
 USR_LIST = []
 
-TOKEN_FILE = '../brk/tokens/refresh_token_2020-10-20.txt'
+TOKEN_FILE = '../brk/tokens/refresh_token_2021-01-19.txt'
 
 with open( TOKEN_FILE, 'r' ) as fHd:
     REFRESH_TOKEN = fHd.read()[:-1]
