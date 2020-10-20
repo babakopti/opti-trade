@@ -970,10 +970,16 @@ def calcBacktestReturns( prtWtsHash,
         
         wtHash = defaultdict( float )
 
+        sumAbs = sum( [ abs( x ) for x in prtWtsHash[ dates[itr] ].values() ] )
+
+        sumAbsInv = 1.0
+        if sumAbs > 0:
+            sumAbsInv = 1.0 / sumAbs
+            
         tmpStr = ''
         for asset in prtWtsHash[ dates[itr] ]:
             weight          = prtWtsHash[ dates[itr] ][ asset ]
-            wtHash[ asset ] = weight
+            wtHash[ asset ] = weight * sumAbsInv
             if abs( weight ) > minAbsWt:
                 tmpStr += asset + ' '
 
@@ -989,7 +995,7 @@ def calcBacktestReturns( prtWtsHash,
 
             wt = wtHash[ asset ]
 
-            if wt == 0:
+            if abs( wt ) < minAbsWt:
                 continue
             elif wt > 0 or shortFlag:
                 begPrice = list( tmpDf[ asset ] )[0]
