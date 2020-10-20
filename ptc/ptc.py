@@ -46,7 +46,9 @@ class PTClassifier:
                     method      = 'bayes',
                     minVix      = None,
                     maxVix      = None,
-                    minProb     = None,                    
+                    minProb     = None,
+                    minTrnDate  = None,
+                    maxTrnDate  = None,
                     logFileName = None,                    
                     verbose     = 1          ):
 
@@ -60,6 +62,8 @@ class PTClassifier:
         self.minVix      = minVix
         self.maxVix      = maxVix
         self.minProb     = minProb
+        self.minTrnDate  = minTrnDate
+        self.maxTrnDate  = maxTrnDate        
         self.logFileName = logFileName
         self.verbose     = verbose
         self.logger      = getLogger( logFileName, verbose, 'ptc' )
@@ -74,7 +78,13 @@ class PTClassifier:
         
         assert method in [ 'bayes', 'gp', 'log' ], \
             'Method %s is not supported right now!' % method
-        
+
+        if self.minTrnDate is not None:
+            self.minTrnDate = pd.to_datetime( self.minTrnDate )
+
+        if self.maxTrnDate is not None:
+            self.maxTrnDate = pd.to_datetime( self.maxTrnDate )
+            
         self.setDf()
 
     def setDf( self ):
@@ -96,9 +106,17 @@ class PTClassifier:
         assert symbol in dayDf.columns, 'Symbol %s not found in %s' \
             % ( symbol, symFile )
 
+        dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
+        
+        if self.minTrnDate is not None:
+            dayDf = dayDf[ dayDf.Date >= self.minTrnDate ]
+
+        if self.maxTrnDate is not None:
+            dayDf = dayDf[ dayDf.Date <= self.maxTrnDate ]
+            
         dayDf[ 'Date' ] = \
             dayDf.Date.apply( lambda x : x.strftime( '%Y-%m-%d' ) )
-        
+
         dayDf = dayDf.groupby( 'Date', as_index = False ).mean()
         
         if self.minVix is not None or self.maxVix is not None:
