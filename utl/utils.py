@@ -861,7 +861,7 @@ def calcBacktestReturns( prtWtsHash,
                          initTotVal,
                          shortFlag = True,
                          invHash   = None,
-                         hourOset  = 0,
+                         minsOset  = 0,
                          minAbsWt  = 1.0e-4,
                          minDate   = None,
                          maxDate   = None   ):
@@ -948,11 +948,11 @@ def calcBacktestReturns( prtWtsHash,
             continue
 
         begDate = pd.to_datetime( dates[itr] )
-        begDate = begDate + datetime.timedelta( hours = hourOset )
+        begDate = begDate + datetime.timedelta( minutes = minsOset )
 
         if itr < nDates - 1:
             endDate = pd.to_datetime( dates[itr+1] )
-            endDate = endDate + datetime.timedelta( hours = hourOset )
+            endDate = endDate + datetime.timedelta( minutes = minsOset )
         elif itr == nDates - 1:
             tmp1    = pd.to_datetime( dates[nDates-1] )
             tmp2    = pd.to_datetime( dates[nDates-2] )
@@ -970,10 +970,16 @@ def calcBacktestReturns( prtWtsHash,
         
         wtHash = defaultdict( float )
 
+        sumAbs = sum( [ abs( x ) for x in prtWtsHash[ dates[itr] ].values() ] )
+
+        sumAbsInv = 1.0
+        if sumAbs > 0:
+            sumAbsInv = 1.0 / sumAbs
+            
         tmpStr = ''
         for asset in prtWtsHash[ dates[itr] ]:
             weight          = prtWtsHash[ dates[itr] ][ asset ]
-            wtHash[ asset ] = weight
+            wtHash[ asset ] = weight * sumAbsInv
             if abs( weight ) > minAbsWt:
                 tmpStr += asset + ' '
 
@@ -989,7 +995,7 @@ def calcBacktestReturns( prtWtsHash,
 
             wt = wtHash[ asset ]
 
-            if wt == 0:
+            if abs( wt ) < minAbsWt:
                 continue
             elif wt > 0 or shortFlag:
                 begPrice = list( tmpDf[ asset ] )[0]
@@ -1634,5 +1640,51 @@ def adjSplit( df, symbol, ratio, spType, spDate ):
     adjDf = pd.concat( [ preDf, postDf ] )
 
     return adjDf
-        
+
+# ***********************************************************************
+# getCryptoData(): Get cryptocurrency data by minute
+# ***********************************************************************
+
+def getCryptoData( symbols ):
+
+    currZone = os.environ.get( 'TZ' )
+
+    os.environ[ 'TZ' ] = 'UTC'
+
+    outDf = None
     
+    for symbol in symbols:
+        
+        url = 'https://min-api.cryptocompare.com/data/histominute'\
+            '?fsym=%s&tsym=USD&aggregate=1&allData=true' % symbol
+
+        resp = requests.get( url )
+
+        if resp.ok:
+            data = resp.json()[ 'Data' ]
+            df   = pd.DataFrame( data )
+    
+            df[ 'Date' ] = df.time.apply( lambda x : datetime.datetime.fromtimestamp(x) )
+        
+            df = df.rename( columns = { 'close': symbol } )
+            df = df[ [ 'Date', symbol ] ]
+
+            if outDf is None:
+                outDf = df
+            else:
+                outDf = outDf.merge( df,
+                                     how = 'outer',
+                                     on  = [ 'Date' ] )
+        else:
+            print( 'Crypto data for %s not found!' % symbol )
+
+    if outDf is not None:
+        outDf = outDf.interpolate( method = 'linear' )
+        outDf = outDf.dropna()
+        outDf = outDf.sort_values( 'Date' )                
+        outDf = outDf.reset_index( drop = True )
+
+    if currZone is not None:
+        os.environ[ 'TZ' ] = currZone
+        
+    return outDf

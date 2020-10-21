@@ -8,6 +8,8 @@ import time
 import datetime
 import dill
 import pickle
+import logging
+import json
 import numpy as np
 import pandas as pd
 
@@ -15,33 +17,39 @@ from multiprocessing import Process, Pool
 
 sys.path.append( os.path.abspath( '../' ) )
 
+import utl.utils as utl
+
+from dat.assets import INDEXES
 from mod.mfdMod import MfdMod
 from prt.prt import MfdPrt 
+
+# ***********************************************************************
+# Main input params
+# ***********************************************************************
+
+prtFile     = 'portfolios/crypto.json'
+bkBegDate   = pd.to_datetime( '2020-01-01 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-06-30 15:30:00' )
+nTrnDays    = 360
+nOosDays    = 3
+nPrdMinutes = 24 * 60
+minModTime  = '09:30:00'
+maxModTime  = '15:30:00'
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-modFlag     = True
-dfFile      = 'data/dfFile_crypto.pkl'
-nTrnDays    = 90
-nOosDays    = 3
-nPrdDays    = 1
-bkBegDate   = pd.to_datetime( '2019-04-01 00:00:00' )
-bkEndDate   = pd.to_datetime( '2019-06-30 23:59:00' )
+modFlag  = True
+numCores = 4
 
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
-cryptos     = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
+dfFile   = 'data/dfFile_crypto.pkl'
 
-velNames    = indices + cryptos
+velNames  = [ 'BTC', 'ETH', 'LTC', 'ZEC' ] + INDEXES + [ 'VIX' ]
+assetPool = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
 
-factor      = 2.0e-05
-
-assets      = cryptos
-totAssetVal = 1000000.0
-tradeFee    = 6.95
+factor = 4.0e-05
+vType  = 'vel'
 
 # ***********************************************************************
 # Utility functions
@@ -52,11 +60,10 @@ def buildModPrt( snapDate ):
     maxOosDt    = snapDate
     maxTrnDt    = maxOosDt - datetime.timedelta( days = nOosDays )
     minTrnDt    = maxTrnDt - datetime.timedelta( days = nTrnDays )
-    modFilePath = 'crypto_models/model_' + str( snapDate ) + '.dill'
-    wtFilePath  = 'crypto_models/weights_' + str( snapDate ) + '.pkl'
+    modFilePath = 'models/model_' + str( snapDate ) + '.dill'
+    wtFilePath  = 'models/weights_' + str( snapDate ) + '.pkl'
 
     if modFlag:
-        print( 'Building model for snapdate', snapDate )
 
         t0     = time.time()
 
@@ -66,92 +73,117 @@ def buildModPrt( snapDate ):
                          maxOosDate   = maxOosDt,
                          velNames     = velNames,
                          maxOptItrs   = 500,
-                         optGTol      = 3.0e-2,
-                         optFTol      = 3.0e-2,
-                         regCoef      = 1.0e-3,
+                         optGTol      = 1.0e-5,
+                         optFTol      = 1.0e-5,
+                         regCoef      = 5.0e-3,
                          factor       = factor,
+                         logFileName  = None,
                          verbose      = 1          )
         
         sFlag = mfdMod.build()
 
-        if sFlag:
-            print( 'Building model took %d seconds!' % ( time.time() - t0 ) )
-        else:
-            print( 'Warning: Model build was unsuccessful!' )
-            print( 'Warning: Not building a portfolio based on this model!!' )
+        if not sFlag:
+            logging.warning( 'Warning: Model build was unsuccessful!' )
+            logging.warning( 'Warning: Not building a portfolio based on this model!!' )
             return False
 
         mfdMod.save( modFilePath )
     else:
-        mfdMod = dill.load( open( modFilePath, 'rb' ) )
+        try:
+            mfdMod = dill.load( open( modFilePath, 'rb' ) )
+        except Exception as exc:
+            logging.critical(exc)
+            sys.exit()
 
     print( 'Building portfolio for snapdate', snapDate )
 
     t0     = time.time()
     wtHash = {}
-    curDt  = snapDate
-    endDt  = snapDate + datetime.timedelta( days = nPrdDays )
-    nDays  = ( endDt - curDt ).days
 
-    nPrdTimes   = int( nDays * 19 * 60 )
+    nPrdTimes = nPrdMinutes 
+    nRetTimes = int( 30 * 19 * 60 )  
 
+    assets = assetPool
+
+    ecoMfd = mfdMod.ecoMfd
+    quoteHash = {}
+    for m in range( ecoMfd.nDims ):
+
+        asset = ecoMfd.velNames[m]
+
+        if asset not in assets:
+            continue
+        
+        tmp       = ecoMfd.deNormHash[ asset ]
+        slope     = tmp[0]
+        intercept = tmp[1]
+        
+        quoteHash[ asset ] = slope * ecoMfd.actOosSol[m][-1] + intercept
+        
     mfdPrt = MfdPrt( modFile      = modFilePath,
-                     assets       = assets,
+                     quoteHash    = quoteHash,
+                     nRetTimes    = nRetTimes,
                      nPrdTimes    = nPrdTimes,
-                     totAssetVal  = totAssetVal, 
-                     tradeFee     = tradeFee,
-                     strategy     = 'mad',
+                     strategy     = 'equal',
                      minProbLong  = 0.5,
                      minProbShort = 0.5,
-                     vType        = 'vel',
+                     vType        = vType,
+                     fallBack     = 'macd',
                      verbose      = 1          )
 
-    dateKey = snapDate.strftime( '%Y-%m-%d' )
+    dateKey = snapDate.strftime( '%Y-%m-%d %H:%M:00' )
 
-    wtHash[ dateKey ] = mfdPrt.getPortfolio()
+    tmpHash = mfdPrt.getPortfolio()
 
-    pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    
+    wtHash[ dateKey ] = tmpHash
     
+    pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    
+
     print( 'Building portfolio took %d seconds!' % ( time.time() - t0 ) )
 
+    os.remove( modFilePath )
+    
     return True
-
-# ***********************************************************************
-# A worker function
-# ***********************************************************************
-
-def worker(snapDate):
-
-    sFlag = False
-    try:
-        sFlag = buildModPrt( snapDate )
-    except Exception as e:
-        print( e )
-
-    if not sFlag:
-        print( 'ALERT: Processing of %s was unsuccessful!' % snapDate )
 
 # ***********************************************************************
 # Run the backtest
 # ***********************************************************************
+
+if __name__ ==  '__main__':
     
-snapDate = bkBegDate
-pool     = Pool()
+    snapDate = bkBegDate
+    pool     = Pool( numCores )
 
-while snapDate <= bkEndDate:
+    while snapDate <= bkEndDate:
 
-    while True:
-        if snapDate.isoweekday() not in [ 6, 7 ]:
-            break
-        else:
-            snapDate += datetime.timedelta( days = 1 )
+        while True:
+            if snapDate.isoweekday() not in [ 6, 7 ] and \
+               snapDate.strftime( '%H:%M:%S' ) >= minModTime and \
+               snapDate.strftime( '%H:%M:%S' ) <= maxModTime:
+                break
+            else:
+                snapDate += datetime.timedelta( minutes = nPrdMinutes )
 
-    pool.apply_async( worker, args = ( snapDate, ) )
+        pool.apply_async( buildModPrt, args = ( snapDate, ) )
 
-    snapDate = snapDate + datetime.timedelta( days = nPrdDays )
+        snapDate = snapDate + datetime.timedelta( minutes = nPrdMinutes )
 
-pool.close()
-pool.join()
+    pool.close()
+    pool.join()
     
+    modFiles = os.listdir( 'models' )
 
+    prtWtsHash = {}
 
+    for item in modFiles:
+
+        if item.split( '_' )[0] != 'weights':
+            continue
+    
+        filePath = os.path.join( 'models', item )
+        tmpHash = pickle.load( open( filePath, 'rb' ) )
+        dateStr = list( tmpHash.keys() )[0]
+        prtWtsHash[ dateStr ] = tmpHash[ dateStr ]
+
+    with open( prtFile, 'w' ) as fp:
+            json.dump( prtWtsHash, fp )        

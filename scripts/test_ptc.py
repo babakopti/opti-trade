@@ -6,8 +6,8 @@ sys.path.append( '..' )
 
 from ptc.ptc import PTClassifier
 
-ptcObj = PTClassifier( symbol      = 'ERX',
-                       symFile     = 'data/ERX.pkl',
+ptcObj = PTClassifier( symbol      = 'ETH',
+                       symFile     = 'data/ETH.pkl',
                        vixFile     = 'data/VIX.pkl',
                        ptThreshold = 1.0e-2,
                        nPTAvgDays  = None,
@@ -15,6 +15,8 @@ ptcObj = PTClassifier( symbol      = 'ERX',
                        method      = 'bayes',
                        minVix      = None,
                        maxVix      = 60.0,
+                       minTrnDate  = '2019-09-30',
+                       maxTrnDate  = None,
                        logFileName = None,                    
                        verbose     = 1          )
 
