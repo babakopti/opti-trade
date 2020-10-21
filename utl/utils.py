@@ -1645,26 +1645,46 @@ def adjSplit( df, symbol, ratio, spType, spDate ):
 # getCryptoData(): Get cryptocurrency data by minute
 # ***********************************************************************
 
-def getCryptoDate( symbol ):
-    
-    url = 'https://min-api.cryptocompare.com/data/histominute'\
-        '?fsym=%s&tsym=USD&aggregate=1&allData=true' % symbol
+def getCryptoData( symbols ):
 
-    resp = requests.get( url )
+    currZone = os.environ.get( 'TZ' )
 
-    df = pd.DataFrame()
+    os.environ[ 'TZ' ] = 'UTC'
+
+    outDf = None
     
-    if resp.ok:
-        data = resp.json()[ 'Data' ]
-        df   = pd.DataFrame( data )
+    for symbol in symbols:
+        
+        url = 'https://min-api.cryptocompare.com/data/histominute'\
+            '?fsym=%s&tsym=USD&aggregate=1&allData=true' % symbol
+
+        resp = requests.get( url )
+
+        if resp.ok:
+            data = resp.json()[ 'Data' ]
+            df   = pd.DataFrame( data )
     
-        df[ 'Date' ] = df.time.apply( lambda x : datetime.datetime.fromtimestamp(x) )
+            df[ 'Date' ] = df.time.apply( lambda x : datetime.datetime.fromtimestamp(x) )
         
-        df = df.rename( columns = { 'close': symbol } )
-        df = df[ [ 'Date', symbol ] ]
-        df = df.sort_values( 'Date' )
-        df = df.reset_index( drop = True )
-    else:
-        print( 'Crypto data for %s not found!' % symbol )
+            df = df.rename( columns = { 'close': symbol } )
+            df = df[ [ 'Date', symbol ] ]
+
+            if outDf is None:
+                outDf = df
+            else:
+                outDf = outDf.merge( df,
+                                     how = 'outer',
+                                     on  = [ 'Date' ] )
+        else:
+            print( 'Crypto data for %s not found!' % symbol )
+
+    if outDf is not None:
+        outDf = outDf.interpolate( method = 'linear' )
+        outDf = outDf.dropna()
+        outDf = outDf.sort_values( 'Date' )                
+        outDf = outDf.reset_index( drop = True )
+
+    if currZone is not None:
+        os.environ[ 'TZ' ] = currZone
         
-    return df    
+    return outDf
