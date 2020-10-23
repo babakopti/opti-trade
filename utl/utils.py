@@ -947,6 +947,13 @@ def calcBacktestReturns( prtWtsHash,
         if pd.to_datetime( dates[itr] ) > maxDate:
             continue
 
+        totAbsSum = sum( [
+            abs(val) for val in prtWtsHash[ dates[itr] ].values()
+        ] )
+
+        assert totAbsSum - 1.0 < minAbsWt, \
+            'Sum of absolute weights should be less than 1.0!'
+
         begDate = pd.to_datetime( dates[itr] )
         begDate = begDate + datetime.timedelta( minutes = minsOset )
 
@@ -970,16 +977,10 @@ def calcBacktestReturns( prtWtsHash,
         
         wtHash = defaultdict( float )
 
-        sumAbs = sum( [ abs( x ) for x in prtWtsHash[ dates[itr] ].values() ] )
-
-        sumAbsInv = 1.0
-        if sumAbs > 0:
-            sumAbsInv = 1.0 / sumAbs
-            
         tmpStr = ''
         for asset in prtWtsHash[ dates[itr] ]:
             weight          = prtWtsHash[ dates[itr] ][ asset ]
-            wtHash[ asset ] = weight * sumAbsInv
+            wtHash[ asset ] = weight 
             if abs( weight ) > minAbsWt:
                 tmpStr += asset + ' '
 
