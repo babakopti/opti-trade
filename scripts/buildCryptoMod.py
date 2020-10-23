@@ -13,44 +13,34 @@ from utils import getCryptoDf
 
 sys.path.append( os.path.abspath( '../' ) )
 
+from dat.assets import INDEXES
 from mod.mfdMod import MfdMod
 
 # ***********************************************************************
 # Set some parameters and read data
 # ***********************************************************************
 
-dataFlag    = True
 cryptoDir   = '/Users/babak/workarea/data/crypto_data'
 piDir       = '/Users/babak/workarea/data/pitrading_data'
 
 dfFile      = 'data/dfFile_crypto.pkl'
 
-minTrnDate  = pd.to_datetime( '2018-01-01 00:00:00' )
-maxTrnDate  = pd.to_datetime( '2019-06-30 23:59:00' )
-maxOosDate  = pd.to_datetime( '2019-07-10 23:59:00' )
+minTrnDate  = pd.to_datetime( '2019-09-15 00:00:00' )
+maxTrnDate  = pd.to_datetime( '2020-09-14 23:59:00' )
+maxOosDate  = pd.to_datetime( '2020-09-17 23:59:00' )
 
 cryptos     = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
-indices     = [ 'INDU', 'NDX', 'SPX', 'COMPX', 'RUT',  'OEX',  
-                'MID',  'SOX', 'RUI', 'RUA',   'TRAN', 'HGX',  
-                'TYX',  'HUI', 'XAU'                       ] 
-forex       = [ 'USDJPY', 'USDCHF', 'USDCAD', 'NZDUSD',
-                'GBPUSD', 'EURUSD', 'AUDUSD'               ]
-
-velNames    = indices + cryptos
+velNames    = INDEXES + cryptos + [ 'VIX' ]
 
 modFileName = 'models/crypto_model.dill'
 
-factor      = 2.0e-5
-    
-# ***********************************************************************
-# Get data and save to pickle file
-# ***********************************************************************
+selParams = {
+    'inVelNames': cryptos, 
+    'maxNumVars': 10,
+    'minImprov': 0.005,
+    'strategy': 'forward',
+}
 
-if dataFlag:
-    df = getCryptoDf( cryptoDir, piDir, velNames )
-    df = df[ df.Date >= minTrnDate ]
-    df.to_pickle( dfFile )
-sys.exit()
 # ***********************************************************************
 # Build model
 # ***********************************************************************
@@ -60,12 +50,13 @@ mfdMod = MfdMod(    dfFile       = dfFile,
                     maxTrnDate   = maxTrnDate,
                     maxOosDate   = maxOosDate,
                     velNames     = velNames,
-                    maxOptItrs   = 100,
-                    optGTol      = 2.0e-2,
-                    optFTol      = 2.0e-2,
-                    factor       = factor,
-                    regCoef      = 1.0e-5,
-                    mode         = 'intraday',
+                    maxOptItrs   = 500,
+                    optGTol      = 1.0e-5,
+                    optFTol      = 1.0e-5,
+                    regCoef      = 5.0e-3,
+                    factor       = 4.0e-05,
+                    selParams    = selParams,                    
+                    logFileName  = None,                    
                     verbose      = 1          )
 
 validFlag = mfdMod.build()
