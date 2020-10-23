@@ -27,14 +27,14 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/crypto.json'
-bkBegDate   = pd.to_datetime( '2020-01-01 09:30:00' )
-bkEndDate   = pd.to_datetime( '2020-06-30 15:30:00' )
+prtFile     = 'portfolios/crypto_24_hours_no_short_10PM.json'
+bkBegDate   = pd.to_datetime( '2020-05-01 22:00:00' )
+bkEndDate   = pd.to_datetime( '2020-10-10 22:00:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 24 * 60
-minModTime  = '09:30:00'
-maxModTime  = '15:30:00'
+minModTime  = '00:00:00'
+maxModTime  = '23:59:00'
 
 # ***********************************************************************
 # Set some parameters and read data
@@ -135,6 +135,18 @@ def buildModPrt( snapDate ):
 
     tmpHash = mfdPrt.getPortfolio()
 
+    # No short sells
+    for symbol in tmpHash:
+        tmpHash[ symbol ] = max( 0.0, tmpHash[ symbol ] )
+        
+    sumAbs = sum( [abs(x) for x in tmpHash.values()] )
+    sumAbsInv = 1.0
+    if sumAbs > 0:
+        sumAbsInv = 1.0 / sumAbs
+
+    for symbol in tmpHash:
+        tmpHash[ symbol ] = sumAbsInv * tmpHash[ symbol ]
+    
     wtHash[ dateKey ] = tmpHash
     
     pickle.dump( wtHash, open( wtFilePath, 'wb' ) )    
@@ -157,8 +169,7 @@ if __name__ ==  '__main__':
     while snapDate <= bkEndDate:
 
         while True:
-            if snapDate.isoweekday() not in [ 6, 7 ] and \
-               snapDate.strftime( '%H:%M:%S' ) >= minModTime and \
+            if snapDate.strftime( '%H:%M:%S' ) >= minModTime and \
                snapDate.strftime( '%H:%M:%S' ) <= maxModTime:
                 break
             else:
