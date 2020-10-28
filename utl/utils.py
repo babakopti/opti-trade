@@ -1685,6 +1685,8 @@ def getCryptoCompareData( symbols, maxTries = 10, logger = None ):
             df = df.rename( columns = { 'close': symbol } )
             df = df[ [ 'Date', symbol ] ]
 
+            logger.info( 'Got %d rows for %s!', df.shape[0], symbol )
+
             if outDf is None:
                 outDf = df
             else:
