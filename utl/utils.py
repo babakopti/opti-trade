@@ -9,6 +9,7 @@ import datetime
 import requests
 import logging
 import dill
+import io
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -1643,11 +1644,14 @@ def adjSplit( df, symbol, ratio, spType, spDate ):
     return adjDf
 
 # ***********************************************************************
-# getCryptoData(): Get cryptocurrency data by minute
+# getCryptoCompareData(): Get data by minutes from Cryto Compare API
 # ***********************************************************************
 
-def getCryptoData( symbols ):
+def getCryptoCompareData( symbols, maxTries = 10, logger = None ):
 
+    if logger is None:
+        logger = getLogger( None, 1 )
+    
     currZone = os.environ.get( 'TZ' )
 
     os.environ[ 'TZ' ] = 'UTC'
@@ -1659,9 +1663,20 @@ def getCryptoData( symbols ):
         url = 'https://min-api.cryptocompare.com/data/histominute'\
             '?fsym=%s&tsym=USD&aggregate=1&allData=true' % symbol
 
-        resp = requests.get( url )
+        resp = None
+        
+        for itr in range( maxTries ):
+            try:
+                resp = requests.get( url )
+                break
+            except:
+                logger.warning( 'Could not connect, trying again...' )
+                time.sleep( 1 )
+                continue        
 
-        if resp.ok:
+        if resp is None or not resp.ok:
+            logger.error( 'Could not get the crypto data for %s!', symbol )
+        elif resp.ok:
             data = resp.json()[ 'Data' ]
             df   = pd.DataFrame( data )
     
@@ -1670,6 +1685,56 @@ def getCryptoData( symbols ):
             df = df.rename( columns = { 'close': symbol } )
             df = df[ [ 'Date', symbol ] ]
 
+            if outDf is None:
+                outDf = df
+            else:
+                outDf = outDf.merge( df,
+                                     how = 'outer',
+                                     on  = [ 'Date' ] )
+
+    if outDf is not None:
+        outDf = outDf.interpolate( method = 'linear' )
+        outDf = outDf.dropna()
+        outDf = outDf.sort_values( 'Date' )                
+        outDf = outDf.reset_index( drop = True )
+
+    if currZone is not None:
+        os.environ[ 'TZ' ] = currZone
+        
+    return outDf
+
+# ***********************************************************************
+# getGeminiData(): Get Gemini crypto data by minute
+# ***********************************************************************
+
+def getGeminiData( symbols ):
+    
+    outDf = None
+
+    for symbol in symbols:
+
+        if symbol not in [ 'BTC', 'ETH', 'LTC', 'ZEC' ]:
+            print(
+                'Skipping symbol %s as it is not available!' % symbol
+            )
+
+        year = datetime.datetime.today().year
+        
+        url = 'https://www.cryptodatadownload.com/cdd/'\
+            'gemini_%sUSD_%s_1min.csv' % ( symbol, str(year) )
+
+        resp = requests.get( url, verify = False )
+
+        if resp.ok:
+            
+            df = pd.read_csv(
+                io.StringIO( resp.content.decode( 'utf-8' ) ), skiprows = 1
+            )
+            df = df.rename( columns = { 'Close': symbol } )
+            df = df[ [ 'Date', symbol ] ]
+            
+            df[ 'Date' ] = df.Date.astype( 'datetime64[ns]' )
+            
             if outDf is None:
                 outDf = df
             else:
@@ -1685,7 +1750,4 @@ def getCryptoData( symbols ):
         outDf = outDf.sort_values( 'Date' )                
         outDf = outDf.reset_index( drop = True )
 
-    if currZone is not None:
-        os.environ[ 'TZ' ] = currZone
-        
     return outDf

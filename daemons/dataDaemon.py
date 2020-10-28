@@ -22,6 +22,7 @@ from dat.assets import ETF_HASH, SUB_ETF_HASH, NEW_ETF_HASH, POP_ETF_HASH
 from dat.assets import OPTION_ETFS, PI_ETFS
 from dat.assets import INDEXES, PI_INDEXES
 from dat.assets import FUTURES
+from dat.assets import CRYPTOS
 
 GOOGLE_STORAGE_JSON = '/home/babak/opti-trade/daemons/keyfiles/google_storage.json'
 GOOGLE_BUCKET = 'prt-storage'
@@ -46,7 +47,10 @@ NUM_DAYS      = 5
 SOURCE        = 'yahoo'
 DAT_DIR       = '/var/data'
 TIME_ZONE     = 'America/New_York'
-SCHED_TIME    = '01:00'
+
+MARKET_SCHED_TIMES = [ '01:00' ]
+CRYPTO_SCHED_TIMES = [ '02:00', '14:00' ]
+
 LOG_FILE_NAME = '/var/log/data_collector.log'
 VERBOSE       = 1
 
@@ -74,11 +78,11 @@ class DataCollector( Daemon ):
                     stocks      = STOCKS,
                     futures     = FUTURES,
                     indexes     = INDEXES,
+                    cryptos     = CRYPTOS,
                     nDays       = NUM_DAYS,
                     datDir      = DAT_DIR,
                     source      = SOURCE,
                     timeZone    = TIME_ZONE,                    
-                    schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
                     verbose     = VERBOSE         ):
 
@@ -88,11 +92,11 @@ class DataCollector( Daemon ):
         self.stocks      = stocks
         self.futures     = futures
         self.indexes     = indexes
+        self.cryptos     = cryptos
         self.nDays       = nDays
         self.datDir      = datDir
         self.source      = source
         self.timeZone    = timeZone
-        self.schedTime   = schedTime
         self.logFileName = logFileName        
         self.verbose     = verbose
 
@@ -261,15 +265,67 @@ class DataCollector( Daemon ):
             except Exception as e:
                 self.logger.warning( e )
 
-        self.logger.critical( 'Done with getting data for %d symbols...',
-                              len( symbols ) )
+        self.logger.critical(
+            'Done with getting data for %d market symbols...',
+            len( symbols )
+        )
             
         return True
+
+    def updateCryptoData( self ):
+
+        for symbol in self.cryptos:
+
+            filePath = os.path.join( self.datDir, symbol + '.pkl' )
+                
+            oldDf = None
+            if os.path.exists( filePath ):
+                oldDf = pd.read_pickle( filePath )
+                oldDf[ 'Date' ] = oldDf.Date.apply( pd.to_datetime )
+            
+            newDf = utl.getCryptoCompareData( [ symbol ] )
+
+            if newDf is None or newDf.shape[0] == 0:
+                self.logger.error( 'No new data found for symbol %s!',
+                                   symbol )
+                continue
+                
+            if oldDf is not None:
+                maxDt = oldDf.Date.max()
+                newDf = newDf[ newDf.Date > maxDt ]
+                newDf = pd.concat( [ oldDf, newDf ] )
+
+            newDf = newDf.sort_values( 'Date' )
+
+            self.logger.info( 'Saving data to %s...', filePath )
+            
+            newDf.to_pickle( filePath, protocol = 4 )
+
+            self.reportSplit( newDf, symbol )
+
+            try:
+                self.backupData( filePath )
+            except Exception as e:
+                self.logger.warning( e )
+
+        self.logger.critical(
+            'Done with getting data for %d crypto symbols...',
+            len( self.cryptos )
+        )
+            
+        return True    
 
     def process( self ):
 
         try:
             self.updateData()
+        except Exception as e:
+            self.logger.error( e )
+
+    def processCrypto( self ):
+
+        try:
+            self.updateCryptoData()
         except Exception as e:
             self.logger.error( e )
             
@@ -279,8 +335,16 @@ class DataCollector( Daemon ):
 
         if not SCHED_FLAG:
             self.process()
+            self.processCrypto()
         else:
-            schedule.every().day.at( self.schedTime ).do( self.process )
+            for schedTime in MARKET_SCHED_TIMES:
+                schedule.every().day.at( schedTime ).do(
+                    self.process
+                )
+            for schedTime in CRYPTO_SCHED_TIMES:
+                schedule.every().day.at( schedTime ).do(
+                    self.processCrypto
+                )            
             
             while True: 
                 schedule.run_pending() 
