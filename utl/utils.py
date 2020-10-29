@@ -1709,7 +1709,7 @@ def getCryptoCompareData( symbols, maxTries = 10, logger = None ):
 # getGeminiData(): Get Gemini crypto data by minute
 # ***********************************************************************
 
-def getGeminiData( symbols ):
+def getGeminiData( symbols, year = None ):
     
     outDf = None
 
@@ -1720,7 +1720,8 @@ def getGeminiData( symbols ):
                 'Skipping symbol %s as it is not available!' % symbol
             )
 
-        year = datetime.datetime.today().year
+        if year is None:
+            year = datetime.datetime.today().year
         
         url = 'https://www.cryptodatadownload.com/cdd/'\
             'gemini_%sUSD_%s_1min.csv' % ( symbol, str(year) )
