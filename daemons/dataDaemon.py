@@ -283,7 +283,10 @@ class DataCollector( Daemon ):
                 oldDf = pd.read_pickle( filePath )
                 oldDf[ 'Date' ] = oldDf.Date.apply( pd.to_datetime )
             
-            newDf = utl.getCryptoCompareData( [ symbol ] )
+            newDf = utl.getCryptoCompareData(
+                [ symbol ],
+                logger  = self.logger
+            )
 
             if newDf is None or newDf.shape[0] == 0:
                 self.logger.error( 'No new data found for symbol %s!',
