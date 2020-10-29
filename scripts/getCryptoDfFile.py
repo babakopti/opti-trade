@@ -46,7 +46,7 @@ cryptoDf = utl.mergeSymbols( symbols = cryptos,
                              minDate = minDate,
                              logger  = None   )
 
-outDf = indexDf.merge( cryptoDf, how = 'outer', on = 'Date' )
+outDf = cryptoDf.merge( indexDf, how = 'left', on = 'Date' )
 outDf = outDf.interpolate( method = 'linear' )
 outDf = outDf.dropna()
 outDf = outDf.sort_values( 'Date' )
