@@ -10,6 +10,7 @@ google-cloud-storage
 ta-lib
 yfinance
 tdameritrade
+robin_stocks
 selenium
 pandas_market_calendars
 seaborn
