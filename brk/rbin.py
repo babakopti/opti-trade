@@ -17,33 +17,26 @@ from utl.utils import getLogger
 # Some parameters
 # ***********************************************************************
 
-MAX_SLIP = 2.0
-TOL_SLIP = 0.0025
-
 MAX_RETRIES = 5
 
 ORDER_WAIT_TIME = 10
 RETRY_WAIT_TIME = 20
 
 # ***********************************************************************
-# Class Tdam: A class to trade with TD Ameritrade
+# Class Tdam: A class to trade cryptos with Robinhood
 # ***********************************************************************
 
 class Rbin:
 
     def __init__(   self,
-                    userName    = None,
-                    PassKey     = None,
-                    maxSlip      = MAX_SLIP,
-                    tolSlip      = TOL_SLIP,                    
+                    userName     = None,
+                    passKey      = None,
                     logFileName  = None,                    
                     verbose      = 1          ):
 
-        self.maxSlip     = maxSlip
-        self.tolSlip     = tolSlip        
         self.logFileName = logFileName
         self.verbose     = verbose
-        self.logger      = getLogger( logFileName, verbose, 'tdam' )
+        self.logger      = getLogger( logFileName, verbose, 'Rbin' )
         
         for itr in range( MAX_RETRIES ):
             
@@ -86,7 +79,7 @@ class Rbin:
         else:
             price = quoteHash[ 'mark_price' ]
 
-        return price
+        return float(price)
         
     def getCashBalance( self ):
 
@@ -95,7 +88,7 @@ class Rbin:
         cashBal = None
         
         if tmpHash is not None and 'cash' in tmpHash:
-            cashBal = tmphash[ 'cash' ]
+            cashBal = float( tmpHash[ 'cash' ] )
         else:
             self.logger.error( 'Could not get cash balance!' )
             
@@ -106,21 +99,38 @@ class Rbin:
         totVal = self.getCashBalance()
 
         tmpHash = rs.account.build_holdings()
-
+        
         for symbol in tmpHash:
-            price   = tmpHash[ symbol ][ 'price' ]
-            qty     = tmpHash[ symbol ][ 'quantity' ]
+            price   = float( tmpHash[ symbol ][ 'price' ] )
+            qty     = float( tmpHash[ symbol ][ 'quantity' ] )
             totVal += price * qty
 
+        tmpList = rs.crypto.get_crypto_positions()
+
+        for item in tmpList:
+            symbol  = item['currency']['code']
+            price   = self.getQuote( symbol, 'mark' )
+            qty     = float( item[ 'quantity' ] )
+            totVal += price * qty
+            
         return totVal
 
     def getPortfolio( self ):
 
-        tmpHash = rs.account.build_holdings()
-        
         prtHash = {}
+        
+        tmpHash = rs.account.build_holdings()
+
         for symbol in tmpHash:
             prtHash[ symbol ] = tmpHash[ symbol ][ 'quantity' ]
+
+        tmpList = rs.crypto.get_crypto_positions()
+
+        for item in tmpList:
+            symbol  = item['currency']['code']
+            qty     = float( item[ 'quantity' ] )
+
+            prtHash[ symbol ] = qty
             
         return prtHash
     
@@ -147,6 +157,7 @@ class Rbin:
                             symbol,
                             abs( quantity )
                         )
+                    break
                 except Exception as e:
                     if itr == MAX_RETRIES - 1:
                         self.logging.error( 'Failed to trade %s!', symbol )
@@ -170,19 +181,6 @@ class Rbin:
         self.logger.info( 'Implementing the following portfolio weights: \n %s',
                           tmpStr )
         
-        # Normalize weight hash
-        
-        totWt = 0.0
-        for symbol in wtHash:
-            totWt += abs( wtHash[ symbol ] )
-
-        totWtInv = totWt
-        if totWtInv > 0:
-            totWtInv = 1.0 / totWtInv
-            
-        for symbol in wtHash:
-            wtHash[ symbol ] = wtHash[ symbol ] * totWtInv
-
         # Get total value
         
         totValAll = self.getTotalValue()
@@ -198,7 +196,8 @@ class Rbin:
         # Get current portfolio
         
         currPrtHash  = self.getPortfolio()
-
+        currPrtHash  = defaultdict( float, currPrtHash )
+        
         # Initialize order hash
         
         orderQtyHash = defaultdict( float )        
@@ -221,7 +220,8 @@ class Rbin:
             assert targWt >= 0, 'Only non-negative weights are supported at this time!'
 
             currQty = currPrtHash[ symbol ]
-            currWt  = currQty / totVal
+            price   = self.getQuote( symbol, 'mark' )
+            currWt  = currQty * price / totVal
 
             if targWt > currWt:
                 price = self.getQuote( symbol, 'ask' )
@@ -231,10 +231,18 @@ class Rbin:
                 continue
             
             assert price > 0, 'Price of %s should be positive' % symbol
-            
-            ordQty = ( targWt - currWt ) * totVal / price
 
-            orderQtyHash[ symbol ] += orderQty
+            ordQty = ( targWt - currWt ) * totVal / price
+            ordQty = round( ordQty, 4 )
+            orderQtyHash[ symbol ] += ordQty
+
+        # Make sure no short sell is done
+
+        for symbol in orderQtyHash:
+            currQty = currPrtHash[ symbol ]
+            ordQty  = orderQtyHash[ symbol ] 
+            if  ordQty < 0 and currQty > 0:
+                orderQtyHash[ symbol ] = -min( currQty, abs( ordQty ) )
                 
         # Implement the orders
         
