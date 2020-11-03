@@ -21,56 +21,28 @@ import utl.utils as utl
 actFlag = False
 
 prtFiles = [
-    'portfolios/crypto_24_hours_no_short_3AM.json',
-    'portfolios/crypto_24_hours_no_short_8AM.json',    
-    'portfolios/crypto_24_hours_no_short_11AM.json',
-    'portfolios/crypto_24_hours_no_short_2PM.json' ,
-    'portfolios/crypto_24_hours_no_short_5:30PM.json' ,
-    'portfolios/crypto_24_hours_no_short_6PM.json' ,
-    'portfolios/crypto_24_hours_no_short_6:30PM.json' ,
-    'portfolios/crypto_24_hours_no_short_7PM.json' ,    
-    'portfolios/crypto_24_hours_no_short_7:30PM.json',
-    'portfolios/crypto_24_hours_no_short_8PM.json',
-    'portfolios/crypto_24_hours_no_short_8:30PM.json' ,           
-    'portfolios/crypto_24_hours_no_short_9PM.json' ,
-    'portfolios/crypto_24_hours_no_short_9:15PM.json' ,               
-    'portfolios/crypto_24_hours_no_short_9:30PM.json' ,
-    'portfolios/crypto_24_hours_no_short_9:45PM.json' ,           
-    'portfolios/crypto_24_hours_no_short_10PM.json',
-    'portfolios/crypto_24_hours_no_short_10:30PM.json',    
-    'portfolios/crypto_24_hours_no_short_11PM.json',
-    'portfolios/crypto_24_hours_no_short_11:30PM.json',    
-    'portfolios/crypto_24_hours_no_short_12AM.json',
+    'portfolios/crypto_9PM_no_short.json',
+    'portfolios/crypto_9PM_ptc_no_short.json',
+    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_2.json',
+    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_3.json',
+    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_4.json',
+    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_5.json',    
 ]
 
 legends = [
-    '3 AM',
-    '8 AM',    
-    '11 AM',
-    '2 PM',
-    '5:30 PM',
-    '6 PM',
-    '6:30 PM',
-    '7 PM',
-    '7:30 PM',    
-    '8 PM',
-    '8:30 PM',        
     '9 PM',
-    '9:15 PM',
-    '9:30 PM',
-    '9:45 PM',
-    '10 PM',
-    '10:30 PM',
-    '11 PM',
-    '11:30',
-    'Mid night',
+    '9 PM; PTC',
+    '9 PM; PTC + gain preserve 1.0, 2',
+    '9 PM; PTC + gain preserve 1.0, 3',
+    '9 PM; PTC + gain preserve 1.0, 4',
+    '9 PM; PTC + gain preserve 1.0, 5',    
 ]
 
 dfFile      = 'data/dfFile_crypto.pkl'
 initTotVal  = 20000.0
 
 actFile     = None
-outFile     = 'analysis-results/compare_crypto_prts_Jul_Oct_2020.csv'
+outFile     = 'analysis-results/compare_crypto.csv'
 
 # ***********************************************************************
 # Get actual data id applicable
@@ -101,7 +73,7 @@ for prtFile in prtFiles:
 
 minDate = max( minDates ) 
 maxDate = min( maxDates ) 
-minDate = '2020-07-01'
+#minDate = '2020-05-01'
 #maxDate = '2020-07-31'
 
 if actFlag:

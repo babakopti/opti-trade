@@ -27,9 +27,9 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/crypto_24_hours_no_short_9PM.json'
-bkBegDate   = pd.to_datetime( '2020-01-01 21:00:00' )
-bkEndDate   = pd.to_datetime( '2020-10-27 21:00:00' )
+prtFile     = 'portfolios/crypto_9PM_raw.json'
+bkBegDate   = pd.to_datetime( '2020-05-01 21:00:00' )
+bkEndDate   = pd.to_datetime( '2020-10-28 21:00:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 24 * 60
@@ -41,6 +41,7 @@ maxModTime  = '23:59:00'
 # ***********************************************************************
 
 modFlag  = True
+noShortFlag = False
 numCores = 4
 
 dfFile   = 'data/dfFile_crypto.pkl'
@@ -135,17 +136,17 @@ def buildModPrt( snapDate ):
 
     tmpHash = mfdPrt.getPortfolio()
 
-    # No short sells
-    for symbol in tmpHash:
-        tmpHash[ symbol ] = max( 0.0, tmpHash[ symbol ] )
+    if noShortFlag:
+        for symbol in tmpHash:
+            tmpHash[ symbol ] = max( 0.0, tmpHash[ symbol ] )
         
-    sumAbs = sum( [abs(x) for x in tmpHash.values()] )
-    sumAbsInv = 1.0
-    if sumAbs > 0:
-        sumAbsInv = 1.0 / sumAbs
+        sumAbs = sum( [abs(x) for x in tmpHash.values()] )
+        sumAbsInv = 1.0
+        if sumAbs > 0:
+            sumAbsInv = 1.0 / sumAbs
 
-    for symbol in tmpHash:
-        tmpHash[ symbol ] = sumAbsInv * tmpHash[ symbol ]
+        for symbol in tmpHash:
+            tmpHash[ symbol ] = sumAbsInv * tmpHash[ symbol ]
     
     wtHash[ dateKey ] = tmpHash
     
