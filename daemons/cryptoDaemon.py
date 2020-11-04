@@ -214,7 +214,11 @@ class CryptoPrtBuilder( Daemon ):
                 self.logger.error( msgStr )
 
             return True
-                
+        else:
+            self.logger.info(
+                'No gain preservation detected! Continue with trading!'
+            )
+
         maxOosDt = snapDate
         maxTrnDt = maxOosDt - datetime.timedelta( days = self.nOosDays )
         minTrnDt = maxTrnDt - datetime.timedelta( days = self.nTrnDays )
