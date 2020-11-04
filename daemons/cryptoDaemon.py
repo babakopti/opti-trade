@@ -498,10 +498,10 @@ class CryptoPrtBuilder( Daemon ):
         
         newRetDf = pd.DataFrame(
             {
-                'Date': snapDate,
-                'Balance': currVal,
-                'Return': retVal,
-                'Source': 'Actual'
+                'Date': [ snapDate, ],
+                'Balance': [ currVal ],
+                'Return': [ retVal ],
+                'Source': [ 'Actual' ],
             }
         )
                 
@@ -521,11 +521,11 @@ class CryptoPrtBuilder( Daemon ):
         elif retDf.shape[0] < GNP_MIN_ROWS:
             doGnpFlag = False
         else:
-            retMean = df.Return.mean()
-            retStd  = df.Return.std()
+            retMean = retDf.Return.mean()
+            retStd  = retDf.Return.std()
             tmpVal  = retMean + GNP_STD_COEF * retStd
             
-            if retVal > tmp_val:
+            if retVal > tmpVal:
                 doGnpFlag = True
                 self.gnpNextDate = snapDate + \
                     datetime.timedelta( days = GNP_DAYS_OFF )            
