@@ -45,7 +45,7 @@ class Rbin:
                 break
             except Exception as e:
                 if itr == MAX_RETRIES - 1:
-                    self.logging.error( 'Failed to authenticate!' )
+                    self.logger.error( 'Failed to authenticate!' )
                 else:
                     self.logger.warning( '%s: Retrying in %d seconds!',
                                          e,
@@ -160,7 +160,7 @@ class Rbin:
                     break
                 except Exception as e:
                     if itr == MAX_RETRIES - 1:
-                        self.logging.error( 'Failed to trade %s!', symbol )
+                        self.logger.error( 'Failed to trade %s!', symbol )
                     else:
                         self.logger.warning( '%s: Retrying in %d seconds!',
                                              e,

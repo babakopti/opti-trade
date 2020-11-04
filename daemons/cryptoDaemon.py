@@ -466,7 +466,7 @@ class CryptoPrtBuilder( Daemon ):
         df = df[ df.Date >= prevDate ]
         
         rbin = Rbin(
-            os.getenv( "RBIN_USER_NAME" ),
+            os.getenv( "RBIN_USERNAME" ),
             os.getenv( "RBIN_PASSKEY" )
         )
         
@@ -754,7 +754,7 @@ class CryptoPrtBuilder( Daemon ):
             
             try:
                 rbin = Rbin(
-                    os.getenv( "RBIN_USER_NAME" ),
+                    os.getenv( "RBIN_USERNAME" ),
                     os.getenv( "RBIN_PASSKEY" )
                 )
                 self.logger.info( 'Connected to Robinhood!' )
