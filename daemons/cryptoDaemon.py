@@ -44,10 +44,17 @@ MAX_OPT_ITRS  = 500
 OPT_TOL       = 1.0e-5
 REG_COEF      = 5.0e-3                    
 FACTOR        = 4.0e-05
+
 PTC_FLAG      = True
 PTC_MIN_VIX   = None
 PTC_MAX_VIX   = 60.0
+
 GNP_FLAG      = True
+GNP_STD_COEF  = 1.0
+GNP_DAYS_OFF  = 4
+GNP_MIN_ROWS  = 14
+RET_FILE      = '/var/crypto_returns/crypto_return_file.csv'
+
 MOD_HEAD      = 'crypto_model_'
 PRT_HEAD      = 'crypto_weights_'
 PTC_HEAD      = 'ptc_'
@@ -138,6 +145,7 @@ class CryptoPrtBuilder( Daemon ):
         self.logFileName = logFileName        
         self.verbose     = verbose
         self.velNames    = assets + indexes
+        self.gnpNextDate = None
         
         assert set( assets ).issubset( set( self.velNames ) ), \
             'Assets should be a subset of velNames!'
@@ -167,7 +175,7 @@ class CryptoPrtBuilder( Daemon ):
         self.dfFile = None        
 
         self.logger.info( 'Daemon is initialized ...' )            
-            
+
     def build( self ):
 
         os.environ[ 'TZ' ] = TIME_ZONE
@@ -183,6 +191,30 @@ class CryptoPrtBuilder( Daemon ):
         except Exception as e:
             self.logger.error( e )
 
+        doGnpFlag = False
+        try:
+            doGnpFlag = self.doGainPreserve( snapDate )
+        except Exception as e:
+            self.logger.error( e )
+
+        if doGnpFlag:
+            
+            self.logger.critical(
+                'Gain preservation case! Trading abstinence!'
+            )
+            
+            wtHash = {}
+            for asset in self.assets:
+                wtHash[ asset ] = 0.0
+                
+            try:
+                self.trade( wtHash )
+            except Exception as e:
+                msgStr = e + '; Trade was not successful!'
+                self.logger.error( msgStr )
+
+            return True
+                
         maxOosDt = snapDate
         maxTrnDt = maxOosDt - datetime.timedelta( days = self.nOosDays )
         minTrnDt = maxTrnDt - datetime.timedelta( days = self.nTrnDays )
@@ -304,7 +336,7 @@ class CryptoPrtBuilder( Daemon ):
             self.logger.error(e)
             
         return True
-
+        
     def setDfFile( self, snapDate ):
 
         self.logger.info( 'Getting data...' )
@@ -319,7 +351,7 @@ class CryptoPrtBuilder( Daemon ):
                                     datDir  = self.baseDatDir,
                                     fileExt = 'pkl',
                                     minDate = minDate,
-                                    logger  = None   )
+                                    logger  = self.logger   )
 
         indexDf.Date = indexDf.Date.dt.tz_localize( 'America/New_York' )
         indexDf.Date = indexDf.Date.dt.tz_convert( 'UTC' )
@@ -329,7 +361,7 @@ class CryptoPrtBuilder( Daemon ):
                                   datDir  = self.baseDatDir,
                                   fileExt = 'pkl',
                                   minDate = minDate,
-                                  logger  = None     )
+                                  logger  = self.logger     )
 
         oldDf = oldDf.merge( indexDf, how = 'left', on = 'Date' )
         oldDf = oldDf.interpolate( method = 'linear' )
@@ -418,6 +450,90 @@ class CryptoPrtBuilder( Daemon ):
 
         self.logger.info( 'The new data file looks ok!' )
 
+    def doGainPreserve( self, snapDate ):
+        
+        if not GNP_FLAG:
+            return False
+
+        self.logger.info( 'Evaluate return from previous trade...' )
+
+        prevDate = snapDate - \
+            datetime.timedelta( minutes = self.nPrdMinutes )
+
+        assert self.dfFile is not None, 'The data file is not set yet!'
+        
+        df = pd.read_pickle( self.dfFile )
+        df = df[ df.Date >= prevDate ]
+        
+        rbin = Rbin(
+            os.getenv( "RBIN_USER_NAME" ),
+            os.getenv( "RBIN_PASSKEY" )
+        )
+        
+        qtyHash = rbin.getPortfolio()
+
+        prevVal = 0.0        
+        currVal = 0.0
+        for symbol in qtyHash:
+            qty = float( qtyHash[ symbol ] )
+            
+            prevPrice = list( df[ symbol ] )[0]            
+            currPrice = list( df[ symbol ] )[-1]
+            prevVal  += qty * prevPrice
+            currVal  += qty * currPrice            
+
+        assert prevVal >= 0, 'Previous value cannot be negative!'
+        assert currVal >= 0, 'Current value cannot be negative!'
+        
+        fct = prevVal
+        if fct != 0:
+            fct = 1.0 / fct
+
+        retVal = fct * ( currVal - prevVal )
+
+        self.logger.info(
+            'Return compared to previous trade is %0.2f %%...',
+            100.0 * retVal
+        )
+        
+        newRetDf = pd.DataFrame(
+            {
+                'Date': snapDate,
+                'Balance': currVal,
+                'Return': retVal,
+                'Source': 'Actual'
+            }
+        )
+                
+        if os.path.exists( RET_FILE ):
+            retDf = pd.read_csv( RET_FILE )
+            retDf = pd.concat( [ retDf, newRetDf ] ) 
+        else:
+            retDf = newRetDf
+
+        retDf.to_csv( RET_FILE, index = False )
+
+        doGnpFlag = False
+        
+        if self.gnpNextDate is not None and \
+           snapDate < self.gnpNextDate:
+            doGnpFlag = True
+        elif retDf.shape[0] < GNP_MIN_ROWS:
+            doGnpFlag = False
+        else:
+            retMean = df.Return.mean()
+            retStd  = df.Return.std()
+            tmpVal  = retMean + GNP_STD_COEF * retStd
+            
+            if retVal > tmp_val:
+                doGnpFlag = True
+                self.gnpNextDate = snapDate + \
+                    datetime.timedelta( days = GNP_DAYS_OFF )            
+            else:
+                doGnpFlag = False
+
+        return doGnpFlag
+    
     def saveMod( self, mfdMod, modFile ):
 
         try:
@@ -645,7 +761,7 @@ class CryptoPrtBuilder( Daemon ):
             except Exception as e:
                 self.logger.error( e )
                 
-            self.logger.info( 'Starting to trade on TD Robinhood...' )
+            self.logger.info( 'Starting to trade on Robinhood...' )
 
             try:
                 rbin.adjWeights( wtHash = wtHash )
