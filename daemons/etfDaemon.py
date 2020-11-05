@@ -515,7 +515,7 @@ class MfdPrtBuilder( Daemon ):
         retVal = fct * ( currVal - prevVal )
 
         self.logger.info(
-            'Return compared to previous trade is %0.2f %%...',
+            'Return compared to previous trade is %0.6f %%...',
             100.0 * retVal
         )
         
