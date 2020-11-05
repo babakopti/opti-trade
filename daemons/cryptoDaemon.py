@@ -51,7 +51,7 @@ PTC_MAX_VIX   = 60.0
 
 GNP_FLAG      = True
 GNP_STD_COEF  = 1.0
-GNP_DAYS_OFF  = 4
+GNP_PERS_OFF  = 4
 GNP_MIN_ROWS  = 14
 RET_FILE      = '/var/crypto_returns/crypto_return_file.csv'
 
@@ -532,7 +532,9 @@ class CryptoPrtBuilder( Daemon ):
             if retVal > tmpVal:
                 doGnpFlag = True
                 self.gnpNextDate = snapDate + \
-                    datetime.timedelta( days = GNP_DAYS_OFF )            
+                    datetime.timedelta(
+                        minutes = GNP_PERS_OFF * self.nPrdMinutes
+                    )            
             else:
                 doGnpFlag = False
 

@@ -57,6 +57,11 @@ FACTOR        = 4.0e-05
 PTC_FLAG      = True
 PTC_MIN_VIX   = None
 PTC_MAX_VIX   = 60.0
+GNP_FLAG      = True
+GNP_STD_COEF  = 1.5
+GNP_PERS_OFF  = 4
+GNP_MIN_ROWS  = 14
+RET_FILE      = '/var/mfd_returns/mfd_return_file.csv'
 MOD_HEAD      = 'mfd_model_'
 PRT_HEAD      = 'prt_weights_'
 PTC_HEAD      = 'ptc_'
@@ -169,6 +174,7 @@ class MfdPrtBuilder( Daemon ):
         self.logFileName = logFileName        
         self.verbose     = verbose
         self.velNames    = etfs + stocks + futures + indexes
+        self.gnpNextDate = None
         
         assert set( assets ).issubset( set( self.velNames ) ), \
             'Assets should be a subset of velNames!'
@@ -232,6 +238,34 @@ class MfdPrtBuilder( Daemon ):
         except Exception as e:
             self.logger.error( e )
 
+        doGnpFlag = False
+        try:
+            doGnpFlag = self.doGainPreserve( snapDate )
+        except Exception as e:
+            self.logger.error( e )
+
+        if doGnpFlag:
+            
+            self.logger.critical(
+                'Gain preservation case! Trading abstinence!'
+            )
+            
+            wtHash = {}
+            for asset in self.assets:
+                wtHash[ asset ] = 0.0
+                
+            try:
+                self.trade( wtHash )
+            except Exception as e:
+                msgStr = e + '; Trade was not successful!'
+                self.logger.error( msgStr )
+
+            return True
+        else:
+            self.logger.info(
+                'No gain preservation detected! Continue with trading!'
+            )
+            
         maxOosDt = snapDate
         maxTrnDt = maxOosDt - datetime.timedelta( days = self.nOosDays )
         minTrnDt = maxTrnDt - datetime.timedelta( days = self.nTrnDays )
@@ -442,6 +476,89 @@ class MfdPrtBuilder( Daemon ):
 
         self.logger.info( 'The new data file looks ok!' )
 
+    def doGainPreserve( self, snapDate ):
+        
+        if not GNP_FLAG:
+            return False
+
+        self.logger.info( 'Evaluate return from previous trade...' )
+
+        prevDate = snapDate - \
+            datetime.timedelta( minutes = self.nPrdMinutes )
+
+        assert self.dfFile is not None, 'The data file is not set yet!'
+        
+        df = pd.read_pickle( self.dfFile )
+        df = df[ df.Date >= prevDate ]
+
+        td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+        
+        qtyHash = td.getPortfolio()
+
+        prevVal = 0.0        
+        currVal = 0.0
+        for symbol in qtyHash:
+            qty = float( qtyHash[ symbol ] )
+            
+            prevPrice = list( df[ symbol ] )[0]            
+            currPrice = list( df[ symbol ] )[-1]
+            prevVal  += qty * prevPrice
+            currVal  += qty * currPrice            
+
+        assert prevVal >= 0, 'Previous value cannot be negative!'
+        assert currVal >= 0, 'Current value cannot be negative!'
+        
+        fct = prevVal
+        if fct != 0:
+            fct = 1.0 / fct
+
+        retVal = fct * ( currVal - prevVal )
+
+        self.logger.info(
+            'Return compared to previous trade is %0.2f %%...',
+            100.0 * retVal
+        )
+        
+        newRetDf = pd.DataFrame(
+            {
+                'Date': [ snapDate, ],
+                'Balance': [ currVal ],
+                'Return': [ retVal ],
+                'Source': [ 'Actual' ],
+            }
+        )
+                
+        if os.path.exists( RET_FILE ):
+            retDf = pd.read_csv( RET_FILE )
+            retDf = pd.concat( [ retDf, newRetDf ] ) 
+        else:
+            retDf = newRetDf
+
+        retDf.to_csv( RET_FILE, index = False )
+
+        doGnpFlag = False
+        
+        if self.gnpNextDate is not None and \
+           snapDate < self.gnpNextDate:
+            doGnpFlag = True
+        elif retDf.shape[0] < GNP_MIN_ROWS:
+            doGnpFlag = False
+        else:
+            retMean = retDf.Return.mean()
+            retStd  = retDf.Return.std()
+            tmpVal  = retMean + GNP_STD_COEF * retStd
+            
+            if retVal > tmpVal:
+                doGnpFlag = True
+                self.gnpNextDate = snapDate + \
+                    datetime.timedelta(
+                        minutes = GNP_PERS_OFF * self.nPrdMinutes
+                    )            
+            else:
+                doGnpFlag = False
+
+        return doGnpFlag
+    
     def saveMod( self, mfdMod, modFile ):
 
         try:
