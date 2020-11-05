@@ -550,15 +550,31 @@ class MfdPrtBuilder( Daemon ):
             
             if retVal > tmpVal:
                 doGnpFlag = True
-                self.gnpNextDate = snapDate + \
-                    datetime.timedelta(
-                        minutes = GNP_PERS_OFF * self.nPrdMinutes
-                    )            
+                
+                nextDate = snapDate
+                for j in range( GNP_PERS_OFF ):
+                    nextDate = self.getNextSnapDate( nextDate )
+                    
+                self.gnpNextDate = nextDate
             else:
                 doGnpFlag = False
 
         return doGnpFlag
-    
+
+    def getNextSnapDate( self, currDate ):
+
+        nextDate = currDate
+        
+        while True:
+            if nextDate.isoweekday() not in [ 6, 7 ] and \
+               nextDate.strftime( '%H:%M:%S' ) >= MIN_TRADE_TIME and \
+               nextDate.strftime( '%H:%M:%S' ) <= MAX_TRADE_TIME:
+                break
+            else:
+                nextDate += datetime.timedelta( minutes = self.nPrdMinutes )
+
+        return nextDate
+        
     def saveMod( self, mfdMod, modFile ):
 
         try:
