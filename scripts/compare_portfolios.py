@@ -23,26 +23,24 @@ from dat.assets import ETF_HASH
 actFlag = True
 
 prtFiles = [
-    'portfolios/nTrnDays_360.json',
-    'portfolios/nTrnDays_360_ptc.json',
     'portfolios/nTrnDays_360_two_hours.json',
-    'portfolios/nTrnDays_360_two_hours_ptc.json',    
-    'portfolios/actual_wt_hash_oct9_2020.json',    
+    'portfolios/nTrnDays_360_two_hours_ptc.json',
+    'portfolios/nTrnDays_360_two_hours_ptc_std_coef_1.5_pers_off_4.json',
+    'portfolios/actual_wt_hash_Nov6_2020.json',    
 ]
 
 legends = [
-    'every 3 hours',
-    'every 3 hours PTC',
     'every 2 hour',
     'every 2 hour PTC',
+    'PTC + GNP 1.5, 4',
     'Actual from portfolio',    
 ]
 
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
-actFile     = 'data/td_ametritade_balances_Oct9.csv'
-outFile     = 'analysis-results/compare_nTrnDays.csv'
+actFile     = 'data/td_ametritade_balances_Nov6.csv'
+outFile     = 'analysis-results/compare_nTrnDays_GNP.csv'
 
 ETF_HASH[ 'UJB' ] = 'SJB'
 
@@ -75,7 +73,7 @@ for prtFile in prtFiles:
 
 minDate = max( minDates ) 
 maxDate = min( maxDates ) 
-#minDate = '2020-09-09'
+minDate = '2020-10-10'
 
 if actFlag:
     actDf = actDf[ ( actDf.Date >= minDate ) & ( actDf.Date <= maxDate ) ]
@@ -103,7 +101,7 @@ for prtFile in prtFiles:
     stdList.append( retDf.Return.std() ) 
     ratioList.append( retDf.Return.mean() / retDf.Return.std() )
 
-    plt.plot( retDf.Date, retDf.EndVal )
+    plt.plot( retDf.Date, retDf.BegVal )
 
 if actFlag:
     plt.plot( actDf.Date, actDf[ 'Account value' ] )

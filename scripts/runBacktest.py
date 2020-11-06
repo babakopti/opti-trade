@@ -28,9 +28,9 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/every_two_hours_partial.json'
-bkBegDate   = pd.to_datetime( '2020-07-01 09:30:00' )
-bkEndDate   = pd.to_datetime( '2020-09-08 15:30:00' )
+prtFile     = 'portfolios/new.json'
+bkBegDate   = pd.to_datetime( '2020-10-10 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-11-04 15:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 2 * 60

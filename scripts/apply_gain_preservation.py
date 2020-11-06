@@ -18,14 +18,14 @@ import utl.utils as utl
 # Main input params
 # ***********************************************************************
 
-std_coef   = 1.0
-days_off   = 5
+std_coef   = 1.5
+pers_off   = 4
 
-dfFile      = 'data/dfFile_crypto.pkl'
+dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
-prtFile    = 'portfolios/crypto_9PM_ptc_no_short.json'
-outPrtFile = 'portfolios/crypto_9PM_ptc_std_coef_%s_days_off_%s.json' \
-    % (str(std_coef), str(days_off))
+prtFile    = 'portfolios/nTrnDays_360_two_hours_ptc.json'
+outPrtFile = 'portfolios/nTrnDays_360_two_hours_ptc_std_coef_%s_pers_off_%s.json' \
+    % (str(std_coef), str(pers_off))
 minDate    = None
 maxDate    = None
 
@@ -64,11 +64,16 @@ for itr in range(1, len(dates)):
         newWtsHash[ dates[itr] ] = {}
         continue
     
-    ret = list(retDf[ retDf.Date == dates[itr-1] ].Return)[0]
+    tmp_df = retDf[ retDf.Date == dates[itr-1] ]
+    if tmp_df.shape[0] > 0:
+        ret = list(tmp_df.Return)[0]
+    else:
+        ret = 0.0
+        
     tmp_val = ret_mean + std_coef * ret_std
     
     if ret > tmp_val:
-        nextDate = dates[itr + days_off]
+        nextDate = dates[itr + pers_off]
         print("Skipping %s" % dates[itr] )
         newWtsHash[ dates[itr] ] = {}
     else:        
