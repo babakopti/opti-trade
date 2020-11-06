@@ -494,6 +494,8 @@ class MfdPrtBuilder( Daemon ):
         td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
         
         qtyHash = td.getPortfolio()
+        totVal  = td.getTotalValue()
+        totCash = td.getCashBalance()
 
         prevVal = 0.0        
         currVal = 0.0
@@ -522,7 +524,9 @@ class MfdPrtBuilder( Daemon ):
         newRetDf = pd.DataFrame(
             {
                 'Date': [ snapDate, ],
-                'Balance': [ currVal ],
+                'Asset Balance': [ currVal ],                
+                'Tot Account Val': [ totVal ],
+                'Tot Account Cash': [ totCash ],
                 'Return': [ retVal ],
                 'Source': [ 'Actual' ],
             }

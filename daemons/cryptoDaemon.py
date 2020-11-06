@@ -475,7 +475,9 @@ class CryptoPrtBuilder( Daemon ):
         )
         
         qtyHash = rbin.getPortfolio()
-
+        totVal  = rbin.getTotalValue()
+        totCash = rbin.getCashBalance()
+        
         prevVal = 0.0        
         currVal = 0.0
         for symbol in qtyHash:
@@ -503,8 +505,10 @@ class CryptoPrtBuilder( Daemon ):
         newRetDf = pd.DataFrame(
             {
                 'Date': [ snapDate, ],
-                'Balance': [ currVal ],
                 'Return': [ retVal ],
+                'Asset Balance': [ currVal ],                
+                'Tot Account Val': [ totVal ],
+                'Tot Account Cash': [ totCash ],
                 'Source': [ 'Actual' ],
             }
         )
