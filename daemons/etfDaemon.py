@@ -12,7 +12,7 @@ import logging
 import pickle
 import json
 import schedule
-import re
+import ast
 import numpy as np
 import pandas as pd
 import pandas_market_calendars as pmc
@@ -491,12 +491,30 @@ class MfdPrtBuilder( Daemon ):
         df = pd.read_pickle( self.dfFile )
         df = df[ df.Date >= prevDate ]
 
-        td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
+        try:
+            td = Tdam( refToken = REFRESH_TOKEN, accountId = ETF_ACCOUNT_ID )
         
-        qtyHash = td.getPortfolio()
-        totVal  = td.getTotalValue()
-        totCash = td.getCashBalance()
-
+            qtyHash = td.getPortfolio()
+            totVal  = td.getTotalValue()
+            totCash = td.getCashBalance()
+        except Exception as exc:
+            self.logger.critical( exc )
+            if os.path.exists( RET_FILE ):
+                retDf = pd.read_csv( RET_FILE )
+                if retDf.shape[0] > 0:
+                    self.logger.info(
+                        'Using the last stored values of portfolio for GNP...'
+                    )
+                    qtyHash = ast.literal_eval(
+                        list( retDf[ 'Portfolio' ] )[-1]
+                    )
+                    totVal  = list( retDf[ 'Tot Account Val' ] )[-1]
+                    totCash = list( retDf[ 'Tot Account Cash' ] )[-1]
+                else:
+                    return False
+            else:
+                return False
+            
         prevVal = 0.0        
         currVal = 0.0
         for symbol in qtyHash:
@@ -529,6 +547,7 @@ class MfdPrtBuilder( Daemon ):
                 'Tot Account Cash': [ totCash ],
                 'Return': [ retVal ],
                 'Source': [ 'Actual' ],
+                'Portfolio': [ str( qtyHash ) ],
             }
         )
                 

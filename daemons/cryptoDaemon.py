@@ -11,6 +11,7 @@ import dill
 import logging
 import pickle
 import json
+import ast
 import schedule
 import numpy as np
 import pandas as pd
@@ -468,15 +469,32 @@ class CryptoPrtBuilder( Daemon ):
         
         df = pd.read_pickle( self.dfFile )
         df = df[ df.Date >= prevDate ]
-        
-        rbin = Rbin(
-            os.getenv( "RBIN_USERNAME" ),
-            os.getenv( "RBIN_PASSKEY" )
-        )
-        
-        qtyHash = rbin.getPortfolio()
-        totVal  = rbin.getTotalValue()
-        totCash = rbin.getCashBalance()
+
+        try:
+            rbin = Rbin(
+                os.getenv( "RBIN_USERNAME" ),
+                os.getenv( "RBIN_PASSKEY" )
+            )
+            qtyHash = rbin.getPortfolio()
+            totVal  = rbin.getTotalValue()
+            totCash = rbin.getCashBalance()
+        except Exception as exc:
+            self.logger.critical( exc )
+            if os.path.exists( RET_FILE ):
+                retDf = pd.read_csv( RET_FILE )
+                if retDf.shape[0] > 0:
+                    self.logger.info(
+                        'Using the last stored values of portfolio for GNP...'
+                    )
+                    qtyHash = ast.literal_eval(
+                        list( retDf[ 'Portfolio' ] )[-1]
+                    )
+                    totVal  = list( retDf[ 'Tot Account Val' ] )[-1]
+                    totCash = list( retDf[ 'Tot Account Cash' ] )[-1]
+                else:
+                    return False
+            else:
+                return False
         
         prevVal = 0.0        
         currVal = 0.0
@@ -510,6 +528,7 @@ class CryptoPrtBuilder( Daemon ):
                 'Tot Account Val': [ totVal ],
                 'Tot Account Cash': [ totCash ],
                 'Source': [ 'Actual' ],
+                'Portfolio': [ str( qtyHash ) ],                
             }
         )
                 
