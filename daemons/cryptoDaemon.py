@@ -144,7 +144,7 @@ class CryptoPrtBuilder( Daemon ):
         self.schedTimes  = schedTimes
         self.logFileName = logFileName        
         self.verbose     = verbose
-        self.velNames    = assets + indexes
+        self.velNames    = assets + indexes + [ 'ZEC' ]
         self.gnpNextDate = None
         
         assert set( assets ).issubset( set( self.velNames ) ), \

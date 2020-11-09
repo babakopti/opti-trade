@@ -185,4 +185,4 @@ PI_INDEXES = [  'NDX',
 # Cryptocurrencies
 # ***********************************************************************
 
-CRYPTOS = [ 'BTC', 'LTC', 'ETH', 'ZEC' ]
+CRYPTOS = [ 'BTC', 'LTC', 'ETH' ]
