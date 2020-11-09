@@ -33,7 +33,7 @@ from brk.rbin import Rbin
 # Set some parameters 
 # ***********************************************************************
 
-ASSETS  = CRYPTOS
+ASSETS  = list( set( CRYPTOS ) - { 'ZEC' } )
 INDEXES = INDEXES + [ 'VIX' ]
 
 NUM_TRN_DAYS  = 360
