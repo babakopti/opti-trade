@@ -17,7 +17,7 @@ from utl.utils import getLogger
 # Some parameters
 # ***********************************************************************
 
-MAX_RETRIES = 5
+MAX_RETRIES = 10
 
 ORDER_WAIT_TIME = 10
 RETRY_WAIT_TIME = 20
