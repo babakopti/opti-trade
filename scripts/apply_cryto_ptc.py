@@ -19,12 +19,12 @@ import ptc.ptc as ptc
 # ***********************************************************************
 
 ptcFlag    = True
-prtFile    = 'portfolios/crypto_9PM_raw.json'
+prtFile    = 'portfolios/crypto_9PM_raw_no_zcash.json'
 minVix     = None
 maxVix     = 60
 datDir     = 'data'
 ptcDir     = 'pt_classifiers'
-outPrtFile = 'portfolios/crypto_9PM_raw_ptc.json'
+outPrtFile = 'portfolios/crypto_9PM_raw_no_zcash_ptc.json'
 
 # ***********************************************************************
 # Read original portfolio and get symbols

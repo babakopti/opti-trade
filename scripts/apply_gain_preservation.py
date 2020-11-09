@@ -21,10 +21,10 @@ import utl.utils as utl
 std_coef   = 1.5
 pers_off   = 4
 
-dfFile      = 'data/dfFile_2020.pkl'
+dfFile      = 'data/dfFile_crypto.pkl'
 initTotVal  = 20000.0
-prtFile    = 'portfolios/nTrnDays_360_two_hours_ptc.json'
-outPrtFile = 'portfolios/nTrnDays_360_two_hours_ptc_std_coef_%s_pers_off_%s.json' \
+prtFile    = 'portfolios/crypto_9PM_no_zcash_ptc_no_short.json'
+outPrtFile = 'portfolios/crypto_9PM_no_zcash_ptc_std_coef_%s_pers_off_%s.json' \
     % (str(std_coef), str(pers_off))
 minDate    = None
 maxDate    = None
@@ -73,7 +73,8 @@ for itr in range(1, len(dates)):
     tmp_val = ret_mean + std_coef * ret_std
     
     if ret > tmp_val:
-        nextDate = dates[itr + pers_off]
+        offset = min(len(dates)-itr-1, pers_off)
+        nextDate = dates[itr + offset]
         print("Skipping %s" % dates[itr] )
         newWtsHash[ dates[itr] ] = {}
     else:        

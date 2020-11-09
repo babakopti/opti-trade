@@ -21,21 +21,15 @@ import utl.utils as utl
 actFlag = False
 
 prtFiles = [
-    'portfolios/crypto_9PM_no_short.json',
-    'portfolios/crypto_9PM_ptc_no_short.json',
-    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_2.json',
-    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_3.json',
-    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_4.json',
-    'portfolios/crypto_9PM_ptc_std_coef_1.0_days_off_5.json',    
+    'portfolios/crypto_9PM_no_zcash_no_short.json',
+    'portfolios/crypto_9PM_no_zcash_ptc_no_short.json',
+    'portfolios/crypto_9PM_no_zcash_ptc_std_coef_1.0_pers_off_4.json',
 ]
 
 legends = [
-    '9 PM',
-    '9 PM; PTC',
-    '9 PM; PTC + gain preserve 1.0, 2',
-    '9 PM; PTC + gain preserve 1.0, 3',
-    '9 PM; PTC + gain preserve 1.0, 4',
-    '9 PM; PTC + gain preserve 1.0, 5',    
+    '9 PM; No ZCash',
+    '9 PM; No ZCash + PTC',
+    '9 PM; No ZCash + PTC + GNP 1.0, 4',
 ]
 
 dfFile      = 'data/dfFile_crypto.pkl'

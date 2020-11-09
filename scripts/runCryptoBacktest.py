@@ -27,7 +27,7 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/crypto_9PM_raw.json'
+prtFile     = 'portfolios/crypto_9PM_raw_no_zcash.json'
 bkBegDate   = pd.to_datetime( '2020-05-01 21:00:00' )
 bkEndDate   = pd.to_datetime( '2020-10-28 21:00:00' )
 nTrnDays    = 360
@@ -47,7 +47,7 @@ numCores = 4
 dfFile   = 'data/dfFile_crypto.pkl'
 
 velNames  = [ 'BTC', 'ETH', 'LTC', 'ZEC' ] + INDEXES + [ 'VIX' ]
-assetPool = [ 'BTC', 'ETH', 'LTC', 'ZEC' ]
+assetPool = [ 'BTC', 'ETH', 'LTC' ]
 
 factor = 4.0e-05
 vType  = 'vel'

@@ -9,11 +9,11 @@ sys.path.append( '../' )
 
 import utl.utils as utl
 
-prtFile = 'portfolios/nTrnDays_360_two_hours_ptc.json'
+prtFile = 'portfolios/crypto_9PM_raw_no_zcash_ptc.json'
 
-outPrtFile = 'portfolios/nTrnDays_360_two_hours_ptc_no_short.json'
+outPrtFile = 'portfolios/crypto_9PM_no_zcash_ptc_no_short.json'
 
-dfFile = 'data/dfFile_2020.pkl'
+dfFile = 'data/dfFile_crypto.pkl'
 
 prtWtsHash = json.load( open( prtFile, 'r' ) )
 
