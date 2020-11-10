@@ -362,7 +362,7 @@ class CryptoPrtBuilder( Daemon ):
         indexDf.Date = indexDf.Date.dt.tz_convert( 'UTC' )
         indexDf.Date = indexDf.Date.dt.tz_convert( None )
 
-        oldDf = utl.mergeSymbols( symbols = self.assets,
+        oldDf = utl.mergeSymbols( symbols = CRYPTOS,
                                   datDir  = self.baseDatDir,
                                   fileExt = 'pkl',
                                   minDate = minDate,
@@ -387,7 +387,7 @@ class CryptoPrtBuilder( Daemon ):
             indexDf.Date = indexDf.Date.dt.tz_convert( None )
             
             newDf = utl.getCryptoCompareData(
-                self.assets,
+                CRYPTOS,
                 logger  = self.logger
             )
 
