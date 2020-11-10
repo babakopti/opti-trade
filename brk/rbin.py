@@ -22,6 +22,8 @@ MAX_RETRIES = 10
 ORDER_WAIT_TIME = 10
 RETRY_WAIT_TIME = 20
 
+EXPOSURE = 0.97
+
 # ***********************************************************************
 # Class Tdam: A class to trade cryptos with Robinhood
 # ***********************************************************************
@@ -186,7 +188,7 @@ class Rbin:
         totValAll = self.getTotalValue()
 
         if totVal is None:
-            totVal = totValAll
+            totVal = EXPOSURE * totValAll
         else:
             assert totVal <= totValAll, \
                 'Total value specified cannot be larger than total value of account!'
