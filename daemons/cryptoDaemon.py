@@ -538,7 +538,8 @@ class CryptoPrtBuilder( Daemon ):
         else:
             retDf = newRetDf
 
-        retDf.to_csv( RET_FILE, index = False )
+        if not DEBUG_MODE:
+            retDf.to_csv( RET_FILE, index = False )
 
         doGnpFlag = False
         
