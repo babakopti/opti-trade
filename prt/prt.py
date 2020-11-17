@@ -700,8 +700,6 @@ class MfdOptionsPrt:
                     logFileName  = None,                    
                     verbose      = 1          ):
 
-        self.mfdMod       = dill.load( open( modFile, 'rb' ) )
-        self.ecoMfd       = self.mfdMod.ecoMfd
         self.logFileName  = logFileName
         self.verbose      = verbose
         self.logger       = getLogger( logFileName, verbose, 'prt' )
@@ -715,10 +713,7 @@ class MfdOptionsPrt:
         self.tradeFee     = tradeFee
         self.prdDf        = None
 
-        setA = set( self.assetHash.keys() )
-        setB = set( self.ecoMfd.velNames )
-        
-        assert setA == setB, 'modFile and assetHash are not consistent!'
+        self.setMod( modFile )        
 
         self.curDate = pd.to_datetime( self.curDate.strftime( '%Y-%m-%d' ) )
         self.minDate = self.minDate.replace( hour = 0,  minute = 0  )        
@@ -731,9 +726,18 @@ class MfdOptionsPrt:
         if rfiDaily < 0 or rfiDaily > 1:
             self.logger.error( 'rfiDaily should be in [0,1]!' )
             assert False, 'rfiDaily should be in [0,1]!'
-            
+
         self.setPrdDf()
+
+    def setMod( self, modFile ): 
+        self.mfdMod = dill.load( open( modFile, 'rb' ) )
+        self.ecoMfd = self.mfdMod.ecoMfd
         
+        setA = set( self.assetHash.keys() )
+        setB = set( self.ecoMfd.velNames )
+        
+        assert setA == setB, 'modFile and assetHash are not consistent!'
+       
     def setPrdDf( self ):
 
         t0        = time.time()
@@ -905,9 +909,9 @@ class MfdOptionsPrt:
                             ( optDf[ 'expiration' ] == exprDate ) ]
 
             if optionType == 'call':
-                sellDf = sellDf[ sellDf[ 'strike' ] > strikeBuy )
+                sellDf = sellDf[ sellDf[ 'strike' ] > strikeBuy ]
             elif optionType == 'put':
-                sellDf = sellDf[ sellDf[ 'strike' ] < strikeBuy )
+                sellDf = sellDf[ sellDf[ 'strike' ] < strikeBuy ]
                 
             sellDf[ 'cost' ] = sellDf.unitPrice.apply(
                 lambda x: oCnt * ( uPriceBuy - x ) + 2 * self.tradeFee
@@ -933,14 +937,10 @@ class MfdOptionsPrt:
         buyDf = buyDf.sort_values( 'maxReturn', ascending = False )
         buyDf = buyDf.head( maxSelCnt )
 
-        selList = []
-        for ind, item in buyDf.iterrows():
-            selList.append( dict( item ) )
-            
         self.logger.info( 'Selecting options took %0.2f seconds!',
                           ( time.time() - t0 ) )
 
-        return selList
+        return buyDf
     
     def getProb( self, option ):
 
@@ -997,14 +997,6 @@ class MfdOptionsPrt:
         return prob
 
     def validateOption( self, option ):
-
-        oCnt      = option[ 'contractCnt' ]
-        asset     = option[ 'assetSymbol' ]
-        exprDate  = pd.to_datetime( option[ 'expiration' ] )
-
-        if oCnt <= 1:
-            self.logger.error( 'Contract size should be >= 1!' )
-            return False
         
         if asset not in self.assetHash.keys():
             self.logger.error( 'Asset %s not found in assetHash!', asset )
@@ -1286,7 +1278,7 @@ class MfdOptionsPrt:
             if exprDate > self.maxDate:
                 continue
 
-            if if maxPriceC is not None:
+            if maxPriceC is not None:
                 if oPrice > maxPriceC:
                     continue
 
