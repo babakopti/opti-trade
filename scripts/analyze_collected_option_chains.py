@@ -16,37 +16,42 @@ from collections import defaultdict
 # Some Parameters
 # ***********************************************************************
 
-minProb  = 0.496
-maxPrice = 500.0
-maxHoldA = 1000.0
+minProb  = 0.5
+maxPrice = 20000.0
+maxHoldA = 20000000.0
 tradeFee = 0.75
 
 minHorizon = 1
-maxHorizon = 90
+maxHorizon = 10
 
-OPTION_CHAIN_FILE = 'data/option_chain_2020_July_Aug.pkl'
-ACT_FILE = 'data/dfFile_2020-09-01 15:00:40.pkl'
+OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
+ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
 # ***********************************************************************
 # Read options and actuals files and merge
 # ***********************************************************************
 
-if False:
-    optDf = pd.read_pickle( OPTION_CHAIN_FILE )
+optDf = pd.read_pickle( OPTION_CHAIN_FILE )
+    
+if True:
     actDf = pd.read_pickle( ACT_FILE )
 
+    actDf[ 'Date' ] = actDf.Date.astype( 'datetime64[ns]' )
+    actDf[ 'Date' ] = actDf.Date.apply( lambda x: x.strftime( '%Y-%m-%d' ) )
+    actDf[ 'Date' ] = actDf.Date.astype( 'datetime64[ns]' )
+    
+    actDf = actDf.groupby( 'Date', as_index = False ).mean()
+    
     actDf = actDf.melt( id_vars    = [ 'Date' ],
                         value_vars = list( set( actDf.columns ) - \
                                            { 'Date' } ) )
-
-    actDf[ 'Date' ] = actDf.Date.apply( lambda x : pd.to_datetime(x) )
 
     actDf = actDf.rename( columns = { 'Date'     : 'expiration',
                                       'variable' : 'assetSymbol',
                                       'value'    : 'actExprPrice' }   )
 
-    optDf[ 'expiration' ] = optDf.expiration.apply( lambda x : pd.to_datetime(x) )
-    optDf[ 'DataDate' ]  = optDf.DataDate.apply( lambda x : pd.to_datetime(x) )
+    optDf[ 'expiration' ] = optDf.expiration.astype( 'datetime64[ns]' )
+    optDf[ 'DataDate' ]  = optDf.DataDate.astype( 'datetime64[ns]' )
 
     df = optDf.merge( actDf,
                       how = 'left',
@@ -57,13 +62,8 @@ if False:
     df[ 'Year' ]     = df.DataDate.apply( lambda x : x.year )
     df[ 'Bin_Prob' ] = df.Prob.apply( lambda x : 0.05 * int( x / 0.05 ) )
     df[ 'horizon' ]  = df.horizon.apply( lambda x : int( x.days ) )
-
-    df.to_pickle( 'data/collected_options_merged.pkl' )
-else:
-    df = pd.read_pickle( 'data/collected_options_merged.pkl' )
-
-df[ 'strike' ] = df.strike.apply( lambda x : float( x ) )
-
+    df[ 'strike' ]   = df.strike.apply( lambda x : float( x ) )
+    
 # ***********************************************************************
 # Study call options
 # ***********************************************************************
@@ -89,8 +89,9 @@ print( 'Call success / probability summary:',
 print( 'Overall call success rate:',
        call_df[ call_df.Success == 1 ].shape[0] / call_df.shape[0] )
 
-print( 'Chosen call success rate:',
-       ch_call_df[ ch_call_df.Success == 1 ].shape[0] / ch_call_df.shape[0] )
+if ch_call_df.shape[0] > 0:
+    print( 'Chosen call success rate:',
+           ch_call_df[ ch_call_df.Success == 1 ].shape[0] / ch_call_df.shape[0] )
 
 print( 'Overall call average return:',
        call_df.Return.mean() )
@@ -229,8 +230,9 @@ print( 'Put success / probability summary:',
 print( 'Overall put success rate:',
        put_df[ put_df.Success == 1 ].shape[0] / put_df.shape[0] )
 
-print( 'Chosen put success rate:',
-       ch_put_df[ ch_put_df.Success == 1 ].shape[0] / ch_put_df.shape[0] )
+if ch_put_df.shape[0] > 0:
+    print( 'Chosen put success rate:',
+           ch_put_df[ ch_put_df.Success == 1 ].shape[0] /  ch_put_df.shape[0])
 
 print( 'Overall put average return:',
        put_df.Return.mean() )

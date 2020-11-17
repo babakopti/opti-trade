@@ -833,22 +833,208 @@ class MfdOptionsPrt:
                           ( time.time() - t0 ) )
         
         return prdDf
+    
+    def selVosPairs( self,
+                     options,
+                     optionType,
+                     maxCost,
+                     maxSelCnt,
+                     maxTries    ):
 
-    def getCurAction( self, curOption, curUPrice ):
+        assert optionType in [ 'call', 'put' ], \
+            'Unkown option type %s' % str( optionType )
+        
+        t0 = time.time()
 
-        decision  = self.getDecision( curOption, curUPrice )
+        self.logger.info( 'Selecting from a pool of %d contracts...',
+                          len( options ) )
+        
+        for option in options:
+            prob = self.getProb( option )
+            option[ 'prob' ] = prob
+        
+        optDf = pd.DataFrame( options )
 
-        if decision == 'sell_now':
-            prob    = 1.0
-        elif decision == 'exec_maturity':
-            prob = self.getProb( curOption )
-        elif decision == 'no_action':
-            prob = self.getProb( curOption )
+        optDf[ 'expiration' ] = optDf.expiration.astype( 'datetime64[ns]' )
+        optDf[ 'strike' ]   = optDf.strike.astype( 'float' )
+        optDf[ 'unitPrice' ] = optDf.unitPrice.astype( 'float' )
+
+        buyDf = optDf[ ( optDf[ 'type' ] == optionsType ) &\
+                       ( optDf[ 'expiration' ] <= self.maxDate ) &\
+                       ( optDf[ 'expiration' ] >= self.minDate ) &\
+                       ( optDf[ 'prob' ] >= self.minProb )  ]
+
+        if buyDf.shape[0] == 0:
+            self.logger.info( 'No buy legs found!' )
+            return None
+
+        cntDf = buyDf.groupby(
+            assetSymbol,
+            as_index = False
+        )[ 'optionSymbol' ].count()
+
+        cntDf = cntDf.rename( columns = { 'optionSymbol': 'assetCnt' } )
+        
+        buyDf = buyDf.merge( cntDf, on = 'assetSymbol', how = 'left' )
+        
+        wts = np.array( buyDf.prob ) / np.array( buyDf.assetCnt )
+        
+        sumInv = np.sum( wts )
+        
+        if sumInv > 0:
+            sumInv = 1.0 / sumInv
+
+        wts = sumInv * wts
+
+        buyDf = buyDf.sample( n = maxTries, weights = wts )
+
+        for ind, item in buyDf.iterrows():
+            
+            option    = dict( item )
+            symbolBuy = option[ 'optionSymbol' ]
+            strikeBuy = option[ 'strike' ]
+            uPriceBuy = option[ 'unitPrice' ]            
+            asset     = option[ 'assetSymbol' ]
+            exprDate  = option[ 'expiration' ]
+            oType     = option[ 'type' ]                
+            oCnt      = option[ 'contractCnt' ]
+
+            sellDf = optDf[ ( optDf[ 'type' ] == oType ) &\
+                            ( optDf[ 'assetSymbol' ] == asset ) &\
+                            ( optDf[ 'contractCnt' ] == oCnt ) &\
+                            ( optDf[ 'expiration' ] == exprDate ) ]
+
+            if optionType == 'call':
+                sellDf = sellDf[ sellDf[ 'strike' ] > strikeBuy )
+            elif optionType == 'put':
+                sellDf = sellDf[ sellDf[ 'strike' ] < strikeBuy )
+                
+            sellDf[ 'cost' ] = sellDf.unitPrice.apply(
+                lambda x: oCnt * ( uPriceBuy - x ) + 2 * self.tradeFee
+            )
+
+            sellDf = sellDf[ sellDf.cost <= maxCost ]
+            
+            sellDf[ 'maxReturn' ] = sellDf.apply(
+                lambda x: (
+                    oCnt * abs( x.strike - strikeBuy ) - x.cost
+                ) / x.cost,
+                axis = 1
+            )
+            sellDf = sellDf[ sellDf.maxReturn > 0 ]
+            sellDf = sellDf.sort_values( 'maxReturn', ascending = False )
+
+            if sellDf.shape[0] > 0:
+                buyDf.loc[ ind, 'sellLeg' ]   = list( sellDf.optionSymbol )[0]
+                buyDf.loc[ ind, 'cost' ]      = list( sellDf.cost )[0]
+                buyDf.loc[ ind, 'maxReturn' ] = list( sellDf.maxReturn )[0]
+
+        buyDf = buyDf.dropna()
+        buyDf = buyDf.sort_values( 'maxReturn', ascending = False )
+        buyDf = buyDf.head( maxSelCnt )
+
+        selList = []
+        for ind, item in buyDf.iterrows():
+            selList.append( dict( item ) )
+            
+        self.logger.info( 'Selecting options took %0.2f seconds!',
+                          ( time.time() - t0 ) )
+
+        return selList
+    
+    def getProb( self, option ):
+
+        validFlag = self.validateOption( option )
+
+        if not validFlag:
+            return 0.0
+        
+        asset    = option[ 'assetSymbol' ]
+        strike   = float( option[ 'strike' ] )
+        exprDate = option[ 'expiration' ]
+        uPrice   = float( option[ 'unitPrice' ] )
+        oType    = option[ 'type' ]
+        oCnt     = option[ 'contractCnt' ]
+
+        exprDate = pd.to_datetime( exprDate )
+        
+        while True:
+            if exprDate.isoweekday() not in [6, 7]:
+                break
+            else:
+                exprDate -= datetime.timedelta( days = 1 )
+        
+        assert oCnt > 0, 'contractCnt should be > 0!'
+
+        fee      = self.tradeFee / oCnt
+
+        prdDf    = self.prdDf
+        dateStr  = exprDate.strftime( '%Y-%m-%d' )
+        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
+        prdPrice = prdHash[ dateStr ]
+        stdHash  = dict( zip( prdDf.Date, prdDf[ asset + '_std' ] ) )
+        stdVal   = stdHash[ dateStr ]
+
+        stdInv = stdVal * np.sqrt(2)
+        if stdInv > 0:
+            stdInv = 1.0 / stdInv 
+
+        nDays    = ( exprDate - self.curDate ).days
+        tmpVal   = ( 1.0 + self.rfiDaily )**nDays
+
+        if oType == 'call':
+            etaVal  = strike + tmpVal * ( uPrice + fee )
+            tmpVal1 = stdInv * ( prdPrice - etaVal ) 
+            prob    = 0.5 * ( 1.0 + erf( tmpVal1 ) )
+        elif oType == 'put':
+            etaVal  = strike - tmpVal * ( uPrice + fee )
+            tmpVal1 = stdInv * ( etaVal - prdPrice ) 
+            tmpVal2 = stdInv * prdPrice
+            prob    = 0.5 * ( erf( tmpVal1 ) + erf( tmpVal2 ) )
         else:
-            self.logger.error( 'Unknown decision %s' % decision )
+            assert False, 'Only call/put options are accepted!'
 
-        return ( decision, prob )
+        return prob
 
+    def validateOption( self, option ):
+
+        oCnt      = option[ 'contractCnt' ]
+        asset     = option[ 'assetSymbol' ]
+        exprDate  = pd.to_datetime( option[ 'expiration' ] )
+
+        if oCnt <= 1:
+            self.logger.error( 'Contract size should be >= 1!' )
+            return False
+        
+        if asset not in self.assetHash.keys():
+            self.logger.error( 'Asset %s not found in assetHash!', asset )
+            return False
+            
+        if asset not in self.ecoMfd.velNames:
+            self.logger.error( 'Contract %s: asset %s not found in the model!',
+                               option[ 'optionSymbol' ], asset )
+            return False
+                
+        if exprDate < self.curDate:
+            msgStr = 'Contract %s: ' +\
+                'expiration %s should be >= curDate %s'
+            self.logger.error( msgStr,
+                               option[ 'optionSymbol' ],
+                               str( exprDate ),
+                               str( self.curDate )   )
+            return False
+
+        if exprDate > self.maxDate:
+            msgStr = 'Contract %s: ' +\
+                'expiration %s should be <= maxDate %s'
+            self.logger.error( msgStr,
+                               option[ 'optionSymbol' ],
+                               str( exprDate ),
+                               str( self.maxDate )   )
+            return False
+
+        return True
+    
     def selOptions( self,
                     options,
                     cash,
@@ -963,6 +1149,21 @@ class MfdOptionsPrt:
 
         return selHash
 
+    def getCurAction( self, curOption, curUPrice ):
+
+        decision  = self.getDecision( curOption, curUPrice )
+
+        if decision == 'sell_now':
+            prob    = 1.0
+        elif decision == 'exec_maturity':
+            prob = self.getProb( curOption )
+        elif decision == 'no_action':
+            prob = self.getProb( curOption )
+        else:
+            self.logger.error( 'Unknown decision %s' % decision )
+
+        return ( decision, prob )
+
     def getDecision( self, option, curUPrice ):
 
         decisions = [ 'exec_maturity', 'sell_now' ]
@@ -1056,61 +1257,7 @@ class MfdOptionsPrt:
 
         return prob * fct
     
-    def getProb( self, option ):
-
-        validFlag = self.validateOption( option )
-
-        if not validFlag:
-            return 0.0
-        
-        asset    = option[ 'assetSymbol' ]
-        strike   = float( option[ 'strike' ] )
-        exprDate = option[ 'expiration' ]
-        uPrice   = float( option[ 'unitPrice' ] )
-        oType    = option[ 'type' ]
-        oCnt     = option[ 'contractCnt' ]
-
-        exprDate = pd.to_datetime( exprDate )
-        
-        while True:
-            if exprDate.isoweekday() not in [6, 7]:
-                break
-            else:
-                exprDate -= datetime.timedelta( days = 1 )
-        
-        assert oCnt > 0, 'contractCnt should be > 0!'
-
-        fee      = self.tradeFee / oCnt
-
-        prdDf    = self.prdDf
-        dateStr  = exprDate.strftime( '%Y-%m-%d' )
-        prdHash  = dict( zip( prdDf.Date, prdDf[ asset ] ) )
-        prdPrice = prdHash[ dateStr ]
-        stdHash  = dict( zip( prdDf.Date, prdDf[ asset + '_std' ] ) )
-        stdVal   = stdHash[ dateStr ]
-
-        stdInv = stdVal * np.sqrt(2)
-        if stdInv > 0:
-            stdInv = 1.0 / stdInv 
-
-        nDays    = ( exprDate - self.curDate ).days
-        tmpVal   = ( 1.0 + self.rfiDaily )**nDays
-
-        if oType == 'call':
-            etaVal  = strike + tmpVal * ( uPrice + fee )
-            tmpVal1 = stdInv * ( prdPrice - etaVal ) 
-            prob    = 0.5 * ( 1.0 + erf( tmpVal1 ) )
-        elif oType == 'put':
-            etaVal  = strike - tmpVal * ( uPrice + fee )
-            tmpVal1 = stdInv * ( etaVal - prdPrice ) 
-            tmpVal2 = stdInv * prdPrice
-            prob    = 0.5 * ( erf( tmpVal1 ) + erf( tmpVal2 ) )
-        else:
-            assert False, 'Only call/put options are accepted!'
-
-        return prob
-
-    def filterOptions( self, options, maxPriceC, optionType = None ):
+    def filterOptions( self, options, maxPriceC = None, optionType = None ):
         
         subSet = []
 
@@ -1139,8 +1286,9 @@ class MfdOptionsPrt:
             if exprDate > self.maxDate:
                 continue
 
-            if oPrice > maxPriceC:
-                continue
+            if if maxPriceC is not None:
+                if oPrice > maxPriceC:
+                    continue
 
             if optionType is not None:
                 if oType != optionType:
@@ -1153,44 +1301,5 @@ class MfdOptionsPrt:
             
             subSet.append( option )
 
-        return subSet
-    
-    def validateOption( self, option ):
-
-        oCnt      = option[ 'contractCnt' ]
-        asset     = option[ 'assetSymbol' ]
-        exprDate  = pd.to_datetime( option[ 'expiration' ] )
-
-        if oCnt <= 1:
-            self.logger.error( 'Contract size should be >= 1!' )
-            return False
-        
-        if asset not in self.assetHash.keys():
-            self.logger.error( 'Asset %s not found in assetHash!', asset )
-            return False
-            
-        if asset not in self.ecoMfd.velNames:
-            self.logger.error( 'Contract %s: asset %s not found in the model!',
-                               option[ 'optionSymbol' ], asset )
-            return False
-                
-        if exprDate < self.curDate:
-            msgStr = 'Contract %s: ' +\
-                'expiration %s should be >= curDate %s'
-            self.logger.error( msgStr,
-                               option[ 'optionSymbol' ],
-                               str( exprDate ),
-                               str( self.curDate )   )
-            return False
-
-        if exprDate > self.maxDate:
-            msgStr = 'Contract %s: ' +\
-                'expiration %s should be <= maxDate %s'
-            self.logger.error( msgStr,
-                               option[ 'optionSymbol' ],
-                               str( exprDate ),
-                               str( self.maxDate )   )
-            return False
-
-        return True
+        return subSet    
 
