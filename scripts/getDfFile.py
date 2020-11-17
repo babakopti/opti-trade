@@ -22,7 +22,7 @@ from dat.assets import ETF_HASH, SUB_ETF_HASH, FUTURES
 etfs    = list( ETF_HASH.keys() ) + list( ETF_HASH.values() )
 stocks  = []
 futures = FUTURES
-indexes = []
+indexes = ['VIX', 'UJB', 'SJB']
 
 minDate = pd.to_datetime( '2018-12-01 00:00:00' )
 
@@ -40,14 +40,14 @@ oldDf = utl.mergeSymbols( symbols = symbols,
                           minDate = minDate,
                           logger  = None   )
 
-newDf = utl.getYahooData( etfs    = etfs,
-                          stocks  = stocks,
-                          futures = futures,
-                          indexes = indexes,
-                          nDays   = 5,
-                          logger  = None  )
+# newDf = utl.getYahooData( etfs    = etfs,
+#                           stocks  = stocks,
+#                           futures = futures,
+#                           indexes = indexes,
+#                           nDays   = 5,
+#                           logger  = None  )
         
-newDf = newDf[ newDf.Date > oldDf.Date.max() ]
-newDf = pd.concat( [ oldDf, newDf ] )
+# newDf = newDf[ newDf.Date > oldDf.Date.max() ]
+# newDf = pd.concat( [ oldDf, newDf ] )
 
-newDf.to_pickle( dfFile, protocol = 4 )
+oldDf.to_pickle( dfFile, protocol = 4 )
