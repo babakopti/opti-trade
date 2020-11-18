@@ -850,8 +850,8 @@ class MfdOptionsPrt:
         
         t0 = time.time()
 
-        self.logger.info( 'Selecting from a pool of %d contracts...',
-                          len( options ) )
+        self.logger.info( 'Selecting from a pool of %d %s options contracts...',
+                          len( options ), optionType )
         
         for option in options:
             prob = self.getProb( option )
@@ -863,7 +863,7 @@ class MfdOptionsPrt:
         optDf[ 'strike' ]   = optDf.strike.astype( 'float' )
         optDf[ 'unitPrice' ] = optDf.unitPrice.astype( 'float' )
 
-        buyDf = optDf[ ( optDf[ 'type' ] == optionsType ) &\
+        buyDf = optDf[ ( optDf[ 'type' ] == optionType ) &\
                        ( optDf[ 'expiration' ] <= self.maxDate ) &\
                        ( optDf[ 'expiration' ] >= self.minDate ) &\
                        ( optDf[ 'prob' ] >= self.minProb )  ]
@@ -871,16 +871,21 @@ class MfdOptionsPrt:
         if buyDf.shape[0] == 0:
             self.logger.info( 'No buy legs found!' )
             return None
-
+        else:
+            self.logger.info(
+                'Found %d potential buy legs!',
+                buyDf.shape[0]
+            )
+        
         cntDf = buyDf.groupby(
-            assetSymbol,
+            'assetSymbol',
             as_index = False
         )[ 'optionSymbol' ].count()
 
         cntDf = cntDf.rename( columns = { 'optionSymbol': 'assetCnt' } )
         
         buyDf = buyDf.merge( cntDf, on = 'assetSymbol', how = 'left' )
-        
+
         wts = np.array( buyDf.prob ) / np.array( buyDf.assetCnt )
         
         sumInv = np.sum( wts )
@@ -890,7 +895,15 @@ class MfdOptionsPrt:
 
         wts = sumInv * wts
 
-        buyDf = buyDf.sample( n = maxTries, weights = wts )
+        nSamples = min( maxTries, buyDf.shape[0] )
+        
+        buyDf = buyDf.sample( n       = nSamples,
+                              weights = wts )
+
+        buyDf[ 'optionSymbolSell' ] = None
+        buyDf[ 'strikeSell' ]       = None
+        buyDf[ 'cost' ]             = None
+        buyDf[ 'maxReturn' ]        = None
 
         for ind, item in buyDf.iterrows():
             
@@ -912,12 +925,15 @@ class MfdOptionsPrt:
                 sellDf = sellDf[ sellDf[ 'strike' ] > strikeBuy ]
             elif optionType == 'put':
                 sellDf = sellDf[ sellDf[ 'strike' ] < strikeBuy ]
-                
+
             sellDf[ 'cost' ] = sellDf.unitPrice.apply(
                 lambda x: oCnt * ( uPriceBuy - x ) + 2 * self.tradeFee
             )
 
             sellDf = sellDf[ sellDf.cost <= maxCost ]
+
+            if sellDf.shape[0] == 0:
+                continue
             
             sellDf[ 'maxReturn' ] = sellDf.apply(
                 lambda x: (
@@ -926,17 +942,29 @@ class MfdOptionsPrt:
                 axis = 1
             )
             sellDf = sellDf[ sellDf.maxReturn > 0 ]
+
+            if sellDf.shape[0] == 0:
+                continue
+            
             sellDf = sellDf.sort_values( 'maxReturn', ascending = False )
 
-            if sellDf.shape[0] > 0:
-                buyDf.loc[ ind, 'sellLeg' ]   = list( sellDf.optionSymbol )[0]
-                buyDf.loc[ ind, 'cost' ]      = list( sellDf.cost )[0]
-                buyDf.loc[ ind, 'maxReturn' ] = list( sellDf.maxReturn )[0]
+            buyDf.loc[ ind, 'optionSymbolSell' ] = \
+                list( sellDf.optionSymbol )[0]
+            buyDf.loc[ ind, 'strikeSell' ] = list( sellDf.strike )[0]                
+            buyDf.loc[ ind, 'cost' ]       = list( sellDf.cost )[0]
+            buyDf.loc[ ind, 'maxReturn' ]  = list( sellDf.maxReturn )[0]
 
         buyDf = buyDf.dropna()
         buyDf = buyDf.sort_values( 'maxReturn', ascending = False )
         buyDf = buyDf.head( maxSelCnt )
+        buyDf = buyDf.rename( columns = {
+            'strike': 'strikeBuy',
+            'optionSymbol': 'optionSymbolBuy'
+        } )
 
+        self.logger.info( 'Selected %d %s options pairs...',
+                          buyDf.shape[0], optionType )
+        
         self.logger.info( 'Selecting options took %0.2f seconds!',
                           ( time.time() - t0 ) )
 
