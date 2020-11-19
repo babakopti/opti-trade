@@ -1294,9 +1294,6 @@ class MfdOptionsPrt:
             if asset not in self.assetHash.keys():
                 continue
 
-            if asset not in self.ecoMfd.velNames:
-                continue
-
             if exprDate <= self.curDate:
                 continue
 
