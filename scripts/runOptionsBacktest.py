@@ -230,8 +230,6 @@ def settle( curDate, holdHash ):
 MfdOptionsPrt.getProb = lambda self, x: x[ 'prob' ]
 
 retList = []
-costList = []
-gainList = []
 prevCash  = INIT_CASH
 prevHolds = []
 
@@ -255,9 +253,9 @@ for curDate in dates:
     
     for pairHash in holdHash[ curDate ][ 'options' ]:
         actGain, actRet = getOptionsPairVal( pairHash, curDate )
-        retList.append( actRet )
-        costList.append( pairHash[ 'cost' ] )
-        gainList.append( actGain )
+
+        if pairHash[ 'expiration' ] == curDate:
+            retList.append( actRet )
     
         balHash[ curDate ] += actGain
 
@@ -268,11 +266,8 @@ for curDate in dates:
 # Output
 # ***********************************************************************
 
-logger.info( 'Total cost: %0.2f', sum( costList ) )
-logger.info( 'Total gain: %0.2f', sum( gainList ) )
-
 logger.info(
-    'Mean / std returns: %0.2f / %0.2f',
+    'Mean / std of realized returns: %0.2f / %0.2f',
     np.mean( retList ),
     np.std( retList )
 )
@@ -291,6 +286,21 @@ outDf = pd.DataFrame(
 )
 
 outDf[ 'Date' ] = outDf.Date.astype( 'datetime64[ns]' )
+
+outDf[ 'Return' ] = outDf.Balance.pct_change()
+
+logger.info(
+    'Beginning / end balances: %0.2f / %0.2f',
+    list( outDf.Balance )[0],
+    list( outDf.Balance )[-1]
+)
+
+logger.info(
+    'Mean / std / ratio of daily returns: %0.4f / %0.4f / %0.2f',
+    outDf.Return.mean(),
+    outDf.Return.std(),
+    outDf.Return.mean() / outDf.Return.std()
+)
 
 outDf.to_csv( OUT_CSV_FILE, index = False )
 
