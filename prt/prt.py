@@ -1105,6 +1105,8 @@ class MfdOptionsPrt:
 
         asset    = option[ 'assetSymbol' ]
         exprDate = option[ 'expiration' ]
+
+        exprDate = pd.to_datetime( exprDate )
         
         if asset not in self.assetHash.keys():
             self.logger.error( 'Asset %s not found in assetHash!', asset )
