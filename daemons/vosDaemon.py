@@ -60,7 +60,7 @@ MAX_DAILY_CASH        = 100.0
 MIN_ACCOUNT_CASH      = 2500.0
 
 MOD_HEAD      = 'option_model_'
-PRT_HEAD      = 'option_prt_'
+PRT_HEAD      = 'vos_prt_'
 CHAIN_HEAD    = 'option_chain_'
 MOD_DIR       = '/var/option_models'
 PRT_DIR       = '/var/option_prt'
@@ -451,9 +451,9 @@ class VosPrtBuilder( Daemon ):
         tmpStr   = snapDate.strftime( '%Y-%m-%d_%H:%M:%S' )        
         prtFile  = self.prtHead + tmpStr + '.json'
         prtFile  = os.path.join( self.prtDir, prtFile )
-        
-        minDate = snapDate + pd.DateOffset( days   = 1 )
-        maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
+
+        minDate = snapDate + pd.DateOffset( days = MIN_HORIZON_DAYS )
+        maxDate = snapDate + pd.DateOffset( days = MAX_HORIZON_DAYS )        
         
         totCash = self.getCashValue()
         
@@ -709,7 +709,7 @@ class VosPrtBuilder( Daemon ):
 
 if __name__ ==  '__main__':
 
-    daemon = OptionPrtBuilder()
+    daemon = VosPrtBuilder()
 
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:

@@ -923,8 +923,11 @@ class MfdOptionsPrt:
         
         t0 = time.time()
 
-        self.logger.info( 'Selecting from a pool of %d %s options contracts...',
-                          len( options ), optionType )
+        self.logger.info(
+            'Selecting from a pool of %d %s options contracts...',
+            len( options ),
+            optionType
+        )
         
         for option in options:
             prob = self.getProb( option )
@@ -1099,6 +1102,9 @@ class MfdOptionsPrt:
         return prob
 
     def validateOption( self, option ):
+
+        asset    = option[ 'assetSymbol' ]
+        exprDate = option[ 'expiration' ]
         
         if asset not in self.assetHash.keys():
             self.logger.error( 'Asset %s not found in assetHash!', asset )
