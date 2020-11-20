@@ -70,7 +70,7 @@ PI_DAT_DIR    = '/var/pi_data'
 CHAIN_DIR     = '/var/option_chains'
 TIME_ZONE     = 'America/New_York'
 SCHED_TIME    = '15:00'
-LOG_FILE_NAME = '/var/log/option_prt_builder.log'
+LOG_FILE_NAME = '/var/log/vos_prt_builder.log'
 VERBOSE       = 1
 
 VOS_PAIR_INDEX  = 0
