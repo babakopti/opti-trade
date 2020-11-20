@@ -57,6 +57,7 @@ MAX_UNIQUE_PAIR_COUNT = 1
 MAX_TRIES             = 1000
 MAX_PAIR_COST         = 50.0
 MAX_DAILY_CASH        = 100.0
+MIN_ACCOUNT_CASH      = 2500.0
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'
@@ -455,7 +456,8 @@ class VosPrtBuilder( Daemon ):
         maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
         
         totCash = self.getCashValue()
-        expcash = min( MAX_DAILY_CASH, totCash )
+        
+        expCash = min( MAX_DAILY_CASH, totCash )
 
         self.logger.info(
             'Total available cash is %0.2f; exposure is %0.2f!',
@@ -475,7 +477,13 @@ class VosPrtBuilder( Daemon ):
         
         self.savePrt( selList, prtFile )
 
-        self.trade( selList )
+        if ( totCash - expCash ) >= MIN_ACCOUNT_CASH:
+            self.trade( selList )
+        else:
+            self.logger.critical(
+                'Avoid trading to preserve minimum account cash %0.2f!',
+                MIN_ACCOUNT_CASH
+            )
 
     def getAssetHash( self ):
 
