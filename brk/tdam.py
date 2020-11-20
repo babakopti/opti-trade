@@ -223,7 +223,8 @@ class Tdam:
                            'strike'       : strike,
                            'expiration'   : exprDate,
                            'contractCnt'  : obj[ 'multiplier' ],                     
-                           'unitPrice'    : obj[ 'ask' ],
+                           'unitPriceAsk' : obj[ 'ask' ],
+                           'unitPriceBid' : obj[ 'bid' ],                           
                            'type'         : 'call'      }
                 
                 options.append( option )
@@ -255,7 +256,8 @@ class Tdam:
                            'strike'       : strike,
                            'expiration'   : exprDate,
                            'contractCnt'  : obj[ 'multiplier' ],                     
-                           'unitPrice'    : obj[ 'ask' ],
+                           'unitPriceAsk' : obj[ 'ask' ],
+                           'unitPriceBid' : obj[ 'bid' ],                           
                            'type'         : 'put'      }
                 
                 options.append( option )
@@ -569,3 +571,70 @@ class Tdam:
         self.logger.info( str(orderQtyHash) )
 
         self.setPortfolio( orderQtyHash )    
+
+    def orderVos( self, pairHash, quantity ):
+
+        self.logger.info(   'Ordering %d of %s/%s...',
+                            quantity,
+                            pairHash[ 'optionSymbolBuy' ],
+                            pairHash[ 'optionSymbolSell' ]
+                         )
+
+        optionSymbolBuy  = pairHash[ 'optionSymbolBuy' ]
+        optionSymbolSell = pairHash[ 'optionSymbolSell' ]        
+
+        orderHash = {
+            'orderType': 'MARKET',
+            'session': 'NORMAL',
+            'duration': 'DAY',
+            'orderStrategyType': 'SINGLE',
+            'complexOrderStrategyType': 'VERTICAL',
+            'orderLegCollection': [
+                {
+                    'instruction': 'BUY_TO_OPEN',
+                    'quantity': quantity,
+                    'instrument': {
+                        'symbol': optionSymbolBuy,
+                        'assetType': 'OPTION'
+                    }
+                },
+                {
+                    'instruction': 'SELL_TO_OPEN',
+                    'quantity': quantity,
+                    'instrument': {
+                        'symbol': optionSymbolSell,
+                        'assetType': 'OPTION'
+                    }
+                }
+            ]
+        }        
+
+        url = 'https://api.tdameritrade.com/v1/accounts/%s/orders' % \
+            self.accountId
+        
+        headers = { 'Authorization': 'Bearer ' + self.token }
+
+        for itr in range( MAX_RETRIES ):
+            resp = requests.post( url,
+                                  headers = headers,
+                                  json    = orderHash )
+            if resp.ok:
+                break
+            else:
+                self.logger.warning(
+                    '%s: Retrying in %d seconds!',
+                    resp.text,
+                    RETRY_WAIT_TIME
+                )
+                time.sleep( RETRY_WAIT_TIME )
+
+        if not resp.ok:
+            self.logger.critical(
+                'Failed to trade %s/%s: %s',
+                pairHash[ 'optionSymbolBuy' ],
+                pairHash[ 'optionSymbolSell' ],
+                resp.text
+            )
+                
+        self.logger.info( resp.text )
+        

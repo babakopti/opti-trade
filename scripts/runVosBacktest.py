@@ -28,18 +28,18 @@ OUT_CSV_FILE = 'portfolios/vos_max_cost_50_max_hz_10.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
 ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
-INIT_CASH = 50000
+INIT_CASH = 1000
 
-MIN_PROB  = 0.51
-MAX_PAIR_COST  = 5000.0
+MIN_PROB  = 0.48
+MAX_PAIR_COST  = 50.0
 MAX_UNIQUE_PAIR_COUNT = 1
 TRADE_FEE = 2 * 0.65
 MIN_HORIZON = 1
 MAX_HORIZON = 10
 MAX_TRIES = 1000
-MAX_DAILY_CASH = 5000.0#INIT_CASH / MAX_HORIZON
+MAX_DAILY_CASH = 100.0#INIT_CASH / MAX_HORIZON
 
-BID_FACTOR = 0.9
+BID_FACTOR = 0.95
 
 # ***********************************************************************
 # Read scored options chains data 

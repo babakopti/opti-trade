@@ -49,16 +49,14 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
-NUM_WEEKDAYS_BUY    = 0
-MAX_OPTION_MONTHS   = 3
-MAX_PRICE_CONTRACT  = 500.0
-MAX_PRICE_ASSET     = 500.0
-MAX_HOLDING_ASSET   = 1000.0
-MAX_RATIO_EXPOSURE  = 1.0
-MAX_SELECTION_COUNT = 1
-MIN_PROBABILITY     = 0.496
-OPTION_TRADE_FEE    = 0.75
-OPTION_TRADE_TYPE   = None
+MIN_PROB              = 0.48
+TRADE_FEE             = 0.75
+MIN_HORIZON_DAYS      = 1
+MAX_HORIZON_DAYS      = 10
+MAX_UNIQUE_PAIR_COUNT = 1
+MAX_TRIES             = 1000
+MAX_PAIR_COST         = 50.0
+MAX_DAILY_CASH        = 100.0
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'option_prt_'
@@ -73,6 +71,9 @@ TIME_ZONE     = 'America/New_York'
 SCHED_TIME    = '15:00'
 LOG_FILE_NAME = '/var/log/option_prt_builder.log'
 VERBOSE       = 1
+
+VOS_PAIR_INDEX  = 0
+VOS_COUNT_INDEX = 1
 
 PID_FILE      = '/var/run/option_prt_builder.pid'
 
@@ -106,10 +107,10 @@ NUM_DAYS_MOD_CLEAN  = 3
 NUM_DAYS_PRT_CLEAN  = 90
 
 # ***********************************************************************
-# Class OptionPrtBuilder: Daemon to build options portfolios
+# Class VosPrtBuilder: Daemon to build vos portfolios
 # ***********************************************************************
 
-class OptionPrtBuilder( Daemon ):
+class VosPrtBuilder( Daemon ):
 
     def __init__(   self,
                     assets      = ASSETS,
@@ -124,15 +125,6 @@ class OptionPrtBuilder( Daemon ):
                     optTol      = OPT_TOL,
                     regCoef     = REG_COEF,                    
                     factor      = FACTOR,
-                    maxMonths   = MAX_OPTION_MONTHS,
-                    maxPriceC   = MAX_PRICE_CONTRACT,
-                    maxPriceA   = MAX_PRICE_ASSET,
-                    maxHoldA    = MAX_HOLDING_ASSET,
-                    maxRatioExp = MAX_RATIO_EXPOSURE,
-                    maxSelCnt   = MAX_SELECTION_COUNT,
-                    minProb     = MIN_PROBABILITY,
-                    tradeFee    = OPTION_TRADE_FEE,
-                    optionType  = OPTION_TRADE_TYPE,
                     modHead     = MOD_HEAD,
                     prtHead     = PRT_HEAD,
                     chainHead   = CHAIN_HEAD,
@@ -143,7 +135,6 @@ class OptionPrtBuilder( Daemon ):
                     piDatDir    = PI_DAT_DIR,
                     chainDir    = CHAIN_DIR,
                     timeZone    = TIME_ZONE,
-                    schedTime   = SCHED_TIME,
                     logFileName = LOG_FILE_NAME,
                     verbose     = VERBOSE         ):
 
@@ -161,15 +152,6 @@ class OptionPrtBuilder( Daemon ):
         self.optTol      = optTol
         self.regCoef     = regCoef
         self.factor      = factor
-        self.maxMonths   = maxMonths
-        self.maxPriceC   = maxPriceC
-        self.maxPriceA   = maxPriceA
-        self.maxHoldA    = maxHoldA        
-        self.maxRatioExp = maxRatioExp
-        self.maxSelCnt   = maxSelCnt
-        self.minProb     = minProb
-        self.tradeFee    = tradeFee
-        self.optionType  = optionType
         self.modHead     = modHead
         self.prtHead     = prtHead
         self.chainHead   = chainHead
@@ -180,7 +162,6 @@ class OptionPrtBuilder( Daemon ):
         self.piDatDir    = piDatDir
         self.chainDir    = chainDir
         self.timeZone    = timeZone
-        self.schedTime   = schedTime
         self.logFileName = logFileName        
         self.verbose     = verbose
         self.velNames    = etfs + stocks + futures + indexes
@@ -429,8 +410,8 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.info( 'Setting portfolio object...' )
 
-        minDate = snapDate + pd.DateOffset( days   = 1 )
-        maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
+        minDate = snapDate + pd.DateOffset( days = MIN_HORIZON_DAYS )
+        maxDate = snapDate + pd.DateOffset( days = MAX_HORIZON_DAYS )
 
         self.logger.info( 'Setting assetHash...' )
         
@@ -443,9 +424,9 @@ class OptionPrtBuilder( Daemon ):
                                      curDate     = snapDate,
                                      minDate     = minDate,
                                      maxDate     = maxDate,
-                                     minProb     = self.minProb,
+                                     minProb     = MIN_PROB,
                                      rfiDaily    = 0.0,
-                                     tradeFee    = self.tradeFee,
+                                     tradeFee    = TRADE_FEE,
                                      nDayTimes   = 1140,
                                      logFileName = None,                    
                                      verbose     = 1          )
@@ -453,100 +434,7 @@ class OptionPrtBuilder( Daemon ):
         self.logger.info( 'The prt object was set!' )
 
     def settle( self ):
-
-        self.logger.info( 'Settling the current options holdings...' )
-
-        try:
-            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
-        except Exception as e:
-            self.logger.error( e )
-        
-        positions = td.getPositions()
-
-        pattern = '(\w+)\_(\d+)(C|P)([\W|\d]+)'
-
-        for position in positions:
-
-            sType    = position[ 'instrument' ][ 'assetType' ]
-            longQty  = position[ 'longQuantity' ]
-            shortQty = position[ 'shortQuantity' ]
-
-            if sType != 'OPTION':
-                continue
-
-            if longQty == 0 or shortQty > 0:
-                continue
-
-            symbol      = position[ 'instrument' ][ 'symbol' ]            
-            assetSymbol = position[ 'instrument' ][ 'underlyingSymbol' ]
-            oType       = position[ 'instrument' ][ 'putCall' ].lower()
-            
-            tmpTuple = re.findall( pattern, symbol )[0]
-
-            if len( tmpTuple ) != 4 or\
-               tmpTuple[0] != assetSymbol or\
-               ( oType == 'call' and tmpTuple[2] != 'C' ) or\
-               ( oType == 'put' and tmpTuple[2] != 'P' ):
-                self.logger.error( 'Incorrect option symbol %s!', symbol )
-                
-            exprDate = pd.to_datetime( tmpTuple[1], format = '%m%d%y' )
-            strike   = float( tmpTuple[3] )
-            
-            unitPriceAsk = td.getQuote( symbol, 'ask' )
-            unitPriceBid = td.getQuote( symbol, 'bid' )
-
-            option = { 'optionSymbol' : symbol,
-                       'assetSymbol'  : assetSymbol,
-                       'strike'       : strike,
-                       'expiration'   : exprDate,
-                       'contractCnt'  : 100,
-                       'unitPriceAsk' : unitPriceAsk,
-                       'unitPriceBid' : unitPriceBid,                       
-                       'type'         : oType      }
-
-            self.logger.info( 'Evaluating option %s...' % symbol )
-            
-            ( decision, prob ) = self.prtObj.getCurAction( option,
-                                                           unitPriceBid )
-
-            msgStr = 'Decision for %s is %s; Success probability is %0.3f' % \
-                     ( symbol, decision, prob )
-
-            self.alertStr += msgStr + '\n'
-            
-            self.logger.info( msgStr )
-            
-            if decision == 'sell_now':
-
-                msgStr = 'Selling %d of %s...' % ( longQty, symbol )
-
-                self.alertStr += msgStr + '\n'
-                
-                self.logger.info( msgStr )
-
-                if not DRY_RUN:
-                    td.order( symbol    = symbol,
-                              quantity  = longQty,
-                              sType     = 'OPTION',
-                              action    = 'SELL_TO_CLOSE' )
-                
-            elif decision == 'exec_now':
-
-                msgStr = 'Exercising %d of %s...' % ( longQty, symbol )
-                
-                self.alertStr += msgStr + '\n'
-                
-                self.logger.info( msgStr )
-                
-                if not DRY_RUN:                
-                    td.order( symbol    = symbol,
-                              orderType = 'EXERCISE',
-                              quantity  = longQty,
-                              sType     = 'OPTION',
-                              action    = 'SELL_TO_CLOSE' )
-                
-            else:
-                pass
+        pass
             
     def saveMod( self, mfdMod, modFile ):
 
@@ -566,26 +454,28 @@ class OptionPrtBuilder( Daemon ):
         minDate = snapDate + pd.DateOffset( days   = 1 )
         maxDate = snapDate + pd.DateOffset( months = self.maxMonths )
         
-        cash = self.getCashValue()
+        totCash = self.getCashValue()
+        expcash = min( MAX_DAILY_CASH, totCash )
 
-        exposedCash = self.maxRatioExp * cash
-
-        self.logger.info( 'Amount of available cash is %0.2f; exposure is %0.2f!',
-                          cash,
-                          exposedCash )
+        self.logger.info(
+            'Total available cash is %0.2f; exposure is %0.2f!',
+            totCash,
+            expCash
+        )
 
         options = self.getOptions()
 
-        selHash = self.prtObj.selOptions( options    = options,
-                                          cash       = exposedCash,
-                                          maxPriceC  = self.maxPriceC,
-                                          maxPriceA  = self.maxPriceA,
-                                          maxSelCnt  = self.maxSelCnt,
-                                          optionType = self.optionType )
+        selList = self.prtObj.getVosPortfolio(
+            options,
+            expCash,
+            MAX_PAIR_COST,
+            MAX_UNIQUE_PAIR_COUNT,
+            MAX_TRIES,
+        )
+        
+        self.savePrt( selList, prtFile )
 
-        self.savePrt( selHash, prtFile )
-
-        self.trade( selHash )
+        self.trade( selList )
 
     def getAssetHash( self ):
 
@@ -652,13 +542,7 @@ class OptionPrtBuilder( Daemon ):
             
         self.logger.info( 'Saved option chains for future use.' )
 
-        filtOptions = self.filterMaxHolding( options )
-
-        self.logger.info( 'Filtered out %d options to conform with max asset '
-                          'holding constraint of %2.f.',
-                          len( options ) - len( filtOptions ),
-                          self.maxHoldA  )
-        return filtOptions
+        return options
 
     def saveOptions( self, options ):
 
@@ -716,95 +600,50 @@ class OptionPrtBuilder( Daemon ):
 
         self.logger.info( '%s was saved to bucket!', tmpName )        
 
-    def filterMaxHolding( self, options ):
+    def savePrt( self, selList, prtFile ):
 
-        try:
-            td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
-        except Exception as e:
-            self.logger.error( e )
-        
-        positions = td.getPositions()
-        holdHash  = defaultdict( float )
-
-        for position in positions:
-
-            sType    = position[ 'instrument' ][ 'assetType' ]
-            longQty  = position[ 'longQuantity' ]
-            shortQty = position[ 'shortQuantity' ]
-
-            if sType != 'OPTION':
-                continue
-
-            if longQty == 0 or shortQty > 0:
-                continue
-
-            symbol      = position[ 'instrument' ][ 'symbol' ]                        
-            assetSymbol = position[ 'instrument' ][ 'underlyingSymbol' ]
-            unitPrice   = td.getQuote( symbol, 'bid' )
-            
-            holdHash[ assetSymbol ] += 100 * unitPrice
-
-        filtOptions = []
-
-        for option in options:
-
-            assetSymbol = option[ 'assetSymbol' ]            
-            oCnt        = option[ 'contractCnt' ]
-            unitPrice   = option[ 'unitPriceAsk' ]
-            price       = oCnt * unitPrice
-
-            if price + holdHash[ assetSymbol ] > self.maxHoldA:
-                continue
-
-            filtOptions.append( option )
-        
-        return filtOptions
-        
-    def savePrt( self, selHash, prtFile ):
-
-        json.dump( selHash, open( prtFile, 'w' ) )
+        json.dump( selList, open( prtFile, 'w' ) )
 
         if not os.path.exists( prtFile ):
             self.logger.error( 'The portfolio file was not generated!' )
 
-    def trade( self, selHash ):
+    def trade( self, selList ):
 
         td = Tdam( refToken = REFRESH_TOKEN, accountId = OPTION_ACCOUNT_ID )
         
         self.alertStr += '\nSelected %d options contract(s)!\n\n' \
-            % ( len( selHash.keys() ) )
+            % ( len( selList ) )
                                                                      
-        for symbol in selHash:
+        for item in selList:
 
-            quantity = int( selHash[ symbol ] )
+            pairHash = item[VOS_PAIR_INDEX]
+            quantity = int( item[VOS_COUNT_INDEX] )
             
-            msgStr = 'Buying %d of %s...' % ( quantity, symbol )
+            msgStr = 'Buying %d of %s/%s spread...' % \
+                (
+                    quantity,
+                    pairHash[ 'optionSymbolBuy' ],
+                    pairHash[ 'optionSymbolSell' ]
+                )
 
             self.alertStr += msgStr + '\n'
             
             self.logger.info( msgStr )
 
-            curDayInt = datetime.datetime.now().isoweekday()
-            randDays  = np.random.randint( 1, 6, NUM_WEEKDAYS_BUY )
-        
-            self.logger.info( 'Randomly selected weekday(s) are %s, today is %d!',
-                              str( randDays ),
-                              curDayInt )
-            
             if not DRY_RUN:
-                if curDayInt in randDays:            
-                    td.order( symbol    = symbol,
-                              quantity  = quantity,
-                              sType     = 'OPTION',
-                              action    = 'BUY_TO_OPEN' )
+                td.orderVos( pairHash, quantity )
+                self.alertStr += 'Bought %d of %s/%s...\n' % \
+                    (
+                        quantity,
+                        pairHash[ 'optionSymbolBuy' ],
+                        pairHash[ 'optionSymbolSell' ]
+                    )
+            else:
+                msgStr = 'Not trading today!'
                     
-                    self.alertStr += 'Bought %d of %s...\n' % ( quantity, symbol )
-                else:
-                    msgStr = 'Not trading today!'
+                self.alertStr += msgStr + '\n'
                     
-                    self.alertStr += msgStr + '\n'
-                    
-                    self.logger.info( msgStr )
+                self.logger.info( msgStr )
     
     def sendPrtAlert( self ):
 
@@ -850,7 +689,7 @@ class OptionPrtBuilder( Daemon ):
         if not SCHED_FLAG:
             self.process()
         else:
-            schedule.every().day.at( self.schedTime ).do( self.process )
+            schedule.every().day.at( SCHED_TIME ).do( self.process )
             
             while True: 
                 schedule.run_pending() 
