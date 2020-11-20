@@ -31,6 +31,9 @@ ODE_TOL   = 1.0e-2
 OPT_TOL   = 1.0e-6
 MAX_ITERS = 10000
 
+VOS_PAIR_INDEX  = 0
+VOS_COUNT_INDEX = 1
+
 # ***********************************************************************
 # Class MfdPrt: Portfolio builder class
 # ***********************************************************************
@@ -837,6 +840,76 @@ class MfdOptionsPrt:
                           ( time.time() - t0 ) )
         
         return prdDf
+
+    def getVosPortfolio( self,
+                         options,
+                         cash,
+                         maxPairCost,
+                         maxUniquePairCnt,
+                         maxTries    ):
+
+        callDf = self.selVosPairs( 
+            options,
+            'call',
+            maxPairCost,
+            maxUniquePairCnt,
+            maxTries
+        )
+
+        putDf = self.selVosPairs( 
+            options,
+            'put',
+            maxPairCost,
+            maxUniquePairCnt,
+            maxTries
+        )
+
+        if callDf is None and putDf is None:
+            return None
+    
+        selDf = pd.concat( [ callDf, putDf ] )
+        selDf = selDf.sort_values( 'maxReturn', ascending = False )
+        selDf = selDf.head( maxUniquePairCnt )
+
+        totVal  = 0.0
+        selList = [ [ dict( row ), 0 ] for ind, row in selDf.iterrows() ]
+
+        while totVal < cash:
+            tmpFlag = False
+            for ind, item in enumerate( selList ):
+
+                pairHash = item[VOS_PAIR_INDEX]
+                cost     = pairHash[ 'cost' ]
+
+                if totVal + cost > cash:
+                    continue
+            
+                selList[ind][VOS_COUNT_INDEX] += 1
+
+                totVal += cost
+
+                tmpFlag = True
+
+            if not tmpFlag:
+                break
+            
+        for item in selList:
+
+            pairHash = item[VOS_PAIR_INDEX]
+            
+            self.logger.info(
+                'Selected %d of options pair %s / %s; cost is %0.2f!',
+                item[VOS_COUNT_INDEX],
+                pairHash[ 'optionSymbolBuy' ],
+                pairHash[ 'optionSymbolSell' ],                
+                pairHash[ 'cost' ],
+            )
+
+        self.logger.info(
+            'Spent %0.2f out of available %0.2f', totVal, cash
+        )
+
+        return selList
     
     def selVosPairs( self,
                      options,
@@ -861,7 +934,8 @@ class MfdOptionsPrt:
 
         optDf[ 'expiration' ] = optDf.expiration.astype( 'datetime64[ns]' )
         optDf[ 'strike' ]   = optDf.strike.astype( 'float' )
-        optDf[ 'unitPrice' ] = optDf.unitPrice.astype( 'float' )
+        optDf[ 'unitPriceAsk' ] = optDf.unitPriceAsk.astype( 'float' )
+        optDf[ 'unitPriceBid' ] = optDf.unitPriceBid.astype( 'float' )        
 
         buyDf = optDf[ ( optDf[ 'type' ] == optionType ) &\
                        ( optDf[ 'expiration' ] <= self.maxDate ) &\
@@ -910,7 +984,7 @@ class MfdOptionsPrt:
             option    = dict( item )
             symbolBuy = option[ 'optionSymbol' ]
             strikeBuy = option[ 'strike' ]
-            uPriceBuy = option[ 'unitPrice' ]            
+            uPriceBuy = option[ 'unitPriceAsk' ]            
             asset     = option[ 'assetSymbol' ]
             exprDate  = option[ 'expiration' ]
             oType     = option[ 'type' ]                
@@ -926,7 +1000,7 @@ class MfdOptionsPrt:
             elif optionType == 'put':
                 sellDf = sellDf[ sellDf[ 'strike' ] < strikeBuy ]
 
-            sellDf[ 'cost' ] = sellDf.unitPrice.apply(
+            sellDf[ 'cost' ] = sellDf.unitPriceBid.apply(
                 lambda x: oCnt * ( uPriceBuy - x ) + 2 * self.tradeFee
             )
 
@@ -963,7 +1037,7 @@ class MfdOptionsPrt:
         } )
 
         self.logger.info( 'Selected %d %s options pairs...',
-                          buyDf.shape[0], optionType )
+                           buyDf.shape[0], optionType )
         
         self.logger.info( 'Selecting options took %0.2f seconds!',
                           ( time.time() - t0 ) )
@@ -980,7 +1054,7 @@ class MfdOptionsPrt:
         asset    = option[ 'assetSymbol' ]
         strike   = float( option[ 'strike' ] )
         exprDate = option[ 'expiration' ]
-        uPrice   = float( option[ 'unitPrice' ] )
+        uPrice   = float( option[ 'unitPriceAsk' ] )
         oType    = option[ 'type' ]
         oCnt     = option[ 'contractCnt' ]
 
@@ -1128,7 +1202,7 @@ class MfdOptionsPrt:
             exprDate = option[ 'expiration' ]
             oType    = option[ 'type' ]                
             oCnt     = option[ 'contractCnt' ]
-            uPrice   = option[ 'unitPrice' ]
+            uPrice   = option[ 'unitPriceAsk' ]
             oPrice   = uPrice * oCnt                
             cost     = oPrice + self.tradeFee
             prob     = option[ 'Prob' ]
@@ -1224,7 +1298,7 @@ class MfdOptionsPrt:
         strike   = option[ 'strike' ]
         exprDate = option[ 'expiration' ]
         exprDate = pd.to_datetime( exprDate )
-        uPrice   = option[ 'unitPrice' ]
+        uPrice   = option[ 'unitPriceAsk' ]
         oType    = option[ 'type' ]        
         oCnt     = option[ 'contractCnt' ]
 
@@ -1266,7 +1340,7 @@ class MfdOptionsPrt:
     def getNormProb( self, option ):
 
         oCnt   = option[ 'contractCnt' ]
-        uPrice = option[ 'unitPrice' ]
+        uPrice = option[ 'unitPriceAsk' ]
         oPrice = uPrice * oCnt                
         cost   = oPrice + self.tradeFee
         prob   = self.getProb( option )
@@ -1287,7 +1361,7 @@ class MfdOptionsPrt:
             exprDate = option[ 'expiration' ]
             oType    = option[ 'type' ]                    
             oCnt     = option[ 'contractCnt' ]
-            uPrice   = option[ 'unitPrice' ]
+            uPrice   = option[ 'unitPriceAsk' ]
             oPrice   = uPrice * oCnt                
             exprDate = pd.to_datetime( exprDate )
 

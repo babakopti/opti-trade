@@ -24,22 +24,21 @@ from prt.prt import MfdOptionsPrt
 # Main input params
 # ***********************************************************************
 
-OUT_CSV_FILE = 'portfolios/vos_max_cost_50_max_hz_10.csv'
+OUT_CSV_FILE = 'data/options_trade_blances.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
 ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
-INIT_CASH = 50000
+MIN_PROB  = 0.49
+MAX_PRICE_C  = 500.0
+MAX_PRICE_A  = 5000.0
+TRADE_FEE = 2 * 0.75
+INIT_CASH = 5000
 
-MIN_PROB  = 0.51
-MAX_PAIR_COST  = 5000.0
-MAX_UNIQUE_PAIR_COUNT = 1
-TRADE_FEE = 2 * 0.65
 MIN_HORIZON = 1
 MAX_HORIZON = 10
-MAX_TRIES = 1000
-MAX_DAILY_CASH = 5000.0#INIT_CASH / MAX_HORIZON
 
-BID_FACTOR = 0.9
+MAX_TRIES = 1000
+NUM_DAILY_TRADES = 1
 
 # ***********************************************************************
 # Read scored options chains data 
@@ -95,13 +94,7 @@ def getOptions( curDate, optDf ):
     
     tmpDf = optDf[ optDf.DataDate == curDate ]
     tmpDf = tmpDf.rename(
-        columns = {
-            'Prob' : 'prob',
-            'unitPrice': 'unitPriceAsk',
-        }
-    )
-    tmpDf[ 'unitPriceBid' ] = tmpDf.unitPriceAsk.apply(
-        lambda x: BID_FACTOR * x
+        columns = { 'Prob' : 'prob' }
     )
     tmpDf = tmpDf[ [ 'optionSymbol',
                      'assetSymbol',
@@ -109,8 +102,7 @@ def getOptions( curDate, optDf ):
                      'contractCnt',
                      'strike',
                      'expiration',
-                     'unitPriceAsk',
-                     'unitPriceBid',                     
+                     'unitPrice',
                      'prob'     ] ]
     
     options = [
@@ -124,11 +116,18 @@ def selTradeOptions( curDate, holdHash, optDf ):
     minDate = curDate + datetime.timedelta( days = MIN_HORIZON )
     maxDate = curDate + datetime.timedelta( days = MAX_HORIZON )
 
+    assetHash = {}
+
+    for symbol in ACT_HASH:
+        assetHash[ symbol ] = ACT_HASH[ symbol ][ curDate ]
+
+    MfdOptionsPrt.getProb = lambda self, x: x[ 'prob' ]
+    
     with patch.object(MfdOptionsPrt, 'setMod', return_value=None):
         with patch.object(MfdOptionsPrt, 'setPrdDf', return_value=None):
             prtObj = MfdOptionsPrt(
                 modFile      = None,
-                assetHash    = None,
+                assetHash    = assetHash,
                 curDate      = curDate,
                 minDate      = minDate,
                 maxDate      = maxDate,
@@ -142,50 +141,55 @@ def selTradeOptions( curDate, holdHash, optDf ):
     prtObj.logger = logger
     
     options = getOptions( curDate, optDf )
-
-    cash = min( MAX_DAILY_CASH, holdHash[ curDate ][ 'cash' ] )
     
-    selList = prtObj.getVosPortfolio(
+    selHash = prtObj.selOptions( 
         options,
-        cash,
-        MAX_PAIR_COST,
-        MAX_UNIQUE_PAIR_COUNT,
-        MAX_TRIES,
+        holdHash[ curDate ][ 'cash' ],
+        MAX_PRICE_C,
+        MAX_PRICE_A,
+        NUM_DAILY_TRADES,
     )
-    
-    if selList is None:
-        logger.info( 'Ran out of money! Stopping trading!' )
-        return holdHash
 
-    for item in selList:
+    for item in selHash:
 
-        pairHash = item[0]
+        for option in options:
+            if option[ 'optionSymbol' ] == item:
+                break
+
+        cost = option[ 'contractCnt' ] * option[ 'unitPrice' ]
         
-        for itr in range( item[1] ):
-            holdHash[ curDate ][ 'cash' ] -= pairHash[ 'cost' ]
-            holdHash[ curDate ][ 'options' ].append( pairHash )
+        logger.info(
+            'Buying %d %s contract(s) at %0.2f!',
+            selHash[ item ],
+            item,
+            cost,
+        )
+        
+        holdHash[ curDate ][ 'cash' ] -= cost * selHash[ item ]
+        holdHash[ curDate ][ 'options' ].append( option )
 
     return holdHash
 
-def getOptionsPairVal( pairHash, curDate ):
+def getOptionVal( option, curDate ):
 
-    assetSymbol = pairHash[ 'assetSymbol' ]
-    oType       = pairHash[ 'type' ]
-    oCnt        = pairHash[ 'contractCnt' ]
-    strikeBuy   = pairHash[ 'strikeBuy' ]
-    strikeSell  = pairHash[ 'strikeSell' ]
-    cost        = pairHash[ 'cost' ]
+    assetSymbol = option[ 'assetSymbol' ]
+    oType       = option[ 'type' ]
+    oCnt        = option[ 'contractCnt' ]
+    strike      = float(option[ 'strike' ])
+    uPrice      = option[ 'unitPrice' ]
     actPrice    = ACT_HASH[ assetSymbol ][ curDate ]
 
+    cost = oCnt * uPrice
+    
     if oType == 'call':
         actGain = oCnt * max(
             0.0,
-            min( actPrice, strikeSell ) - strikeBuy
+            actPrice - strike
         )
     elif oType == 'put':
         actGain = oCnt * max(
             0.0,
-            strikeBuy - max( actPrice, strikeSell )
+            strike - actPrice
         )
 
     actRet = ( actGain - cost ) / cost
@@ -196,16 +200,15 @@ def settle( curDate, holdHash ):
 
     logger.info( 'Settling...' )
     
-    for ind, pairHash in enumerate(
+    for ind, option in enumerate(
             holdHash[ curDate ][ 'options' ]
     ):
-        if pairHash[ 'expiration' ] == curDate:
-            gain, ret = getOptionsPairVal( pairHash, curDate )
+        if option[ 'expiration' ] == curDate:
+            gain, ret = getOptionVal( option, curDate )
 
             logger.info(
-                'Exercising %s/%s contracts with a gain of %0.2f!',
-                pairHash[ 'optionSymbolBuy' ],
-                pairHash[ 'optionSymbolSell' ],
+                'Exercising %s with a gain of %0.2f!',
+                option[ 'optionSymbol' ],
                 gain
             )
             
@@ -242,10 +245,10 @@ for curDate in dates:
 
     balHash[ curDate ] = holdHash[ curDate ][ 'cash' ]
     
-    for pairHash in holdHash[ curDate ][ 'options' ]:
-        actGain, actRet = getOptionsPairVal( pairHash, curDate )
+    for option in holdHash[ curDate ][ 'options' ]:
+        actGain, actRet = getOptionVal( option, curDate )
 
-        if pairHash[ 'expiration' ] == curDate:
+        if option[ 'expiration' ] == curDate:
             retList.append( actRet )
     
         balHash[ curDate ] += actGain
