@@ -848,6 +848,8 @@ class MfdOptionsPrt:
                          maxUniquePairCnt,
                          maxTries    ):
 
+        options = self.filterOptions( options )
+
         callDf = self.selVosPairs( 
             options,
             'call',
@@ -1046,6 +1048,44 @@ class MfdOptionsPrt:
                           ( time.time() - t0 ) )
 
         return buyDf
+
+    def filterOptions( self, options, maxPriceC = None, optionType = None ):
+        
+        subSet = []
+
+        for option in options:
+            
+            asset    = option[ 'assetSymbol' ]
+            exprDate = option[ 'expiration' ]
+            oType    = option[ 'type' ]                    
+            oCnt     = option[ 'contractCnt' ]
+            uPrice   = option[ 'unitPriceAsk' ]
+            oPrice   = uPrice * oCnt                
+            exprDate = pd.to_datetime( exprDate )
+
+            if asset not in self.assetHash.keys():
+                continue
+
+            if exprDate <= self.curDate:
+                continue
+
+            if exprDate < self.minDate:
+                continue
+            
+            if exprDate > self.maxDate:
+                continue
+
+            if maxPriceC is not None:
+                if oPrice > maxPriceC:
+                    continue
+
+            if optionType is not None:
+                if oType != optionType:
+                    continue
+                
+            subSet.append( option )
+
+        return subSet    
     
     def getProb( self, option ):
 
@@ -1354,45 +1394,3 @@ class MfdOptionsPrt:
 
         return True
 
-    def filterOptions( self, options, maxPriceC = None, optionType = None ):
-        
-        subSet = []
-
-        for option in options:
-            
-            asset    = option[ 'assetSymbol' ]
-            exprDate = option[ 'expiration' ]
-            oType    = option[ 'type' ]                    
-            oCnt     = option[ 'contractCnt' ]
-            uPrice   = option[ 'unitPriceAsk' ]
-            oPrice   = uPrice * oCnt                
-            exprDate = pd.to_datetime( exprDate )
-
-            if asset not in self.assetHash.keys():
-                continue
-
-            if exprDate <= self.curDate:
-                continue
-
-            if exprDate < self.minDate:
-                continue
-            
-            if exprDate > self.maxDate:
-                continue
-
-            if maxPriceC is not None:
-                if oPrice > maxPriceC:
-                    continue
-
-            if optionType is not None:
-                if oType != optionType:
-                    continue
-                
-            prob = self.getProb( option )
-
-            if prob < self.minProb:
-               continue
-            
-            subSet.append( option )
-
-        return subSet    
