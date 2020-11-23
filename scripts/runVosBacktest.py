@@ -28,18 +28,18 @@ OUT_CSV_FILE = 'portfolios/vos_max_cost_50_max_hz_10.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
 ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
-INIT_CASH = 1000
+INIT_CASH = 300.0
 
-MIN_PROB  = 0.48
+MIN_PROB  = 0.49
 MAX_PAIR_COST  = 50.0
 MAX_UNIQUE_PAIR_COUNT = 1
 TRADE_FEE = 2 * 0.65
 MIN_HORIZON = 1
 MAX_HORIZON = 10
 MAX_TRIES = 1000
-MAX_DAILY_CASH = 100.0#INIT_CASH / MAX_HORIZON
+MAX_DAILY_CASH = 50.0
 
-BID_FACTOR = 0.95
+BID_FACTOR = 0.85
 
 # ***********************************************************************
 # Read scored options chains data 
@@ -62,9 +62,11 @@ actDf[ 'Date' ] = actDf.Date.astype( 'datetime64[ns]' )
 actDf = actDf.groupby( 'Date', as_index = False ).mean()
 
 ACT_HASH = {}
+ASSET_HASH = {}
 for symbol in set( optDf.assetSymbol ):
     ACT_HASH[ symbol ] = dict( zip( actDf[ 'Date' ], actDf[ symbol ] ) )
-
+    ASSET_HASH[ symbol ] = None
+    
 # ***********************************************************************
 # Set some parameters
 # ***********************************************************************
@@ -128,7 +130,7 @@ def selTradeOptions( curDate, holdHash, optDf ):
         with patch.object(MfdOptionsPrt, 'setPrdDf', return_value=None):
             prtObj = MfdOptionsPrt(
                 modFile      = None,
-                assetHash    = None,
+                assetHash    = ASSET_HASH,
                 curDate      = curDate,
                 minDate      = minDate,
                 maxDate      = maxDate,

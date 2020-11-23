@@ -1049,11 +1049,6 @@ class MfdOptionsPrt:
     
     def getProb( self, option ):
 
-        validFlag = self.validateOption( option )
-
-        if not validFlag:
-            return 0.0
-        
         asset    = option[ 'assetSymbol' ]
         strike   = float( option[ 'strike' ] )
         exprDate = option[ 'expiration' ]
@@ -1100,42 +1095,6 @@ class MfdOptionsPrt:
             assert False, 'Only call/put options are accepted!'
 
         return prob
-
-    def validateOption( self, option ):
-
-        asset    = option[ 'assetSymbol' ]
-        exprDate = option[ 'expiration' ]
-
-        exprDate = pd.to_datetime( exprDate )
-        
-        if asset not in self.assetHash.keys():
-            self.logger.error( 'Asset %s not found in assetHash!', asset )
-            return False
-            
-        if asset not in self.ecoMfd.velNames:
-            self.logger.error( 'Contract %s: asset %s not found in the model!',
-                               option[ 'optionSymbol' ], asset )
-            return False
-                
-        if exprDate < self.curDate:
-            msgStr = 'Contract %s: ' +\
-                'expiration %s should be >= curDate %s'
-            self.logger.error( msgStr,
-                               option[ 'optionSymbol' ],
-                               str( exprDate ),
-                               str( self.curDate )   )
-            return False
-
-        if exprDate > self.maxDate:
-            msgStr = 'Contract %s: ' +\
-                'expiration %s should be <= maxDate %s'
-            self.logger.error( msgStr,
-                               option[ 'optionSymbol' ],
-                               str( exprDate ),
-                               str( self.maxDate )   )
-            return False
-
-        return True
     
     def selOptions( self,
                     options,
@@ -1359,6 +1318,42 @@ class MfdOptionsPrt:
 
         return prob * fct
     
+    def validateOption( self, option ):
+
+        asset    = option[ 'assetSymbol' ]
+        exprDate = option[ 'expiration' ]
+
+        exprDate = pd.to_datetime( exprDate )
+        
+        if asset not in self.assetHash.keys():
+            self.logger.error( 'Asset %s not found in assetHash!', asset )
+            return False
+            
+        if asset not in self.ecoMfd.velNames:
+            self.logger.error( 'Contract %s: asset %s not found in the model!',
+                               option[ 'optionSymbol' ], asset )
+            return False
+                
+        if exprDate < self.curDate:
+            msgStr = 'Contract %s: ' +\
+                'expiration %s should be >= curDate %s'
+            self.logger.error( msgStr,
+                               option[ 'optionSymbol' ],
+                               str( exprDate ),
+                               str( self.curDate )   )
+            return False
+
+        if exprDate > self.maxDate:
+            msgStr = 'Contract %s: ' +\
+                'expiration %s should be <= maxDate %s'
+            self.logger.error( msgStr,
+                               option[ 'optionSymbol' ],
+                               str( exprDate ),
+                               str( self.maxDate )   )
+            return False
+
+        return True
+
     def filterOptions( self, options, maxPriceC = None, optionType = None ):
         
         subSet = []
@@ -1396,9 +1391,8 @@ class MfdOptionsPrt:
             prob = self.getProb( option )
 
             if prob < self.minProb:
-                continue
+               continue
             
             subSet.append( option )
 
         return subSet    
-
