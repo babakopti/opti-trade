@@ -201,7 +201,9 @@ def settle( curDate, holdHash ):
     for ind, pairHash in enumerate(
             holdHash[ curDate ][ 'options' ]
     ):
-        if pairHash[ 'expiration' ] == curDate:
+        exprDate = pd.to_datetime( pairHash[ 'expiration' ] )
+        
+        if exprDate == curDate:
             gain, ret = getOptionsPairVal( pairHash, curDate )
 
             logger.info(
@@ -247,7 +249,8 @@ for curDate in dates:
     for pairHash in holdHash[ curDate ][ 'options' ]:
         actGain, actRet = getOptionsPairVal( pairHash, curDate )
 
-        if pairHash[ 'expiration' ] == curDate:
+        exprDate = pd.to_datetime( pairHash[ 'expiration' ] )
+        if exprDate == curDate:
             retList.append( actRet )
     
         balHash[ curDate ] += actGain
