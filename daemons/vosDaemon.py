@@ -574,7 +574,7 @@ class VosPrtBuilder( Daemon ):
         newHash = defaultdict( list )
 
         curDate = self.prtObj.curDate
-        maxDate = selt.prtObj.curDate
+        maxDate = self.prtObj.curDate
         
         for option in options:
             
