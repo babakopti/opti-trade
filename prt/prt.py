@@ -848,7 +848,7 @@ class MfdOptionsPrt:
                          maxUniquePairCnt,
                          maxTries    ):
 
-#        options = self.filterOptions( options )
+        options = self.filterOptions( options )
 
         callDf = self.selVosPairs( 
             options,
