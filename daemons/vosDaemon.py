@@ -53,7 +53,6 @@ MIN_PROB              = 0.49
 TRADE_FEE             = 0.65
 MIN_HORIZON_DAYS      = 1
 MAX_HORIZON_DAYS      = 10
-MAX_HORIZON_SAVE_DAYS = 120
 MAX_UNIQUE_PAIR_COUNT = 1
 MAX_TRIES             = 1000
 MAX_PAIR_COST         = 50.0
@@ -575,7 +574,7 @@ class VosPrtBuilder( Daemon ):
         newHash = defaultdict( list )
 
         curDate = self.prtObj.curDate
-        maxDate = curDate + pd.DateOffset( days = MAX_HORIZON_SAVE_DAYS )
+        maxDate = selt.prtObj.curDate
         
         for option in options:
             

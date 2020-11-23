@@ -873,6 +873,8 @@ class MfdOptionsPrt:
         selDf = selDf.sort_values( 'maxReturn', ascending = False )
         selDf = selDf.head( maxUniquePairCnt )
 
+        selDf[ 'expiration' ] = selDf[ 'expiration' ].astype( float )
+        
         totVal  = 0.0
         selList = [ [ dict( row ), 0 ] for ind, row in selDf.iterrows() ]
 
