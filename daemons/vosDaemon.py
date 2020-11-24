@@ -49,14 +49,14 @@ OPT_TOL       = 1.0e-3
 REG_COEF      = 1.0e-3                    
 FACTOR        = 1.0e-5
 
-MIN_PROB              = 0.49
+MIN_PROB              = 0.48
 TRADE_FEE             = 0.65
 MIN_HORIZON_DAYS      = 1
 MAX_HORIZON_DAYS      = 10
 MAX_UNIQUE_PAIR_COUNT = 1
 MAX_TRIES             = 1000
-MAX_PAIR_COST         = 50.0
-MAX_DAILY_CASH        = 50.0
+MAX_PAIR_COST         = 25.0
+MAX_DAILY_CASH        = 25.0
 MIN_ACCOUNT_CASH      = 2800.0
 
 MOD_HEAD      = 'option_model_'

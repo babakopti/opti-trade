@@ -26,22 +26,23 @@ from prt.prt import MfdOptionsPrt
 # Main input params
 # ***********************************************************************
 
-OUT_CSV_FILE = 'portfolios/vos_max_cost_50_max_hz_30.csv'
+OUT_BAL_FILE = 'portfolios/vos_max_cost_25_max_hz_10.csv'
+OUT_HIST_FILE = 'data/vos_max_cost_25_max_hz_10_hist.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
 ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
 INIT_CASH = 300.0
 
-MIN_PROB  = 0.49
-MAX_PAIR_COST  = 50.0
-MAX_UNIQUE_PAIR_COUNT = 1
-TRADE_FEE = 2 * 0.65
+MIN_PROB  = 0.48
+MAX_PAIR_COST  = 25.0
+MAX_UNIQUE_PAIR_COUNT = 2
+TRADE_FEE = 0.65
 MIN_HORIZON = 1
-MAX_HORIZON = 30
+MAX_HORIZON = 10
 MAX_TRIES = 1000
-MAX_DAILY_CASH = 50.0
+MAX_DAILY_CASH = 25.0
 
-BID_FACTOR = 0.85
+BID_FACTOR = 0.8
 
 PTC_FLAG      = False
 PTC_MIN_VIX   = None
@@ -85,11 +86,12 @@ dates = sorted( set( optDf.DataDate ) )
 logger = utl.getLogger( None, 1 )
 
 # ***********************************************************************
-# Initialize the holding hash
+# Initialize the holding hash and history hash
 # ***********************************************************************
 
 holdHash = {}
 balHash = {}
+HIST_HASH = {}
 
 for date in dates:
     
@@ -295,10 +297,22 @@ def selTradeOptions( curDate, holdHash, optDf ):
     for item in selList:
 
         pairHash = item[0]
+
+        pairSymbol = '/'.join( [
+            pairHash[ 'optionSymbolBuy' ],
+            pairHash[ 'optionSymbolSell' ],
+        ] )
         
         for itr in range( item[1] ):
             holdHash[ curDate ][ 'cash' ] -= pairHash[ 'cost' ]
             holdHash[ curDate ][ 'options' ].append( pairHash )
+            
+        HIST_HASH[ pairSymbol ] = \
+            {
+                'buyDate': curDate,
+                'cost': pairHash[ 'cost' ],
+                'count': item[1],
+            }
 
     return holdHash
 
@@ -330,25 +344,38 @@ def getOptionsPairVal( pairHash, curDate ):
 def settle( curDate, holdHash ):
 
     logger.info( 'Settling...' )
+
+    remainList = []
     
-    for ind, pairHash in enumerate(
-            holdHash[ curDate ][ 'options' ]
-    ):
+    for pairHash in holdHash[ curDate ][ 'options' ]:
+
         exprDate = pd.to_datetime( pairHash[ 'expiration' ] )
         
         if exprDate == curDate:
+            
             gain, ret = getOptionsPairVal( pairHash, curDate )
 
-            logger.info(
-                'Exercising %s/%s contracts with a gain of %0.2f!',
+            pairSymbol = '/'.join( [
                 pairHash[ 'optionSymbolBuy' ],
                 pairHash[ 'optionSymbolSell' ],
+            ] )
+            
+            logger.info(
+                'Exercising %s pair with a gain of %0.2f!',
+                pairSymbol,
                 gain
             )
             
-            holdHash[ curDate ][ 'options' ].pop( ind )
-            holdHash[ curDate ][ 'cash' ] += gain 
+            holdHash[ curDate ][ 'cash' ] += gain
 
+            HIST_HASH[ pairSymbol ][ 'exercise' ] = curDate
+            HIST_HASH[ pairSymbol ][ 'gain' ] = gain            
+
+        else:
+            remainList.append( pairHash )
+            
+        holdHash[ curDate ][ 'options' ] = remainList
+        
     return holdHash
 
 # ***********************************************************************
@@ -397,9 +424,24 @@ for curDate in dates:
 
     prevCash  = holdHash[ curDate ][ 'cash' ]
     prevHolds = holdHash[ curDate ][ 'options' ]
-    
+
 # ***********************************************************************
-# Output
+# Put together and output history
+# ***********************************************************************
+
+tmpList = []
+for pairSymbol in HIST_HASH:
+    tmpList.append( {
+        **{ 'pairSymbol': pairSymbol },
+        **HIST_HASH[ pairSymbol ],
+    } )
+
+histDf = pd.DataFrame( tmpList )
+
+histDf.to_csv( OUT_HIST_FILE, index = False )
+
+# ***********************************************************************
+# Output and plot balance
 # ***********************************************************************
 
 logger.info(
@@ -438,7 +480,7 @@ logger.info(
     outDf.Return.mean() / outDf.Return.std()
 )
 
-outDf.to_csv( OUT_CSV_FILE, index = False )
+outDf.to_csv( OUT_BAL_FILE, index = False )
 
 plt.plot( outDf.Date, outDf.Balance )
 plt.xlabel( 'Date' )
