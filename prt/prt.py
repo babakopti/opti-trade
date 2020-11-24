@@ -846,7 +846,9 @@ class MfdOptionsPrt:
                          cash,
                          maxPairCost,
                          maxUniquePairCnt,
-                         maxTries    ):
+                         maxTries,
+                         callBlackList = None,
+                         putBlackList  = None     ):
 
         options = self.filterOptions( options )
 
@@ -855,7 +857,8 @@ class MfdOptionsPrt:
             'call',
             maxPairCost,
             maxUniquePairCnt,
-            maxTries
+            maxTries,
+            callBlackList
         )
 
         putDf = self.selVosPairs( 
@@ -863,7 +866,8 @@ class MfdOptionsPrt:
             'put',
             maxPairCost,
             maxUniquePairCnt,
-            maxTries
+            maxTries,
+            putBlackList
         )
 
         if callDf is None and putDf is None:
@@ -922,7 +926,8 @@ class MfdOptionsPrt:
                      optionType,
                      maxCost,
                      maxSelCnt,
-                     maxTries    ):
+                     maxTries,
+                     blackList = None  ):
 
         assert optionType in [ 'call', 'put' ], \
             'Unkown option type %s' % str( optionType )
@@ -941,6 +946,10 @@ class MfdOptionsPrt:
         
         optDf = pd.DataFrame( options )
 
+        if blackList is not None and len( blackList ) > 0:
+            optDf = optDf[ ~optDf.assetSymbol.isin( blackList ) ]
+            self.logger.info( 'Blacklisted %s...', ','.join( blackList ) )
+            
         optDf[ 'expiration' ] = optDf.expiration.astype( 'datetime64[ns]' )
         optDf[ 'strike' ]   = optDf.strike.astype( 'float' )
         optDf[ 'unitPriceAsk' ] = optDf.unitPriceAsk.astype( 'float' )

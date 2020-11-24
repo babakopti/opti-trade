@@ -8,6 +8,7 @@ import time
 import datetime
 import logging
 import json
+import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,6 +18,7 @@ from unittest.mock import patch
 sys.path.append( os.path.abspath( '..' ) )
 
 import utl.utils as utl
+import ptc.ptc as ptc
 
 from prt.prt import MfdOptionsPrt 
 
@@ -24,7 +26,7 @@ from prt.prt import MfdOptionsPrt
 # Main input params
 # ***********************************************************************
 
-OUT_CSV_FILE = 'portfolios/vos_max_cost_50_max_hz_10.csv'
+OUT_CSV_FILE = 'portfolios/vos_max_cost_50_max_hz_30.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
 ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
@@ -35,11 +37,18 @@ MAX_PAIR_COST  = 50.0
 MAX_UNIQUE_PAIR_COUNT = 1
 TRADE_FEE = 2 * 0.65
 MIN_HORIZON = 1
-MAX_HORIZON = 10
+MAX_HORIZON = 30
 MAX_TRIES = 1000
 MAX_DAILY_CASH = 50.0
 
 BID_FACTOR = 0.85
+
+PTC_FLAG      = False
+PTC_MIN_VIX   = None
+PTC_MAX_VIX   = 60.0
+PTC_HEAD      = 'ptc_'
+PTC_DIR       = 'pt_classifiers'
+BASE_DAT_DIR  = 'data'
 
 # ***********************************************************************
 # Read scored options chains data 
@@ -93,6 +102,116 @@ for date in dates:
 # Some utility functions
 # ***********************************************************************
 
+def buildPTC( symbols ):
+
+    if not PTC_FLAG:
+        return
+        
+    for symbol in symbols:
+
+        symFile = os.path.join( BASE_DAT_DIR,
+                                '%s.pkl' % symbol )
+        vixFile = os.path.join( BASE_DAT_DIR,
+                                'VIX.pkl' )            
+
+        ptcObj  = ptc.PTClassifier( symbol      = symbol,
+                                    symFile     = symFile,
+                                    vixFile     = vixFile,
+                                    ptThreshold = 1.0e-2,
+                                    nPTAvgDays  = None,
+                                    testRatio   = 0,
+                                    method      = 'bayes',
+                                    minVix      = PTC_MIN_VIX,
+                                    maxVix      = PTC_MAX_VIX,
+                                    logFileName = None,                    
+                                    verbose     = 1          )
+
+        ptcObj.classify()
+
+        ptcFile = os.path.join( PTC_DIR,
+                                PTC_HEAD + symbol + '.pkl' )
+            
+        logger.info( 'Saving the classifier to %s', ptcFile )
+            
+        ptcObj.save( ptcFile )
+
+def getPTCBlacklists( curDate, assetSymbols ):
+
+    if not PTC_FLAG:
+        return None
+
+    logger.info( 'Applying peak classifiers to portfolio!' )
+        
+    dayDf = pd.read_pickle( ACT_FILE )        
+
+    dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
+    
+    minDate = curDate - \
+        pd.DateOffset( days = 7 )
+    
+    dayDf = dayDf[ ( dayDf.Date >= minDate ) &
+                   ( dayDf.Date <= curDate ) ]
+    
+    dayDf[ 'Date' ] = dayDf.Date.\
+            apply( lambda x : x.strftime( '%Y-%m-%d' ) )
+    
+    dayDf = dayDf.groupby( 'Date', as_index = False ).mean()
+
+    dayDf[ 'Date' ] = dayDf.Date.astype( 'datetime64[ns]' )
+        
+    dayDf = dayDf.sort_values( [ 'Date' ], ascending = True )
+
+    vixVal = list( dayDf.VIX )[-1]
+
+    if PTC_MIN_VIX is not None and vixVal < PTC_MIN_VIX:
+        logger.critical( 'Did not use PTC as current VIX of '
+                         '%0.2f is not in range!',
+                         vixVal )
+        return None
+
+    if PTC_MAX_VIX is not None and vixVal > PTC_MAX_VIX:
+        logger.critical( 'Did not use PTC as current VIX of '
+                         '%0.2f is not in range!',
+                         vixVal )
+        return None
+
+    callBlackList = []
+    putBlackList  = []
+    
+    for symbol in assetSymbols:
+        
+        dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
+        dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
+
+        symVal = list( dayDf.acl )[-1] 
+            
+        ptcFile = os.path.join( PTC_DIR,
+                                PTC_HEAD + symbol + '.pkl' )
+            
+        obj = pickle.load( open( ptcFile, 'rb' ) )
+
+        X = np.array( [ [ symVal ] ] )
+        
+        ptTag = obj.predict( X )[0]
+
+        if ptTag == ptc.PEAK:
+            
+            logger.critical( 'A peak is detected for %s!', symbol )
+
+            callBlackList.append( symbol )
+            
+        elif ptTag == ptc.TROUGH:
+            
+            logger.critical( 'A trough is detected for %s!',
+                             symbol )
+            
+            putBlackList.append( symbol )
+
+    return {
+        'callBlackList': callBlackList,
+        'putBlackList': putBlackList
+    }
+
 def getOptions( curDate, optDf ):
     
     tmpDf = optDf[ optDf.DataDate == curDate ]
@@ -126,6 +245,18 @@ def selTradeOptions( curDate, holdHash, optDf ):
     minDate = curDate + datetime.timedelta( days = MIN_HORIZON )
     maxDate = curDate + datetime.timedelta( days = MAX_HORIZON )
 
+    callBlackList = None
+    putBlackList  = None
+    
+    if PTC_FLAG:
+        blackListHash = getPTCBlacklists(
+            curDate,
+            set( optDf.assetSymbol ),
+        )
+
+        callBlackList = blackListHash[ 'callBlackList' ]
+        putBlackList  = blackListHash[ 'putBlackList' ]
+        
     with patch.object(MfdOptionsPrt, 'setMod', return_value=None):
         with patch.object(MfdOptionsPrt, 'setPrdDf', return_value=None):
             prtObj = MfdOptionsPrt(
@@ -153,6 +284,8 @@ def selTradeOptions( curDate, holdHash, optDf ):
         MAX_PAIR_COST,
         MAX_UNIQUE_PAIR_COUNT,
         MAX_TRIES,
+        callBlackList,
+        putBlackList,
     )
     
     if selList is None:
@@ -217,6 +350,13 @@ def settle( curDate, holdHash ):
             holdHash[ curDate ][ 'cash' ] += gain 
 
     return holdHash
+
+# ***********************************************************************
+# Build PTC models
+# ***********************************************************************
+
+if PTC_FLAG:
+    buildPTC( set( optDf.assetSymbol ) )
 
 # ***********************************************************************
 # Run the backtest
