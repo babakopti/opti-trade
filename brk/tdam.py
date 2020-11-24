@@ -258,7 +258,8 @@ class Tdam:
                            'expiration'   : exprDate,
                            'contractCnt'  : obj[ 'multiplier' ],                     
                            'unitPriceAsk' : obj[ 'ask' ],
-                           'unitPriceBid' : obj[ 'bid' ],                           
+                           'unitPriceBid' : obj[ 'bid' ],
+                           'unitPriceLast': obj[ 'last' ],                           
                            'type'         : 'put'      }
                 
                 options.append( option )
