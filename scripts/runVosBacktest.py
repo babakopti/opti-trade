@@ -31,11 +31,11 @@ OUT_HIST_FILE = 'data/vos_max_cost_25_max_hz_10_hist.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
 ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
 
-INIT_CASH = 300.0
+INIT_CASH = 200.0
 
 MIN_PROB  = 0.48
 MAX_PAIR_COST  = 25.0
-MAX_UNIQUE_PAIR_COUNT = 2
+MAX_UNIQUE_PAIR_COUNT = 1
 TRADE_FEE = 0.65
 MIN_HORIZON = 1
 MAX_HORIZON = 10

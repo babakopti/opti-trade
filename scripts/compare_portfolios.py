@@ -26,7 +26,7 @@ prtFiles = [
     'portfolios/nTrnDays_360_two_hours.json',
     'portfolios/nTrnDays_360_two_hours_ptc.json',
     'portfolios/nTrnDays_360_two_hours_ptc_std_coef_1.5_pers_off_4.json',
-    'portfolios/actual_wt_hash_Nov6_2020.json',    
+    'portfolios/actual_wt_hash_Dec8_2020.json',    
 ]
 
 legends = [
@@ -39,7 +39,7 @@ legends = [
 dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
 
-actFile     = 'data/td_ametritade_balances_Nov6.csv'
+actFile     = 'data/td_ametritade_balances_Dec3.csv'
 outFile     = 'analysis-results/compare_nTrnDays_GNP.csv'
 
 ETF_HASH[ 'UJB' ] = 'SJB'

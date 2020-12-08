@@ -21,10 +21,10 @@ import utl.utils as utl
 std_coef   = 1.5
 pers_off   = 4
 
-dfFile      = 'data/dfFile_crypto.pkl'
+dfFile      = 'data/dfFile_2020.pkl'
 initTotVal  = 20000.0
-prtFile    = 'portfolios/crypto_9PM_no_zcash_ptc_no_short.json'
-outPrtFile = 'portfolios/crypto_9PM_no_zcash_ptc_std_coef_%s_pers_off_%s.json' \
+prtFile    = 'portfolios/nTrnDays_360_two_hours_ptc.json'
+outPrtFile = 'portfolios/nTrnDays_360_two_hours_ptc_std_coef_%s_pers_off_%s.json' \
     % (str(std_coef), str(pers_off))
 minDate    = None
 maxDate    = None
