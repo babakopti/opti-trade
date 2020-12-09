@@ -29,8 +29,8 @@ from prt.prt import MfdPrt
 # ***********************************************************************
 
 prtFile     = 'portfolios/new.json'
-bkBegDate   = pd.to_datetime( '2020-11-05 09:30:00' )
-bkEndDate   = pd.to_datetime( '2020-12-03 15:30:00' )
+bkBegDate   = pd.to_datetime( '2020-12-04 09:30:00' )
+bkEndDate   = pd.to_datetime( '2020-12-08 15:30:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 2 * 60
@@ -43,7 +43,7 @@ maxModTime  = '15:30:00'
 
 modFlag  = True
 dataFlag = False
-numCores = 2
+numCores = 4
 
 baseDir  = '/var/data'
 dfFile   = 'data/dfFile_2020.pkl'
