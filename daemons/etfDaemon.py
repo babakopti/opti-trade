@@ -589,12 +589,12 @@ class MfdPrtBuilder( Daemon ):
         nextDate = currDate
         
         while True:
+            nextDate += datetime.timedelta( minutes = self.nPrdMinutes )
+            
             if nextDate.isoweekday() not in [ 6, 7 ] and \
                nextDate.strftime( '%H:%M:%S' ) >= MIN_TRADE_TIME and \
                nextDate.strftime( '%H:%M:%S' ) <= MAX_TRADE_TIME:
                 break
-            else:
-                nextDate += datetime.timedelta( minutes = self.nPrdMinutes )
 
         return nextDate
         
