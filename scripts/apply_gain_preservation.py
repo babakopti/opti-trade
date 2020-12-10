@@ -13,76 +13,101 @@ import pandas as pd
 sys.path.append( '..' )
 
 import utl.utils as utl
+from dat.assets import ETF_HASH
 
 # ***********************************************************************
 # Main input params
 # ***********************************************************************
 
-std_coef   = 1.5
-pers_off   = 4
+STD_COEF = 1.8
+PERS_OFF = 15
 
-dfFile      = 'data/dfFile_2020.pkl'
-initTotVal  = 20000.0
-prtFile    = 'portfolios/nTrnDays_360_two_hours_ptc.json'
-outPrtFile = 'portfolios/nTrnDays_360_two_hours_ptc_std_coef_%s_pers_off_%s.json' \
-    % (str(std_coef), str(pers_off))
-minDate    = None
-maxDate    = None
+DF_FILE = 'data/dfFile_2020.pkl'
+PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc.json'
+OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_std_coef_%s_pers_off_%s.json' \
+    % (str(STD_COEF), str(PERS_OFF))
 
 # ***********************************************************************
-# Read original portfolio and get symbols
+# Read original portfolio and get symbols and adjust
 # ***********************************************************************
 
-prtWtsHash = json.load( open( prtFile, 'r' ) )
+prtWtsHash = json.load( open( PRT_FILE, 'r' ) )
 
 # ***********************************************************************
 # Adjust
 # ***********************************************************************
 
-retDf = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
-                                 dfFile     = dfFile,
-                                 initTotVal = initTotVal,
-                                 shortFlag  = True,
-                                 invHash    = None,
-                                 minDate    = minDate,
-                                 maxDate    = maxDate   )
+def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
 
-ret_mean = retDf.Return.mean()
-ret_std  = retDf.Return.std()
+    retDf = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
+                                     dfFile     = dfFile,
+                                     initTotVal = 20000,
+                                     shortFlag  = False,
+                                     invHash    = ETF_HASH,
+                                     minDate    = None,
+                                     maxDate    = None   )
 
-newWtsHash = {}
+    ret_mean = retDf.Return.mean()
+    ret_std  = retDf.Return.std()
 
-dates = sorted( prtWtsHash.keys() )
+    newWtsHash = {}
 
-skipFlag = False
-nextDate = None
+    dates = sorted( prtWtsHash.keys() )
 
-for itr in range(1, len(dates)):
+    skipFlag = False
+    nextDate = None
 
-    if nextDate is not None and dates[itr] < nextDate:
-        print("Skipping %s" % dates[itr] )
-        newWtsHash[ dates[itr] ] = {}
-        continue
+    for itr in range(1, len(dates)):
+
+        if nextDate is not None and dates[itr] < nextDate:
+            print("Skipping %s" % dates[itr] )
+            newWtsHash[ dates[itr] ] = {}
+            continue
     
-    tmp_df = retDf[ retDf.Date == dates[itr-1] ]
-    if tmp_df.shape[0] > 0:
-        ret = list(tmp_df.Return)[0]
-    else:
-        ret = 0.0
+        tmp_df = retDf[ retDf.Date == dates[itr-1] ]
+        if tmp_df.shape[0] > 0:
+            ret = list(tmp_df.Return)[0]
+        else:
+            ret = 0.0
         
-    tmp_val = ret_mean + std_coef * ret_std
+        tmp_val = ret_mean + std_coef * ret_std
     
-    if ret > tmp_val:
-        offset = min(len(dates)-itr-1, pers_off)
-        nextDate = dates[itr + offset]
-        print("Skipping %s" % dates[itr] )
-        newWtsHash[ dates[itr] ] = {}
-    else:        
-        newWtsHash[ dates[itr] ] = prtWtsHash[ dates[itr] ]
-        
+        if ret > tmp_val:
+            offset = min(len(dates)-itr-1, pers_off)
+            nextDate = dates[itr + offset]
+            print("Skipping %s" % dates[itr] )
+            newWtsHash[ dates[itr] ] = {}
+        else:        
+            newWtsHash[ dates[itr] ] = prtWtsHash[ dates[itr] ]
+
+    return newWtsHash
+
+# ***********************************************************************
+# Adjust
+# ***********************************************************************
+
+def getGnpPerf( std_coef, pers_off, prtWtsHash, dfFile ):
+
+    newWtsHash = adjustGnp( std_coef, pers_off, prtWtsHash, dfFile )
+
+    retDf = utl.calcBacktestReturns( prtWtsHash = newWtsHash,
+                                     dfFile     = dfFile,
+                                     initTotVal = 20000,
+                                     shortFlag  = False,
+                                     invHash    = ETF_HASH,
+                                     minDate    = None,
+                                     maxDate    = None   )
+    
+    return ( retDf.Return.mean() / retDf.Return.std() )
+
 # ***********************************************************************
 # Write the adjusted portfolio
 # ***********************************************************************
-    
-with open( outPrtFile, 'w' ) as fp:
+
+newWtsHash = adjustGnp( STD_COEF, PERS_OFF, prtWtsHash, DF_FILE )
+
+with open( OUT_PRT_FILE, 'w' ) as fp:
     json.dump( newWtsHash, fp )        
+
+print(getGnpPerf(STD_COEF, PERS_OFF, prtWtsHash, DF_FILE ))
+    
