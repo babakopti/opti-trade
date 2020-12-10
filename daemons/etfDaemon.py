@@ -247,7 +247,8 @@ class MfdPrtBuilder( Daemon ):
         if doGnpFlag:
             
             self.logger.critical(
-                'Gain preservation case! Trading abstinence!'
+                'Gain preservation case! Trading abstinence until %s!',
+                str( self.gnpNextDate ),
             )
             
             wtHash = {}
