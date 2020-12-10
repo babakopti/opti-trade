@@ -20,11 +20,11 @@ from dat.assets import ETF_HASH
 # ***********************************************************************
 
 STD_COEF = 1.8
-PERS_OFF = 15
+PERS_OFF = 11
 
 DF_FILE = 'data/dfFile_2020.pkl'
 PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc.json'
-OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_gnp_%s_%s.json' \
+OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_lsp_%s_%s.json' \
     % (str(STD_COEF), str(PERS_OFF))
 
 # ***********************************************************************
@@ -37,7 +37,7 @@ prtWtsHash = json.load( open( PRT_FILE, 'r' ) )
 # Adjust
 # ***********************************************************************
 
-def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
+def adjustLsp( std_coef, pers_off, prtWtsHash, dfFile ):
 
     retDf = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                      dfFile     = dfFile,
@@ -70,9 +70,9 @@ def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
         else:
             ret = 0.0
         
-        tmp_val = ret_mean + std_coef * ret_std
+        tmp_val = ret_mean - std_coef * ret_std
     
-        if ret > tmp_val:
+        if ret < tmp_val:
             offset = min(len(dates)-itr-1, pers_off)
             nextDate = dates[itr + offset]
             print("Skipping %s" % dates[itr] )
@@ -86,9 +86,9 @@ def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
 # Adjust
 # ***********************************************************************
 
-def getGnpPerf( std_coef, pers_off, prtWtsHash, dfFile ):
+def getLspPerf( std_coef, pers_off, prtWtsHash, dfFile ):
 
-    newWtsHash = adjustGnp( std_coef, pers_off, prtWtsHash, dfFile )
+    newWtsHash = adjustLsp( std_coef, pers_off, prtWtsHash, dfFile )
 
     retDf = utl.calcBacktestReturns( prtWtsHash = newWtsHash,
                                      dfFile     = dfFile,
@@ -104,10 +104,10 @@ def getGnpPerf( std_coef, pers_off, prtWtsHash, dfFile ):
 # Write the adjusted portfolio
 # ***********************************************************************
 
-newWtsHash = adjustGnp( STD_COEF, PERS_OFF, prtWtsHash, DF_FILE )
+newWtsHash = adjustLsp( STD_COEF, PERS_OFF, prtWtsHash, DF_FILE )
 
 with open( OUT_PRT_FILE, 'w' ) as fp:
     json.dump( newWtsHash, fp )        
 
-print(getGnpPerf(STD_COEF, PERS_OFF, prtWtsHash, DF_FILE ))
+print(getLspPerf(STD_COEF, PERS_OFF, prtWtsHash, DF_FILE ))
     
