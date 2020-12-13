@@ -58,8 +58,9 @@ PTC_FLAG      = True
 PTC_MIN_VIX   = None
 PTC_MAX_VIX   = 60.0
 GNP_FLAG      = True
-GNP_STD_COEF  = 1.8
-GNP_PERS_OFF  = 15
+GNP_STD_COEF  = 1.3
+GNP_PERS_OFF  = 8
+GNP_NUM_PERS  = 120
 GNP_MIN_ROWS  = 14
 RET_FILE      = '/var/mfd_returns/mfd_return_file.csv'
 MOD_HEAD      = 'mfd_model_'
@@ -568,8 +569,8 @@ class MfdPrtBuilder( Daemon ):
         elif retDf.shape[0] < GNP_MIN_ROWS:
             doGnpFlag = False
         else:
-            retMean = retDf.Return.mean()
-            retStd  = retDf.Return.std()
+            retMean = retDf.tail( GNP_NUM_PERS ).Return.mean()
+            retStd  = retDf.tail( GNP_NUM_PERS ).Return.std()
             tmpVal  = retMean + GNP_STD_COEF * retStd
             
             if retVal > tmpVal:
