@@ -19,13 +19,14 @@ from dat.assets import ETF_HASH
 # Main input params
 # ***********************************************************************
 
-STD_COEF = 1.8
-PERS_OFF = 15
+STD_COEF = 1.3
+PERS_OFF = 8
+NUM_PERS = 90
 
 DF_FILE = 'data/dfFile_2020.pkl'
 PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc.json'
-OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_gnp_%s_%s.json' \
-    % (str(STD_COEF), str(PERS_OFF))
+OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_gnp_%s_%s_%s.json' \
+    % (str(STD_COEF), str(PERS_OFF), str(NUM_PERS))
 
 # ***********************************************************************
 # Read original portfolio and get symbols and adjust
@@ -37,7 +38,7 @@ prtWtsHash = json.load( open( PRT_FILE, 'r' ) )
 # Adjust
 # ***********************************************************************
 
-def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
+def adjustGnp( std_coef, pers_off, num_pers, prtWtsHash, dfFile ):
 
     retDf = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                      dfFile     = dfFile,
@@ -47,9 +48,6 @@ def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
                                      minDate    = None,
                                      maxDate    = None   )
 
-    ret_mean = retDf.Return.mean()
-    ret_std  = retDf.Return.std()
-
     newWtsHash = {}
 
     dates = sorted( prtWtsHash.keys() )
@@ -57,10 +55,12 @@ def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
     skipFlag = False
     nextDate = None
 
-    for itr in range(1, len(dates)):
+    for itr in range(num_pers + 1, len(dates)):
 
+        ret_mean = retDf.head(itr-1).tail(num_pers).Return.mean()
+        ret_std  = retDf.head(itr-1).tail(num_pers).Return.std()
+        
         if nextDate is not None and dates[itr] < nextDate:
-            print("Skipping %s" % dates[itr] )
             newWtsHash[ dates[itr] ] = {}
             continue
     
@@ -75,8 +75,12 @@ def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
         if ret > tmp_val:
             offset = min(len(dates)-itr-1, pers_off)
             nextDate = dates[itr + offset]
-            print("Skipping %s" % dates[itr] )
             newWtsHash[ dates[itr] ] = {}
+            retDf['Return'] = retDf.apply(
+                lambda x: 0.0 if (x.Date >= pd.to_datetime(dates[itr]) and \
+                                  x.Date < pd.to_datetime(nextDate)) \
+                else x.Return, axis=1
+            )
         else:        
             newWtsHash[ dates[itr] ] = prtWtsHash[ dates[itr] ]
 
@@ -86,9 +90,9 @@ def adjustGnp( std_coef, pers_off, prtWtsHash, dfFile ):
 # Adjust
 # ***********************************************************************
 
-def getGnpPerf( std_coef, pers_off, prtWtsHash, dfFile ):
+def getGnpPerf( std_coef, pers_off, num_pers, prtWtsHash, dfFile ):
 
-    newWtsHash = adjustGnp( std_coef, pers_off, prtWtsHash, dfFile )
+    newWtsHash = adjustGnp( std_coef, pers_off, num_pers, prtWtsHash, dfFile )
 
     retDf = utl.calcBacktestReturns( prtWtsHash = newWtsHash,
                                      dfFile     = dfFile,
@@ -104,10 +108,11 @@ def getGnpPerf( std_coef, pers_off, prtWtsHash, dfFile ):
 # Write the adjusted portfolio
 # ***********************************************************************
 
-newWtsHash = adjustGnp( STD_COEF, PERS_OFF, prtWtsHash, DF_FILE )
+if __name__ == '__main__':
+    newWtsHash = adjustGnp( STD_COEF, PERS_OFF, NUM_PERS, prtWtsHash, DF_FILE )
 
-with open( OUT_PRT_FILE, 'w' ) as fp:
-    json.dump( newWtsHash, fp )        
+    with open( OUT_PRT_FILE, 'w' ) as fp:
+        json.dump( newWtsHash, fp )        
 
-print(getGnpPerf(STD_COEF, PERS_OFF, prtWtsHash, DF_FILE ))
+    print(getGnpPerf(STD_COEF, PERS_OFF, NUM_PERS, prtWtsHash, DF_FILE ))
     

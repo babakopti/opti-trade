@@ -23,8 +23,8 @@ STD_COEF = 1.8
 PERS_OFF = 11
 
 DF_FILE = 'data/dfFile_2020.pkl'
-PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc.json'
-OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_lsp_%s_%s.json' \
+PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_gnp_1.8_15.json'
+OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_gnp_1.8_15_lsp_%s_%s.json' \
     % (str(STD_COEF), str(PERS_OFF))
 
 # ***********************************************************************
