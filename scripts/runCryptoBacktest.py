@@ -27,9 +27,9 @@ from prt.prt import MfdPrt
 # Main input params
 # ***********************************************************************
 
-prtFile     = 'portfolios/crypto_9PM_raw_no_zcash.json'
-bkBegDate   = pd.to_datetime( '2020-05-01 21:00:00' )
-bkEndDate   = pd.to_datetime( '2020-10-28 21:00:00' )
+prtFile     = 'portfolios/crypto_new.json'
+bkBegDate   = pd.to_datetime( '2020-10-29 21:00:00' )
+bkEndDate   = pd.to_datetime( '2020-12-15 21:00:00' )
 nTrnDays    = 360
 nOosDays    = 3
 nPrdMinutes = 24 * 60

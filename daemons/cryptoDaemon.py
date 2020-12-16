@@ -51,8 +51,9 @@ PTC_MIN_VIX   = None
 PTC_MAX_VIX   = 60.0
 
 GNP_FLAG      = True
-GNP_STD_COEF  = 1.0
+GNP_STD_COEF  = 1.4
 GNP_PERS_OFF  = 4
+GNP_NUM_PERS  = 30
 GNP_MIN_ROWS  = 14
 RET_FILE      = '/var/crypto_returns/crypto_return_file.csv'
 
@@ -199,9 +200,10 @@ class CryptoPrtBuilder( Daemon ):
             self.logger.error( e )
 
         if doGnpFlag:
-            
+
             self.logger.critical(
-                'Gain preservation case! Trading abstinence!'
+                'Gain preservation case! Trading abstinence until %s!',
+                str( self.gnpNextDate ),
             )
             
             wtHash = {}
@@ -549,8 +551,8 @@ class CryptoPrtBuilder( Daemon ):
         elif retDf.shape[0] < GNP_MIN_ROWS:
             doGnpFlag = False
         else:
-            retMean = retDf.Return.mean()
-            retStd  = retDf.Return.std()
+            retMean = retDf.tail( GNP_NUM_PERS ).Return.mean()
+            retStd  = retDf.tail( GNP_NUM_PERS ).Return.std()
             tmpVal  = retMean + GNP_STD_COEF * retStd
             
             if retVal > tmpVal:

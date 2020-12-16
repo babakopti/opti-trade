@@ -9,9 +9,9 @@ sys.path.append( '../' )
 
 import utl.utils as utl
 
-prtFile = 'portfolios/crypto_9PM_raw_no_zcash_ptc.json'
+prtFile = 'portfolios/crypto_9PM_raw_no_zcash.json'
 
-outPrtFile = 'portfolios/crypto_9PM_no_zcash_ptc_no_short.json'
+outPrtFile = 'portfolios/crypto_9PM_no_zcash_no_short.json'
 
 dfFile = 'data/dfFile_crypto.pkl'
 

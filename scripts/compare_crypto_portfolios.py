@@ -19,17 +19,20 @@ import utl.utils as utl
 # ***********************************************************************
 
 actFlag = False
+baseFlag = True
 
 prtFiles = [
     'portfolios/crypto_9PM_no_zcash_no_short.json',
     'portfolios/crypto_9PM_no_zcash_ptc_no_short.json',
-    'portfolios/crypto_9PM_no_zcash_ptc_std_coef_1.0_pers_off_4.json',
+    'portfolios/crypto_9PM_no_zcash_ptc_no_short_gnp_1.4_4_30.json',
+    'portfolios/crypto_9PM_no_zcash_ptc_no_short_gnp_1.4_4_lsp_1.0_1_num_pers_30.json',
 ]
 
 legends = [
     '9 PM; No ZCash',
     '9 PM; No ZCash + PTC',
-    '9 PM; No ZCash + PTC + GNP 1.0, 4',
+    '9 PM; No ZCash + PTC + GNP 1.4, 4, 30',
+        '9 PM; No ZCash + PTC + GNP/LSP 1.4/1.0, 4/1, 30',
 ]
 
 dfFile      = 'data/dfFile_crypto.pkl'
@@ -73,7 +76,17 @@ maxDate = min( maxDates )
 if actFlag:
     actDf = actDf[ ( actDf.Date >= minDate ) & ( actDf.Date <= maxDate ) ]
     initTotVal = list(actDf[ 'Account value' ])[0]
+
+if baseFlag:    
+    baseHash = {}
+    for date in prtWtsHash:
+        baseHash[ date ] = { 'BTC' : 0.3333, 'ETH': 0.3333, 'LTC': 0.3333 }
     
+    json.dump( baseHash, open( 'portfolios/crypto_base.json', 'w' ) )
+
+    prtFiles.append( 'portfolios/crypto_base.json' )
+    legends.append( 'Base' )
+
 # ***********************************************************************
 # Read portfolios and plot
 # ***********************************************************************
@@ -97,7 +110,7 @@ for prtFile in prtFiles:
     ratioList.append( retDf.Return.mean() / retDf.Return.std() )
 
     plt.plot( retDf.Date, retDf.EndVal )
-
+    
 if actFlag:
     plt.plot( actDf.Date, actDf[ 'Account value' ] )
     legends.append( 'Actual' )

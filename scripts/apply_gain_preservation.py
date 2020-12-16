@@ -19,13 +19,15 @@ from dat.assets import ETF_HASH
 # Main input params
 # ***********************************************************************
 
-STD_COEF = 1.3
-PERS_OFF = 8
-NUM_PERS = 90
+STD_COEF = 1.4
+PERS_OFF = 4
+NUM_PERS = 30
 
-DF_FILE = 'data/dfFile_2020.pkl'
-PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc.json'
-OUT_PRT_FILE = 'portfolios/nTrnDays_360_two_hours_ptc_gnp_%s_%s_%s.json' \
+SHORT_FLAG = True
+
+DF_FILE = 'data/dfFile_crypto.pkl'
+PRT_FILE = 'portfolios/crypto_9PM_no_zcash_ptc_no_short.json'
+OUT_PRT_FILE = 'portfolios/crypto_9PM_no_zcash_ptc_no_short_gnp_%s_%s_%s.json' \
     % (str(STD_COEF), str(PERS_OFF), str(NUM_PERS))
 
 # ***********************************************************************
@@ -43,7 +45,7 @@ def adjustGnp( std_coef, pers_off, num_pers, prtWtsHash, dfFile ):
     retDf = utl.calcBacktestReturns( prtWtsHash = prtWtsHash,
                                      dfFile     = dfFile,
                                      initTotVal = 20000,
-                                     shortFlag  = False,
+                                     shortFlag  = SHORT_FLAG,
                                      invHash    = ETF_HASH,
                                      minDate    = None,
                                      maxDate    = None   )
@@ -97,7 +99,7 @@ def getGnpPerf( std_coef, pers_off, num_pers, prtWtsHash, dfFile ):
     retDf = utl.calcBacktestReturns( prtWtsHash = newWtsHash,
                                      dfFile     = dfFile,
                                      initTotVal = 20000,
-                                     shortFlag  = False,
+                                     shortFlag  = SHORT_FLAG,
                                      invHash    = ETF_HASH,
                                      minDate    = None,
                                      maxDate    = None   )
