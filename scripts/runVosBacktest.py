@@ -29,9 +29,9 @@ from prt.prt import MfdOptionsPrt
 OUT_BAL_FILE = 'portfolios/vos_max_cost_25_max_hz_10.csv'
 OUT_HIST_FILE = 'data/vos_max_cost_25_max_hz_10_hist.csv'
 OPTION_CHAIN_FILE = 'options_chain_data/option_chain_Aug_Nov_2020.pkl'
-ACT_FILE = 'data/dfFile_2020-11-10 15:00:06.pkl'
+ACT_FILE = 'data/dfFile_2020-12-16 11:55:52.pkl'
 
-INIT_CASH = 200.0
+INIT_CASH = 300.0
 
 MIN_PROB  = 0.48
 MAX_PAIR_COST  = 25.0
