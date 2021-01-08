@@ -57,7 +57,7 @@ MAX_UNIQUE_PAIR_COUNT = 1
 MAX_TRIES             = 1000
 MAX_PAIR_COST         = 50.0
 MAX_DAILY_CASH        = 50.0
-MIN_ACCOUNT_CASH      = 2800.0
+MIN_ACCOUNT_CASH      = 7800.0
 
 MOD_HEAD      = 'option_model_'
 PRT_HEAD      = 'vos_prt_'
