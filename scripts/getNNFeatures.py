@@ -6,7 +6,7 @@ import sys
 import os
 import time
 import datetime
-import dill
+import talib
 import pickle
 import logging
 import json
@@ -22,13 +22,15 @@ import utl.utils as utl
 from dat.assets import SUB_ETF_HASH, ETF_HASH
 from dat.assets import FUTURES
 from mod.mfdMod import MfdMod
+from ode.odeGeo import OdeGeoConst
+import ptc.ptc as ptc
 
 # ***********************************************************************
 # Main input params
 # ***********************************************************************
 
-BEG_DATE = pd.to_datetime( '2020-12-04 09:30:00' )
-END_DATE = pd.to_datetime( '2020-12-08 15:30:00' )
+BEG_DATE = pd.to_datetime( '2020-01-01 09:30:00' )
+END_DATE = pd.to_datetime( '2021-01-06 15:30:00' )
 MIN_TIME = '09:30:00'
 MAX_TIME = '15:30:00'
 
@@ -36,9 +38,12 @@ NUM_TRN_DAYS = 360
 NUM_OOS_DAYS = 3
 NUM_PRD_MINS = 120
 
-NUM_CORES = 4
+NUM_CORES = 2
 DF_FILE   = 'data/dfFile_2020.pkl'
 PTC_DIR   = 'pt_classifiers'
+
+PTC_MIN_VIX = None
+PTC_MAX_VIX = 60.0
 
 VEL_NAMES = list( ETF_HASH.keys() ) + FUTURES
 ASSETS    = list( SUB_ETF_HASH.keys() )
@@ -100,7 +105,7 @@ def getGeoSlopes( ecoMfd ):
     slopeHash = {}
     
     for m in range( ecoMfd.nDims ):
-        asset     = ecoMfd.velNames
+        asset     = ecoMfd.velNames[m]
         tmp       = ecoMfd.deNormHash[ asset ]
         slope     = tmp[0]
         intercept = tmp[1]
@@ -126,7 +131,7 @@ def getPerfs( ecoMfd ):
     
     for m in range( ecoMfd.nDims ):
         
-        asset = ecoMfd.velName[m]
+        asset = ecoMfd.velNames[m]
         
         if perfs[m]:
             perfHash[ asset ] = 1
@@ -224,7 +229,7 @@ def getAcls( snapDate ):
 
     aclHash = {}
     
-    for symbol in wtHash:
+    for symbol in ASSETS:
 
         dayDf[ 'vel' ] = np.gradient( dayDf[ symbol ], 2 )
         dayDf[ 'acl' ] = np.gradient( dayDf[ 'vel' ], 2 )
@@ -243,19 +248,19 @@ def buildPtc( snapDate ):
     
     for symbol in allAssets:
 
-        ptcObj = PTClassifier( symbol      = symbol,
-                               symFile     = 'data/%s.pkl' % symbol,
-                               vixFile     = 'data/VIX.pkl',
-                               ptThreshold = 1.0e-2,
-                               nPTAvgDays  = None,
-                               testRatio   = 0,
-                               method      = 'bayes',
-                               minVix      = None,
-                               maxVix      = 60.0,
-                               minTrnDate  = None,
-                               maxTrnDate  = snapDate,
-                               logFileName = None,                    
-                               verbose     = 1          )
+        ptcObj = ptc.PTClassifier( symbol      = symbol,
+                                   symFile     = 'data/%s.pkl' % symbol,
+                                   vixFile     = 'data/VIX.pkl',
+                                   ptThreshold = 1.0e-2,
+                                   nPTAvgDays  = None,
+                                   testRatio   = 0,
+                                   method      = 'bayes',
+                                   minVix      = None,
+                                   maxVix      = 60.0,
+                                   minTrnDate  = None,
+                                   maxTrnDate  = snapDate,
+                                   logFileName = None,                    
+                                   verbose     = 1          )
 
         ptcObj.classify()
         
@@ -333,18 +338,18 @@ def getPtcTags( snapDate ):
 
 def run( snapDate ):
 
-    ecoMfd    = buildMod( ecoMfd )
+    ecoMfd    = buildMod( snapDate )
     slopeHash = getGeoSlopes( ecoMfd )
     perfHash  = getPerfs( ecoMfd )
     macdHash  = getMacdTrends( ecoMfd )
     msdHash   = getMsdRatios( ecoMfd )
     aclHash   = getAcls( snapDate )
     ptcHash   = getPtcTags( snapDate )
-    
+
     geoTrHash = {}
     for symbol in slopeHash:
         geoTrHash[ symbol ] = np.sign( slopeHash[ symbol ] )
-    
+
     outHash = {
         'symbol': [],
         'geo_slope': [],
