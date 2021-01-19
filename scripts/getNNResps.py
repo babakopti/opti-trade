@@ -34,8 +34,6 @@ END_DATE = pd.to_datetime( '2021-01-06 15:30:00' )
 MIN_TIME = '09:30:00'
 MAX_TIME = '15:30:00'
 
-NUM_TRN_DAYS = 360
-NUM_OOS_DAYS = 3
 NUM_PRD_MINS = 120
 
 NUM_CORES = 2
@@ -137,6 +135,9 @@ if __name__ ==  '__main__':
     
         filePath = os.path.join( 'models', item )
         tmpDf    = pd.read_csv( filePath )
-        outDf    = np.concat( [ outDf, tmpDf ] )
+        dateStr  = item.split( '.' )[0].split( '_' )[1]        
+        tmpDf[ 'Date' ] = dateStr
+        outDf    = pd.concat( [ outDf, tmpDf ] )
 
+    outDf = outDf.sort_values( [ 'Date', 'symbol' ] )        
     outDf.to_csv( 'models/NNresps_all.csv', index = False )

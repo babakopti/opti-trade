@@ -29,7 +29,7 @@ import ptc.ptc as ptc
 # Main input params
 # ***********************************************************************
 
-BEG_DATE = pd.to_datetime( '2020-01-01 09:30:00' )
+BEG_DATE = pd.to_datetime( '2020-07-27 11:30:00' )
 END_DATE = pd.to_datetime( '2021-01-06 15:30:00' )
 MIN_TIME = '09:30:00'
 MAX_TIME = '15:30:00'
@@ -415,6 +415,10 @@ if __name__ ==  '__main__':
     
         filePath = os.path.join( 'models', item )
         tmpDf    = pd.read_csv( filePath )
-        outDf    = np.concat( [ outDf, tmpDf ] )
+        dateStr  = item.split( '.' )[0].split( '_' )[1]
+        tmpDf[ 'Date' ] = dateStr
+        outDf    = pd.concat( [ outDf, tmpDf ] )
 
+    outDf = outDf.sort_values( [ 'Date', 'symbol' ] )
+    
     outDf.to_csv( 'models/NNfeatures_all.csv', index = False )
