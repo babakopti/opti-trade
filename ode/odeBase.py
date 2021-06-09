@@ -151,7 +151,7 @@ class OdeBaseConst:
 class OdeBaseNN:
 
     def __init__( self,
-                  GammaFunc,
+                  Gamma,
                   bcVec,
                   bcTime,
                   timeInc,
@@ -200,7 +200,7 @@ class OdeBaseNN:
         else:
             atnCoefs = np.ones( shape = ( nTimes ), dtype = 'd' )
             
-        self.GammaFunc = GammaFunc
+        self.Gamma    = Gamma
         self.bcVec    = bcVec
         self.bcTime   = bcTime
         self.nDims    = nDims

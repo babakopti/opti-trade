@@ -12,7 +12,7 @@ from scipy.integrate import trapz
 
 sys.path.append( os.path.abspath( '../' ) )
 
-from ode.odeBase import OdeBaseConst
+from ode.odeBase import OdeBaseConst, OdeBaseNN
 
 # ***********************************************************************
 # OdeGeoConst: Geodesic ODE solver; 1st order; const. curv.
@@ -124,13 +124,13 @@ class OdeGeoNN(OdeBaseNN):
         srcTerm  = self.srcTerm
         srcVec   = np.zeros( shape = ( nDims ) , dtype = 'd' )
         tsId     = int( t / timeInc )
-        Gamma    = self.GammaFunc(tsId)
+        Gamma    = self.Gamma
 
         if srcTerm is not None and tsId < nTimes:
             for m in range( nDims ):
                 srcVec[m] = srcTerm[m][tsId]
                 
-        vals = -np.tensordot( Gamma,
+        vals = -np.tensordot( Gamma[tsId],
                               np.tensordot( y, y, axes = 0 ),
                               ( ( 1, 2 ), ( 0, 1 ) ) )
         vals += srcVec
@@ -142,9 +142,9 @@ class OdeGeoNN(OdeBaseNN):
         nDims    = self.nDims
         timeInc  = self.timeInc
         tsId     = int( t / timeInc )
-        Gamma    = self.GammaFunc(tsId)
+        Gamma    = self.Gamma
 
-        vals = -2.0 * np.tensordot( Gamma, y, axes = ( (2), (0) ) )
+        vals = -2.0 * np.tensordot( Gamma[tsId], y, axes = ( (2), (0) ) )
 
         return vals
 
@@ -165,7 +165,7 @@ class OdeAdjNN(OdeBaseNN):
         atnCoefs = self.atnCoefs
 
         tsId     = int( t / timeInc )
-        Gamma    = self.GammaFunc(tsId)
+        Gamma    = self.Gamma
 
         vals     = np.zeros( shape = ( nDims ) , dtype = 'd' )
         tsId     = int( t / timeInc )
@@ -179,7 +179,7 @@ class OdeAdjNN(OdeBaseNN):
             adjVec[a] = adjSol[a][tsId]
             actVec[a] = actSol[a][tsId]
 
-        vals = 2.0 * np.tensordot( Gamma,
+        vals = 2.0 * np.tensordot( Gamma[tsId],
                                    np.tensordot( v, adjVec, axes = 0 ),
                                    ( ( 0, 2 ), ( 0, 1 ) ) ) + \
                                    atnCoefs[tsId] * varCoefs * \
@@ -199,14 +199,14 @@ class OdeAdjNN(OdeBaseNN):
  
         assert tsId < nTimes, 'tsId should be smaller than nTimes!'
 
-        Gamma    = self.GammaFunc(tsId)
+        Gamma    = self.Gamma
         
         adjVec  = np.zeros( shape = ( nDims ), dtype = 'd' )
 
         for a in range( nDims ):
             adjVec[a] = adjSol[a][tsId]
 
-        vals = 2.0 * np.tensordot( Gamma, adjVec, ( (2), (0) ) )
+        vals = 2.0 * np.tensordot( Gamma[tsId], adjVec, ( (2), (0) ) )
         vals = np.transpose( vals )
 
         return vals

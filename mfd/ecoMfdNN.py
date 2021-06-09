@@ -14,6 +14,8 @@ import mpl_toolkits.mplot3d as Axes3D
 import pickle as pk
 import dill
 import gc
+import tensorflow as tf
+from tensorflow import keras
 
 from scipy.integrate import trapz
 from scipy.optimize import line_search
@@ -23,6 +25,8 @@ from sklearn.decomposition import KernelPCA
 
 sys.path.append( os.path.abspath( '../' ) )
 
+from ode.odeGeo import OdeGeoNN, OdeAdjNN
+
 from utl.utils import getLogger
 
 # ***********************************************************************
@@ -30,12 +34,14 @@ from utl.utils import getLogger
 # ***********************************************************************
 
 SET_VAR_OFFSET = False
+GEO_TOL = 1.0e-5
+ADJ_TOL = 1.0e-5
 
 # ***********************************************************************
-# Class EcoMfdCBase: Base economic manifold ; continues adjoint
+# Class EcoMfdNN: Economic manifold ; continues adjoint; NN boosted
 # ***********************************************************************
 
-class EcoMfdNNBase:
+class EcoMfdNN:
 
     def __init__(   self,
                     varNames,
@@ -153,7 +159,7 @@ class EcoMfdNNBase:
         self.actSol      = np.zeros( shape = ( nDims, nTimes ),    dtype = 'd' )
         self.actOosSol   = np.zeros( shape = ( nDims, nOosTimes ), dtype = 'd' )
         self.tmpVec      = np.zeros( shape = ( nTimes ), 	   dtype = 'd' )
-        self.cumSol      = np.zeros( shape = ( nTimes, nDims ),    dtype = 'd' )                
+        self.cumSol      = np.random.rand(nTimes, nDims)
 
         self.trnEndDate  = list( self.trnDf[ dateName ] )[-1]
 
@@ -172,6 +178,14 @@ class EcoMfdNNBase:
         self.setBcs()
         self.setActs()
         self.setNNModel()
+
+        nWeights = 0
+        for item in self.nnModel.get_weights():
+            nWeights += item.size
+
+        self.nParams = nWeights
+
+        self.params = np.random.rand(self.nParams)
 
     def setDf( self ):
 
@@ -390,7 +404,7 @@ class EcoMfdNNBase:
             keras.layers.InputLayer(self.nDims)
         ]
 
-        for lareSize in hLayerSizes:
+        for layerSize in hLayerSizes:
             layers.append(keras.layers.Dense(layerSize))
 
         layers.append(keras.layers.Dense(self.nGammaVec))
@@ -452,7 +466,7 @@ class EcoMfdNNBase:
                 
             grad     = self.getGrad( self.params )
             funcVal  = self.getObjFunc( self.params )   
-
+            print("Func val=", funcVal)
             if itr == 0:
                 funcVal0  = funcVal
                 norm0     = np.linalg.norm( grad )
@@ -534,192 +548,16 @@ class EcoMfdNNBase:
             for m in range(self.nDims):
                 self.cumSol[tsId][m] = trapz(sol[m][:tsId+1], dx=1.0)
 
-    def intgVel( self, y, varId, trnFlag = True ):
-
-        nTimes = len( y )
-
-        if trnFlag:
-            assert nTimes == self.nTimes, 'Incorrect size!'
-
-        yCum   = np.zeros( shape = ( nTimes ), dtype = 'd' )
-
-        if trnFlag:
-            for tsId in range( nTimes-2, 0, -1 ):
-                yCum[tsId] = yCum[tsId+1] - y[tsId]
-        else:
-            for tsId in range( 1, nTimes ):
-                yCum[tsId] = yCum[tsId-1] + y[tsId]
-
-        yCum += self.varOffsets[varId]
-                         
-        return yCum
-
-    def intgVelStd( self, velStd, nTimes, trnFlag = True ):
-
-        if trnFlag:
-            assert nTimes == self.nTimes, 'Incorrect size!'
-
-        varStdVec = np.zeros( shape = ( nTimes ), dtype = 'd' )
-
-        varStdVec.fill( velStd**2 )
-
-        if trnFlag:
-            for tsId in range( nTimes-2, 0, -1 ):
-                varStdVec[tsId] = varStdVec[tsId+1] + velStd**2
-        else:
-            for tsId in range( 1, nTimes ):
-                varStdVec[tsId] = varStdVec[tsId-1] + velStd**2
-
-        varStdVec = np.sqrt( varStdVec )
-
-        return varStdVec
-
-    def getError( self, varNames = None ): 
-
-        if varNames is None:
-            varNames = self.varNames
-
-        nTimes   = self.nTimes
-        nDims    = self.nDims
-        actSol   = self.actSol
-        varCoefs = self.varCoefs
-        atnCoefs = self.atnCoefs
-        tmpVec   = np.zeros( shape = ( nTimes ), dtype = 'd' )
-
-        tmpVec.fill( 0.0 )
-        for varId in range( nDims ):
-
-            varName = self.varNames[varId]
-
-            if varName not in varNames:
-                continue
-
-            tmpVec += varCoefs[varId] * atnCoefs[:] * actSol[varId][:]**2 
-
-        funcValFct = 0.5 * trapz( tmpVec, dx = 1.0 )
-
-        if  funcValFct > 0:
-            funcValFct = 1.0 / funcValFct
-
-        sol = self.getSol(self.params)
-
-        tmpVec.fill( 0.0 )
-        for varId in range( nDims ):
-
-            varName = self.varNames[varId]
-
-            if varName not in varNames:
-                continue
-
-            tmpVec += varCoefs[varId] * atnCoefs[:] *\
-                ( sol[varId][:] - actSol[varId][:] )**2 
-
-        funcVal  = 0.5 * trapz( tmpVec, dx = 1.0 )
-
-        tmpVal   = np.sqrt( funcVal * funcValFct )
-
-        return tmpVal
-
-    def getMerit( self, varNames = None ): 
-
-        tmpVal = self.getError( varNames = varNames ) 
-        tmpVal = max( 1.0 - tmpVal, 0.0 )
-
-        return tmpVal
-
-    def getOosError( self, varNames = None ): 
-
-        if varNames is None:
-            varNames = self.varNames
-
-        nDims     = self.nDims
-        nOosTimes = self.nOosTimes
-        actOosSol = self.actOosSol
-        varCoefs  = self.varCoefs
-        tmpVec    = np.zeros( shape = ( nOosTimes ), dtype = 'd' )
-
-        tmpVec.fill( 0.0 )
-        for varId in range( nDims ):
-
-            varName = self.varNames[varId]
-
-            if varName not in varNames:
-                continue
-
-            tmpVec += varCoefs[varId] * actOosSol[varId][:]**2 
-
-        funcValFct = 0.5 * trapz( tmpVec, dx = 1.0 )
-
-        if  funcValFct > 0:
-            funcValFct = 1.0 / funcValFct
-
-        oosOdeObj  = self.getOosSol()
-
-        if oosOdeObj is None:
-            return -np.inf
-
-        oosSol     = oosOdeObj.getSol()
-
-        tmpVec.fill( 0.0 )
-        for varId in range( nDims ):
-
-            varName = self.varNames[varId]
-
-            if varName not in varNames:
-                continue
-
-            tmpVec += varCoefs[varId] * ( oosSol[varId][:] - actOosSol[varId][:] )**2 
-
-        funcVal  = 0.5 * trapz( tmpVec, dx = 1.0 )
-
-        tmpVal   = np.sqrt( funcVal * funcValFct )
-
-        return tmpVal
-
-    def getOosMerit( self, varNames = None ): 
-
-        tmpVal = self.getOosError( varNames = varNames ) 
-        tmpVal = max( 1.0 - tmpVal, 0.0 )
-
-        return tmpVal
-
-    def getOosTrendCnt( self, vType = 'vel' ): 
-
-        nDims = self.nDims
-        perfs = self.getOosTrendPerfs( vType )
-        cnt   = 0            
-
-        for varId in range( nDims ):
-            if perfs[varId]:
-                cnt += 1
-
-        assert cnt <= nDims, 'Count cannot be more than nDims!' 
-
-        ratio = float( cnt ) / nDims
-               
-        return ratio
-
     def setConstStdVec( self ): 
 
         nDims  = self.nDims
         actSol = self.actSol
-        odeObj  = self.getSol( self.GammaVec )
-        sol     = odeObj.getSol()
+        sol  = self.getSol(self.params)
 
         for varId in range( nDims ):
             tmpVec = ( sol[varId][:] - actSol[varId][:] )**2
             self.stdVec[varId] = np.sqrt( np.mean( tmpVec ) )
             
-    def getConstStdVec( self ): 
-
-        return self.stdVec
-
-    def lighten( self ):
-        
-        self.actSol    = None
-        self.actOosSol = None
-        self.tmpVec    = None
-        
     def save( self, outModFile ):
 
         self.logger.info( 'Saving the model to %s', 
@@ -733,53 +571,6 @@ class EcoMfdNNBase:
         self.logger.info( 'Saving the model took %0.2f seconds', 
                           time.time() - t0  )
         
-    def getResiduals( self ):
-        
-        nDims    = self.nDims
-        velNames = self.velNames
-        sol      = self.getSol( self.params )
-        actSol   = self.actSol
-
-        resVec = []
-        for m in range( nDims ):
-            velName              = velNames[m]
-            y                    = sol[m]
-            yAct                 = actSol[m]
-            ( slope, intercept ) = self.deNormHash[ velName ]
-            invFunc              = lambda x : slope * x + intercept
-            y                    = invFunc( y )
-            yAct                 = invFunc( yAct )
-            res                  = y - yAct
-            resVec.append( res )
-        
-        return resVec
-
-    def getResCovariance( self, normFlag = False ):
-        
-        resVec = self.getResiduals()
-        res    = np.array( resVec )
-        covMat = np.cov( res )
-
-        if not normFlag:
-            return covMat
-
-        nDims = self.nDims
-        for a in range( nDims ):
-            for b in range( nDims ):
-
-                fctA = np.mean( resVec[a]**2 )
-                fctB = np.mean( resVec[b]**2 )
-
-                if fctA > 0:
-                    fctA = 1.0 / np.sqrt( fctA )
-
-                if fctB > 0:
-                    fctB = 1.0 / np.sqrt( fctB )
-
-                covMat[a][b] *= fctA * fctB
-
-        return covMat
-
     def pltConv( self ):
 
         y     = np.log10( np.array( self.errVec ) )
@@ -790,27 +581,51 @@ class EcoMfdNNBase:
         plt.xlabel( 'Iterations' )
         plt.ylabel( 'Log Relative Err' )
         plt.show()
+
+    def getGammaVecJacs(self):
         
+        inpVars = tf.Variable(self.cumSol, dtype=tf.float32)
+        model = self.nnModel
+        with tf.GradientTape() as tape:
+            tape.watch(model.weights)
+            outVars = model(inpVars)
+            jacs = tape.jacobian(outVars, model.weights)
+
+        assert len(jacs) == len(model.weights), 'Internal error!'
+        
+        jacVec = None
+        for jac in jacs:
+            
+            shape = jac.numpy().shape
+
+            assert shape[0] == self.nTimes, 'Internal error!'
+            assert shape[1] == self.nGammaVec, 'Internal error!'
+                
+            size = shape[2]
+            if len(shape) == 4:
+                size *= shape[3]
+
+            if jacVec is None:
+                jacVec = jac.numpy().reshape((shape[0], shape[1], size)).copy()
+            else:
+                jacVec = np.concatenate(
+                    [
+                        jacVec,
+                        jac.numpy().reshape((shape[0], shape[1], size)).copy()
+                    ],
+                    axis=2,
+                )
+
+        assert jacVec.shape[0] == self.nTimes, 'Internal error!'                    
+        assert jacVec.shape[1] == self.nGammaVec, 'Internal error!'
+        assert jacVec.shape[2] == self.nParams, 'Internal error!'            
+
+        return jacVec.reshape((self.nGammaVec, self.nParams, self.nTimes))
+
     def getGrad( self, params ):
 
-        weights = model.get_weights()
-        model.set_weights(weights=weights)
-
-        x = tf.Variable([[1,2,3,4,5]], dtype=tf.float32)
+        t0 = time.time()
         
-        with tf.GradientTape(persistent=True) as g:
-            g.watch(x)
-            y = model(x)
-
-        jac = g.jacobian(y, x)
-
-        # jac[0][i][0] has the dim of input; i iterates to output size
-        # jac_matrix = np.array(jac).reshape((8,5))
-
-        # Get params from wts
-        wts = model.get_weights()
-        params = np.concatenate([item.flatten() for item in wts])
-
         self.statHash[ 'gradCnt' ] += 1
 
         nDims    = self.nDims
@@ -819,14 +634,17 @@ class EcoMfdNNBase:
         regL1Wt  = self.regL1Wt
         timeInc  = 1.0
         xi       = lambda a,b: 1.0 if a == b else 2.0
-        grad     = np.zeros( shape = ( self.nGammaVec ), dtype = 'd' )     
+        grad     = np.zeros(shape=(self.nParams), dtype = 'd')     
 
         sol = self.getSol(params)
-
         adjSol = self.getAdjSol(params, sol)
 
-        t0      = time.time()
-        paramId = 0
+        weights = self.getNNWeights(params)
+        self.nnModel.set_weights(weights=weights)
+
+        gammaVecJacs = self.getGammaVecJacs()
+        
+        gammaId = 0
         for r in range( nDims ):
             for p in range( nDims ):
                 for q in range( p, nDims ):
@@ -839,12 +657,21 @@ class EcoMfdNNBase:
 
                     tmpVec  = xi(p,q) * np.multiply( sol[p][:], sol[q][:] )
                     tmpVec  = np.multiply(tmpVec, adjSol[r][:] )
-
-                    grad[paramId] = trapz( tmpVec, dx = timeInc ) +\
-                        regCoef * ( regL1Wt * np.sign( params[paramId] ) +\
-                                    ( 1.0 - regL1Wt ) * 2.0 * params[paramId] )    
-
-                    paramId += 1
+                    
+                    for paramId in range(self.nParams):
+                        grad[paramId] += trapz(
+                            np.multiply(
+                                tmpVec, gammaVecJacs[gammaId][paramId][:]
+                            ),
+                            dx = timeInc
+                        ) + regCoef * (
+                                regL1Wt * np.sign(
+                                    params[paramId]
+                                ) + (1.0 - regL1Wt) * 2.0 * params[paramId]
+                            )    
+                        
+                        
+                    gammaId += 1
 
         self.logger.debug( 'Setting gradient: %0.2f seconds.', 
                            time.time() - t0 )
@@ -870,12 +697,12 @@ class EcoMfdNNBase:
         else:
             bcTime = 0.0
 
-        GammaFunc = lambda tsId: self.getGamma(params, tsId)
+        Gamma = self.getGamma(params)
 
         self.logger.debug( 'Solving geodesic...' )
 
-        odeObj = OdeGeoConst(
-            GammaFunc= GammaFunc,
+        odeObj = OdeGeoNN(
+            Gamma    = Gamma,
             bcVec    = self.bcSol,
             bcTime   = bcTime,
             timeInc  = 1.0,
@@ -919,12 +746,12 @@ class EcoMfdNNBase:
         bcVec    = np.zeros( shape = ( nDims ), dtype = 'd' )
         bkFlag   = not self.endBcFlag
 
-        GammaFunc = lambda tsId: self.getGamma(params, tsId)
+        Gamma = self.getGamma(params)
         
         self.logger.debug( 'Solving adjoint geodesic equation...' )
 
-        adjOdeObj = OdeAdjConst(
-            GammaFunc= GammaFunc,
+        adjOdeObj = OdeAdjNN(
+            Gamma    = Gamma,
             bcVec    = bcVec,
             bcTime    = 0.0,
             timeInc   = 1.0,
@@ -973,38 +800,42 @@ class EcoMfdNNBase:
 
         return weights
                       
-    def getGamma(self, params, tsId):
+    def getGamma(self, params):
 
         nDims   = self.nDims
         weights = self.getNNWeights(params)
         
         self.nnModel.set_weights(weights=weights)
 
-        inpVals = self.cumSol[tsId].reshape((1, nDims))
+        inpVars = tf.Variable(self.cumSol, dtype=tf.float32)
         
-        inpVar = tf.Variable(inpVals, dtype=tf.float32)
+        GammaVec = self.nnModel(inpVars).numpy()
+
+        assert GammaVec.shape[0] == self.nTimes, 'Internal error!'
+        assert GammaVec.shape[1] == self.nGammaVec
+
+        GammaVec = GammaVec.reshape((self.nGammaVec, self.nTimes))
+
+        Gamma = np.zeros( shape = ( nDims, nDims, nDims, self.nTimes ), dtype = 'd' )
         
-        GammaVec = self.nnModel(inpVar).numpy().flatten()
-        
-        Gamma = np.zeros( shape = ( nDims, nDims, nDims ), dtype = 'd' )
         gammaId = 0
         for m in range( nDims ):
             for a in range( nDims ):
                 for b in range( a, nDims ):
 
                     if self.diagFlag and m != a and m != b and a != b:
-                        Gamma[m][a][b] = 0.0
-                        Gamma[m][b][a] = 0.0
+                        Gamma[m][a][b] = np.zeros(shape=(self.nTimes))
+                        Gamma[m][b][a] = np.zeros(shape=(self.nTimes))
                     elif self.srelFlag and m == a and a == b:
-                        Gamma[m][a][b] = 0.0
+                        Gamma[m][a][b] = np.zeros(shape=(self.nTimes))
                     else:
-                        Gamma[m][a][b] = GammaVec[gammaId]
-                        Gamma[m][b][a] = GammaVec[gammaId]
+                        Gamma[m][a][b] = GammaVec[gammaId][:]
+                        Gamma[m][b][a] = GammaVec[gammaId][:]
                         gammaId += 1
 
-        return Gamma
+        return Gamma.reshape((self.nTimes, nDims, nDims, nDims))
 
-    def getOosSol( self ):
+    def getOosSol( self, params ):
 
         nDims     = self.nDims
         nTimes    = self.nTimes
@@ -1014,7 +845,7 @@ class EcoMfdNNBase:
 
         self.logger.debug( 'Solving geodesic to predict...' )
 
-        odeObj   = OdeGeoConst( Gamma    = Gamma,
+        odeObj   = OdeGeoNN(    Gamma    = Gamma,
                                 bcVec    = self.endSol,
                                 bcTime   = 0.0,
                                 timeInc  = 1.0,
@@ -1033,7 +864,7 @@ class EcoMfdNNBase:
 
         return odeObj
 
-    def pltResults( self, rType = 'all', pType = 'vel' ):
+    def pltResults( self, rType = 'trn'):
 
         nTimes    = self.nTimes
         nOosTimes = self.nOosTimes
@@ -1042,13 +873,12 @@ class EcoMfdNNBase:
         varNames  = self.varNames
         velNames  = self.velNames
         actSol    = self.actSol
-        actOosSol = self.actOosSo`<l
+        actOosSol = self.actOosSol
         x         = np.linspace( 0, nSteps, nTimes )
         xOos      = np.linspace( nSteps, nSteps + nOosTimes-1, nOosTimes )
-        oosOdeObj = self.getOosSol()
-        sol       = self.getSol( self.params )
-        oosSol    = oosOdeObj.getSol()
-        stdVec    = self.getConstStdVec()
+        sol       = self.getSol(self.params)
+        oosSol    = actOosSol #self.getOosSol(self.params)
+        stdVec    = self.stdVec
 
         for m in range( nDims ):
 
@@ -1070,18 +900,6 @@ class EcoMfdNNBase:
             yHigh    = y    + 1.0 * velStd
             yLowOos  = yOos - 1.0 * velStd
             yHighOos = yOos + 1.0 * velStd
-
-            if pType == 'var':
-                y         = self.intgVel( y,        m, True  )
-                yAct      = self.intgVel( yAct,     m, True  )
-                yOos      = self.intgVel( yOos,     m, False )
-                yActOos   = self.intgVel( yActOos,  m, False )
-                varStd    = self.intgVelStd( velStd, nTimes, True )
-                varStdOos = self.intgVelStd( velStd, nOosTimes, False )
-                yLow      = y    - 1.0 * varStd
-                yHigh     = y    + 1.0 * varStd
-                yLowOos   = yOos - 1.0 * varStdOos
-                yHighOos  = yOos + 1.0 * varStdOos
 
             if rType == 'trn':
                 plt.plot( x,    y,       'r',
@@ -1105,8 +923,6 @@ class EcoMfdNNBase:
 
             plt.xlabel( 'Time' )
 
-            if pType == 'var':
-                plt.ylabel( varNames[m] )
-            else:
-                plt.ylabel( velNames[m] )
+            plt.ylabel( velNames[m] )
+            
             plt.show()
