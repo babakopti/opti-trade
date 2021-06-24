@@ -17,11 +17,13 @@ import gc
 import tensorflow as tf
 from tensorflow import keras
 
+
 from scipy.integrate import trapz
 from scipy.optimize import line_search
 from scipy.optimize import fsolve
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
+from sklearn.linear_model import LinearRegression
 
 sys.path.append( os.path.abspath( '../' ) )
 
@@ -34,8 +36,8 @@ from utl.utils import getLogger
 # ***********************************************************************
 
 SET_VAR_OFFSET = False
-GEO_TOL = 1.0e-5
-ADJ_TOL = 1.0e-5
+GEO_TOL = 1.0e-6
+ADJ_TOL = 1.0e-6
 
 # ***********************************************************************
 # Class EcoMfdNN: Economic manifold ; continues adjoint; NN boosted
@@ -51,7 +53,7 @@ class EcoMfdNN:
                     minTrnDate, 
                     maxTrnDate,
                     maxOosDate,
-                    hLayerSizes,                    
+                    hLayerSizes = [],                    
                     trmFuncDict  = {},
                     optType      = 'L-BFGS-B',
                     maxOptItrs   = 100, 
@@ -159,7 +161,7 @@ class EcoMfdNN:
         self.actSol      = np.zeros( shape = ( nDims, nTimes ),    dtype = 'd' )
         self.actOosSol   = np.zeros( shape = ( nDims, nOosTimes ), dtype = 'd' )
         self.tmpVec      = np.zeros( shape = ( nTimes ), 	   dtype = 'd' )
-        self.cumSol      = np.random.rand(nTimes, nDims)
+        self.cumSol      = np.ones(shape=(nTimes, nDims))
 
         self.trnEndDate  = list( self.trnDf[ dateName ] )[-1]
 
@@ -183,9 +185,9 @@ class EcoMfdNN:
         for item in self.nnModel.get_weights():
             nWeights += item.size
 
-        self.nParams = nWeights
+        self.nParams = nWeights #self.nGammaVec
 
-        self.params = np.random.rand(self.nParams)
+        self.params = np.zeros(shape=(self.nParams))
 
     def setDf( self ):
 
@@ -401,13 +403,17 @@ class EcoMfdNN:
         hLayerSizes = self.hLayerSizes
         
         layers = [
-            keras.layers.InputLayer(self.nDims)
+            keras.layers.InputLayer(1)#self.nDims) @hack@
         ]
 
         for layerSize in hLayerSizes:
-            layers.append(keras.layers.Dense(layerSize))
+            layers.append(keras.layers.Dense(layerSize, use_bias=True, activation="softsign"))
 
-        layers.append(keras.layers.Dense(self.nGammaVec))
+        layers.append(keras.layers.Dense(self.nGammaVec, use_bias=False, activation="linear", kernel_initializer="zeros"))
+
+ #       custom_func = lambda x: 3.0 * keras.backend.tanh(x)
+        
+ #       layers.append(keras.layers.Activation(custom_func))
                     
         self.nnModel = keras.Sequential(layers)
 
@@ -418,38 +424,37 @@ class EcoMfdNN:
         )
 
         t0 = time.time()
-
+        sFlag = False
+        
         if self.optType == 'GD':
             sFlag = self.setParamsGD()
         else:
-
             options  = { 'gtol'       : self.optGTol, 
                          'ftol'       : self.optFTol, 
-                         'maxiter'    : self.maxOptItrs, 
+                         'maxiter'    : self.maxOptItrs,
+                         'eps'        : 0.001,
                          'disp'       : True              }
 
-            try:
-                optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
-                                                  x0       = self.params, 
-                                                  method   = self.optType, 
-                                                  jac      = self.getGrad,
-                                                  options  = options          )
-                sFlag   = optObj.success
+            optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
+                                              x0       = self.params, 
+                                              method   = "SLSQP",
+                                              jac      = self.getGrad,
+                                              options  = options          )
+            sFlag   = optObj.success
     
-                self.params = optObj.x
+            self.params = optObj.x
 
-                self.logger.info( 'Success: %s', str( sFlag ) )
-
-            except:
-                sFlag = False
+#            self.logger.info(optObj)
+                
+            self.logger.info( 'Success: %s', str( sFlag ) )
 
         self.statHash[ 'totTime' ] = time.time() - t0
 
         self.logger.info( 'Setting parameters: %0.2f seconds.', 
                           time.time() - t0   )
 
-        self.setConstStdVec()
-        
+#        self.setConstStdVec()
+
         return sFlag
 
     def setParamsGD( self ):
@@ -466,7 +471,7 @@ class EcoMfdNN:
                 
             grad     = self.getGrad( self.params )
             funcVal  = self.getObjFunc( self.params )   
-            print("Func val=", funcVal)
+
             if itr == 0:
                 funcVal0  = funcVal
                 norm0     = np.linalg.norm( grad )
@@ -523,7 +528,7 @@ class EcoMfdNN:
         tmpVec   = self.tmpVec.copy()
 
         sol = self.getSol(params)
-        
+
         tmpVec.fill( 0.0 )
         for varId in range( nDims ):
             tmpVec += varCoefs[varId] * atnCoefs[:] *\
@@ -583,8 +588,10 @@ class EcoMfdNN:
         plt.show()
 
     def getGammaVecJacs(self):
-        
-        inpVars = tf.Variable(self.cumSol, dtype=tf.float32)
+
+        x = np.ones(shape=(self.nTimes, 1))
+        inpVars = tf.Variable(x, dtype=tf.float64)        
+#        inpVars = tf.Variable(self.cumSol, dtype=tf.float32) @hack@
         model = self.nnModel
         with tf.GradientTape() as tape:
             tape.watch(model.weights)
@@ -620,7 +627,13 @@ class EcoMfdNN:
         assert jacVec.shape[1] == self.nGammaVec, 'Internal error!'
         assert jacVec.shape[2] == self.nParams, 'Internal error!'            
 
-        return jacVec.reshape((self.nGammaVec, self.nParams, self.nTimes))
+        jacVec = np.swapaxes(jacVec, 0, 2)
+
+        assert jacVec.shape[0] == self.nParams, 'Internal error!'        
+        assert jacVec.shape[1] == self.nGammaVec, 'Internal error!'                    
+        assert jacVec.shape[2] == self.nTimes, 'Internal error!'            
+        
+        return jacVec
 
     def getGrad( self, params ):
 
@@ -657,11 +670,12 @@ class EcoMfdNN:
 
                     tmpVec  = xi(p,q) * np.multiply( sol[p][:], sol[q][:] )
                     tmpVec  = np.multiply(tmpVec, adjSol[r][:] )
-                    
+
                     for paramId in range(self.nParams):
+
                         grad[paramId] += trapz(
                             np.multiply(
-                                tmpVec, gammaVecJacs[gammaId][paramId][:]
+                                tmpVec, gammaVecJacs[paramId][gammaId][:]
                             ),
                             dx = timeInc
                         ) + regCoef * (
@@ -669,7 +683,6 @@ class EcoMfdNN:
                                     params[paramId]
                                 ) + (1.0 - regL1Wt) * 2.0 * params[paramId]
                             )    
-                        
                         
                     gammaId += 1
 
@@ -700,7 +713,7 @@ class EcoMfdNN:
         Gamma = self.getGamma(params)
 
         self.logger.debug( 'Solving geodesic...' )
-
+        
         odeObj = OdeGeoNN(
             Gamma    = Gamma,
             bcVec    = self.bcSol,
@@ -733,7 +746,7 @@ class EcoMfdNN:
 
         sol = odeObj.getSol()
 
-        self.setCumSol(sol)
+        #self.setCumSol(sol) @hack@
         
         return sol
 
@@ -803,20 +816,24 @@ class EcoMfdNN:
     def getGamma(self, params):
 
         nDims   = self.nDims
+        params_before = params.copy()
         weights = self.getNNWeights(params)
         
         self.nnModel.set_weights(weights=weights)
 
-        inpVars = tf.Variable(self.cumSol, dtype=tf.float32)
-        
+#        inpVars = tf.Variable(self.cumSol, dtype=tf.float32) @hack@
+        x = np.ones(shape=(self.nTimes, 1))
+        inpVars = tf.Variable(x, dtype=tf.float64)
+
         GammaVec = self.nnModel(inpVars).numpy()
 
+        # for tsId in range(self.nTimes):
+        #     GammaVec[tsId] = params
+
         assert GammaVec.shape[0] == self.nTimes, 'Internal error!'
-        assert GammaVec.shape[1] == self.nGammaVec
+        assert GammaVec.shape[1] == self.nGammaVec, 'Internal error!'
 
-        GammaVec = GammaVec.reshape((self.nGammaVec, self.nTimes))
-
-        Gamma = np.zeros( shape = ( nDims, nDims, nDims, self.nTimes ), dtype = 'd' )
+        Gamma = np.zeros( shape = ( self.nTimes, nDims, nDims, nDims ), dtype = 'd' )
         
         gammaId = 0
         for m in range( nDims ):
@@ -824,16 +841,17 @@ class EcoMfdNN:
                 for b in range( a, nDims ):
 
                     if self.diagFlag and m != a and m != b and a != b:
-                        Gamma[m][a][b] = np.zeros(shape=(self.nTimes))
-                        Gamma[m][b][a] = np.zeros(shape=(self.nTimes))
+                        continue
                     elif self.srelFlag and m == a and a == b:
-                        Gamma[m][a][b] = np.zeros(shape=(self.nTimes))
+                        continue
                     else:
-                        Gamma[m][a][b] = GammaVec[gammaId][:]
-                        Gamma[m][b][a] = GammaVec[gammaId][:]
-                        gammaId += 1
+                        for tsId in range(self.nTimes):
+                            Gamma[tsId][m][a][b] = GammaVec[tsId][gammaId]
+                            Gamma[tsId][m][b][a] = GammaVec[tsId][gammaId]
+                        
+                    gammaId += 1
 
-        return Gamma.reshape((self.nTimes, nDims, nDims, nDims))
+        return Gamma
 
     def getOosSol( self, params ):
 
@@ -902,8 +920,8 @@ class EcoMfdNN:
             yHighOos = yOos + 1.0 * velStd
 
             if rType == 'trn':
-                plt.plot( x,    y,       'r',
-                          x,    yAct,    'b'    )
+                plt.plot( x,    y,       'r-',
+                          x,    yAct,    'bo'    )
                 plt.fill_between( x, yLow, yHigh, alpha = 0.2 ) 
 
             elif rType == 'oos':
