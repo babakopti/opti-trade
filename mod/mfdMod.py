@@ -323,7 +323,7 @@ class MfdMod:
                               logFileName  = self.logFileName,                              
                               verbose      = self.verbose        )        
 
-        sFlag = self.ecoMfd.setGammaVec()
+        sFlag = self.ecoMfd.setParams()
 
         if not sFlag:
             self.logger.warning( 'Did not converge!' )

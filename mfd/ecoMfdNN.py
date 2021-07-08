@@ -161,7 +161,7 @@ class EcoMfdNN:
         self.actSol      = np.zeros( shape = ( nDims, nTimes ),    dtype = 'd' )
         self.actOosSol   = np.zeros( shape = ( nDims, nOosTimes ), dtype = 'd' )
         self.tmpVec      = np.zeros( shape = ( nTimes ), 	   dtype = 'd' )
-        self.cumSol      = np.ones(shape=(nTimes, nDims))
+        self.modelInp      = np.ones(shape=(nTimes, nDims))
 
         self.trnEndDate  = list( self.trnDf[ dateName ] )[-1]
 
@@ -185,9 +185,9 @@ class EcoMfdNN:
         for item in self.nnModel.get_weights():
             nWeights += item.size
 
-        self.nParams = nWeights #self.nGammaVec
+        self.nParams = nWeights 
 
-        self.params = np.zeros(shape=(self.nParams))
+        self.params = 1.0e-5 * np.random.rand(self.nParams)
 
     def setDf( self ):
 
@@ -403,17 +403,16 @@ class EcoMfdNN:
         hLayerSizes = self.hLayerSizes
         
         layers = [
-            keras.layers.InputLayer(1)#self.nDims) @hack@
+            keras.layers.InputLayer(self.nDims) 
         ]
 
         for layerSize in hLayerSizes:
-            layers.append(keras.layers.Dense(layerSize, use_bias=True, activation="softsign"))
+            layers.append(keras.layers.Dense(layerSize, use_bias=True, activation="linear"))
 
-        layers.append(keras.layers.Dense(self.nGammaVec, use_bias=False, activation="linear", kernel_initializer="zeros"))
+        layers.append(keras.layers.Dense(self.nGammaVec, use_bias=False, activation="softsign"))
 
- #       custom_func = lambda x: 3.0 * keras.backend.tanh(x)
-        
- #       layers.append(keras.layers.Activation(custom_func))
+#        custom_func = lambda x: 1.0 * keras.backend.softsign(x)
+#        layers.append(keras.layers.Activation(custom_func))
                     
         self.nnModel = keras.Sequential(layers)
 
@@ -547,11 +546,11 @@ class EcoMfdNN:
 
         return val
 
-    def setCumSol(self, sol):
+    def setModelInp(self, sol):
 
         for tsId in range(self.nTimes):
             for m in range(self.nDims):
-                self.cumSol[tsId][m] = trapz(sol[m][:tsId+1], dx=1.0)
+                self.modelInp[tsId][m] = sol[m][tsId]
 
     def setConstStdVec( self ): 
 
@@ -589,9 +588,7 @@ class EcoMfdNN:
 
     def getGammaVecJacs(self):
 
-        x = np.ones(shape=(self.nTimes, 1))
-        inpVars = tf.Variable(x, dtype=tf.float64)        
-#        inpVars = tf.Variable(self.cumSol, dtype=tf.float32) @hack@
+        inpVars = tf.Variable(self.modelInp, dtype=tf.float64) 
         model = self.nnModel
         with tf.GradientTape() as tape:
             tape.watch(model.weights)
@@ -599,10 +596,9 @@ class EcoMfdNN:
             jacs = tape.jacobian(outVars, model.weights)
 
         assert len(jacs) == len(model.weights), 'Internal error!'
-        
+
         jacVec = None
         for jac in jacs:
-            
             shape = jac.numpy().shape
 
             assert shape[0] == self.nTimes, 'Internal error!'
@@ -656,7 +652,7 @@ class EcoMfdNN:
         self.nnModel.set_weights(weights=weights)
 
         gammaVecJacs = self.getGammaVecJacs()
-        
+
         gammaId = 0
         for r in range( nDims ):
             for p in range( nDims ):
@@ -692,6 +688,7 @@ class EcoMfdNN:
         del sol
         del adjSol
         del tmpVec
+        del gammaVecJacs
         
         gc.collect()
 
@@ -746,7 +743,7 @@ class EcoMfdNN:
 
         sol = odeObj.getSol()
 
-        #self.setCumSol(sol) @hack@
+        self.setModelInp(sol)
         
         return sol
 
@@ -821,14 +818,9 @@ class EcoMfdNN:
         
         self.nnModel.set_weights(weights=weights)
 
-#        inpVars = tf.Variable(self.cumSol, dtype=tf.float32) @hack@
-        x = np.ones(shape=(self.nTimes, 1))
-        inpVars = tf.Variable(x, dtype=tf.float64)
+        inpVars = tf.Variable(self.modelInp, dtype=tf.float64)
 
         GammaVec = self.nnModel(inpVars).numpy()
-
-        # for tsId in range(self.nTimes):
-        #     GammaVec[tsId] = params
 
         assert GammaVec.shape[0] == self.nTimes, 'Internal error!'
         assert GammaVec.shape[1] == self.nGammaVec, 'Internal error!'
@@ -920,8 +912,8 @@ class EcoMfdNN:
             yHighOos = yOos + 1.0 * velStd
 
             if rType == 'trn':
-                plt.plot( x,    y,       'r-',
-                          x,    yAct,    'bo'    )
+                plt.plot( x,    y,       'r',
+                          x,    yAct,    'b'    )
                 plt.fill_between( x, yLow, yHigh, alpha = 0.2 ) 
 
             elif rType == 'oos':

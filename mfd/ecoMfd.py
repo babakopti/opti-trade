@@ -101,14 +101,16 @@ class EcoMfdConst( EcoMfdCBase ):
         nDims            = self.nDims
 
         if diagFlag:
-            self.nGammaVec = nDims * ( 2 * nDims - 1 ) 
+            self.nParams = nDims * ( 2 * nDims - 1 ) 
         else:
-            self.nGammaVec = int( nDims * nDims * ( nDims + 1 ) / 2 )
+            self.nParams = int( nDims * nDims * ( nDims + 1 ) / 2 )
 
         if srelFlag:
-            self.nGammaVec -= nDims
+            self.nParams -= nDims
 
-        self.GammaVec    = np.zeros( shape = ( self.nGammaVec ),   dtype = 'd' ) 
+        self.nParams += nDims
+        
+        self.params = np.zeros(shape=(self.nParams), dtype = 'd')
 
         self.setBcs()
         self.setActs()
@@ -124,6 +126,8 @@ class EcoMfdConst( EcoMfdCBase ):
         velNames = self.velNames
         trnDf    = self.trnDf
 
+        nGammaVec = self.nParams - nDims
+        
         for m in range( nDims ):
             varName            = varNames[m]
             velName            = velNames[m]
@@ -131,9 +135,9 @@ class EcoMfdConst( EcoMfdCBase ):
             self.endSol[m]     = list( trnDf[velName] )[nSteps]
 
             if self.endBcFlag:
-                self.bcSol[m]    = self.endSol[m]
+                self.params[m + nGammaVec] = self.endSol[m]
             else:
-                self.bcSol[m]    = list( trnDf[velName] )[0]
+                self.params[m + nGammaVec] = list( trnDf[velName] )[0]                
 
     def setActs( self ):
         
@@ -158,7 +162,7 @@ class EcoMfdConst( EcoMfdCBase ):
             for tsId in range( nOosTimes ):
                 self.actOosSol[varId][tsId] = oosVec[tsId]
 
-    def getGrad( self, GammaVec ):
+    def getGrad( self, params ):
 
         self.statHash[ 'gradCnt' ] += 1
 
@@ -168,9 +172,9 @@ class EcoMfdConst( EcoMfdCBase ):
         regL1Wt  = self.regL1Wt
         timeInc  = 1.0
         xi       = lambda a,b: 1.0 if a == b else 2.0
-        grad     = np.zeros( shape = ( self.nGammaVec ), dtype = 'd' )     
+        grad     = np.zeros(shape=(self.nParams), dtype='d')     
 
-        odeObj   = self.getSol( GammaVec )
+        odeObj   = self.getSol(params)
 
         if odeObj is None:
             sys.exit()
@@ -178,7 +182,7 @@ class EcoMfdConst( EcoMfdCBase ):
 
         sol      = odeObj.getSol()
 
-        adjOdeObj = self.getAdjSol( GammaVec, odeObj )
+        adjOdeObj = self.getAdjSol(params, odeObj)
 
         if adjOdeObj is None:
             sys.exit()
@@ -202,8 +206,8 @@ class EcoMfdConst( EcoMfdCBase ):
                     tmpVec  = np.multiply(tmpVec, adjSol[r][:] )
 
                     grad[gammaId] = trapz( tmpVec, dx = timeInc ) +\
-                        regCoef * ( regL1Wt * np.sign( GammaVec[gammaId] ) +\
-                                    ( 1.0 - regL1Wt ) * 2.0 * GammaVec[gammaId] )    
+                        regCoef * ( regL1Wt * np.sign(params[gammaId] ) +\
+                                    ( 1.0 - regL1Wt ) * 2.0 * params[gammaId] )    
 
                     gammaId += 1
 
@@ -211,14 +215,32 @@ class EcoMfdConst( EcoMfdCBase ):
                            time.time() - t0 )
         
         del sol
-        del adjSol
+#        del adjSol
         del tmpVec
         
         gc.collect()
 
+        nGammaVec = self.nParams - nDims
+        GammaVec = params[:nGammaVec]
+
+        tmp1 = np.linalg.norm(GammaVec)
+        tmp2 = np.linalg.norm(grad)
+
+        fct = 1.0
+        if tmp2 > 0:
+            fct = min(1.0, math.sqrt(abs(tmp1**2 - nGammaVec) / tmp2**2))
+
+        for i in range(nDims):
+            if self.endBcFlag:
+                grad[i + nGammaVec] = adjSol[i][-1]
+            else:
+                grad[i + nGammaVec] = -adjSol[i][0]
+
+        grad = fct * grad
+        
         return grad
 
-    def getSol( self, GammaVec ):
+    def getSol(self, params):
 
         self.statHash[ 'odeCnt' ] += 1
 
@@ -231,12 +253,16 @@ class EcoMfdConst( EcoMfdCBase ):
         else:
             bcTime = 0.0
 
-        Gamma    = self.getGammaArray( GammaVec )
+        nGammaVec = self.nParams - nDims
+        GammaVec = params[:nGammaVec]
+        bcVec = params[nGammaVec:]
+        
+        Gamma = self.getGammaArray(GammaVec)
 
         self.logger.debug( 'Solving geodesic...' )
 
         odeObj   = OdeGeoConst( Gamma    = Gamma,
-                                bcVec    = self.bcSol,
+                                bcVec    = bcVec,
                                 bcTime   = bcTime,
                                 timeInc  = 1.0,
                                 nSteps   = self.nSteps,
@@ -251,7 +277,7 @@ class EcoMfdConst( EcoMfdCBase ):
         if not sFlag:
             self.logger.warning( 'Geodesic equation did not converge!' )
             return None
-
+        
         self.statHash[ 'odeTime' ] += time.time() - t0
 
         self.logger.debug( 'Geodesic equation: %0.2f seconds.', 
@@ -259,12 +285,16 @@ class EcoMfdConst( EcoMfdCBase ):
 
         return odeObj
 
-    def getAdjSol( self, GammaVec, odeObj ):
+    def getAdjSol( self, params, odeObj ):
 
         self.statHash[ 'adjOdeCnt' ] += 1
 
         t0       = time.time()
         nDims    = self.nDims
+
+        nGammaVec = self.nParams - nDims
+        GammaVec = params[:nGammaVec]
+        
         Gamma    = self.getGammaArray( GammaVec )
         sol      = odeObj.getSol()
         bcVec    = np.zeros( shape = ( nDims ), dtype = 'd' )
@@ -320,19 +350,15 @@ class EcoMfdConst( EcoMfdCBase ):
 
         return Gamma
 
-    def saveGamma( self, outGammaFile ):
-
-        Gamma = self.getGammaArray( self.GammaVec )
-
-        with open( outGammaFile, 'wb' ) as fHd:
-            pk.dump( Gamma, fHd, pk.HIGHEST_PROTOCOL )
-
     def getOosSol( self ):
 
         nDims     = self.nDims
         nTimes    = self.nTimes
         nOosTimes = self.nOosTimes
-        Gamma     = self.getGammaArray( self.GammaVec )
+
+        nGammaVec = self.nParams - nDims
+        GammaVec = self.params[:nGammaVec]        
+        Gamma     = self.getGammaArray( GammaVec )
         srcCoefs  = self.srcCoefs
 
         self.logger.debug( 'Solving geodesic to predict...' )
@@ -356,98 +382,6 @@ class EcoMfdConst( EcoMfdCBase ):
 
         return odeObj
 
-    def predict( self, 
-                 endDate,
-                 begDate  = None, 
-                 initVels = None    ):
-
-        assert False, 'This routine is broken because of stdVec stuff!'
-
-        nDims       = self.nDims
-        nSteps      = self.nSteps
-        dateName    = self.dateName
-        velNames    = self.velNames
-        varNames    = self.varNames
-        Gamma       = self.getGammaArray( self.GammaVec )
-        stdVec      = self.getConstStdVec()
-
-        if initVels is not None:
-
-            assert len( initVels ) == self.nDims, 'Incorrect size for initVels!'
-
-            bcVec = initVels.copy()
-
-            for m in range( nDims ):
-
-                ( slope, intercept ) = self.deNormHash[ velNames[m] ]
-
-                slopeInv     = slope
-                if slopeInv != 0:
-                    slopeInve = 1.0 / slopeInv
-
-                bcVec[m] = slopeInv * ( bcVec[m] - intercept )
-        
-        else:
-            bcVec = self.endSol
-
-        if begDate is None:
-            begDate = self.trnEndDate
-
-        begDt    = pd.to_datetime( begDate )
-        endDt    = pd.to_datetime( endDate )
-        tmpDt    = begDt
-        dates    = []
-        while tmpDt <= endDt:
-            if tmpDt.isoweekday() not in [ 6, 7 ]:
-                dates.append( tmpDt.strftime( '%Y-%m-%d' ) )
-            tmpDt = tmpDt + pd.DateOffset( days = 1 )
-
-        nTimes = len( dates )
-
-        self.logger.info( 'Solving geodesic to predict...' )
-
-        odeObj   = OdeGeoConst( Gamma    = Gamma,
-                                bcVec    = bcVec,
-                                bcTime   = 0.0,
-                                timeInc  = 1.0,
-                                nSteps   = nTimes - 1,
-                                intgType = 'LSODA',
-                                tol      = GEO_TOL,
-                                verbose  = self.verbose       )
-
-        sFlag  = odeObj.solve()
-
-        if not sFlag:
-            self.logger.warning( 'Geodesic equation did not converge!' )
-            return None
-
-        prdSol  = odeObj.getSol()
-
-        outHash = {}
-
-        outHash[ dateName ] = dates
-
-        for m in range( nDims ):
-            velName    = velNames[m]
-            varName    = varNames[m]
-            velStdName = 'std_' + velName
-            varStdName = 'std_' + varName
-            ( slope, intercept )  = self.deNormHash[ velName ]
-            velVec                = slope * prdSol[m] + intercept
-            velStd                = slope * stdVec[m]
-            varVec                = self.intgVel( velVec, m, False )
-            tmpVec                = velVec + velStd
-            varStdVec             = self.intgVel( tmpVec, m, False )
-            varStdVec             = varStdVec - varVec
-            outHash[ velName    ] = velVec
-            outHash[ velStdName ] = velStd
-            outHash[ varName    ] = varVec
-            outHash[ varStdName ] = varStdVec
-
-        outDf  = pd.DataFrame( outHash )
-
-        return outDf
-
     def pltResults( self, rType = 'all', pType = 'vel' ):
 
         nTimes    = self.nTimes
@@ -460,7 +394,7 @@ class EcoMfdConst( EcoMfdCBase ):
         actOosSol = self.actOosSol
         x         = np.linspace( 0, nSteps, nTimes )
         xOos      = np.linspace( nSteps, nSteps + nOosTimes-1, nOosTimes )
-        odeObj    = self.getSol( self.GammaVec )
+        odeObj    = self.getSol(self.params)
         oosOdeObj = self.getOosSol()
         sol       = odeObj.getSol()
         oosSol    = oosOdeObj.getSol()
