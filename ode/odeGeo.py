@@ -12,7 +12,7 @@ from scipy.integrate import trapz
 
 sys.path.append( os.path.abspath( '../' ) )
 
-from ode.odeBase import OdeBaseConst
+from ode.odeBase import OdeBaseConst, OdeBaseNN
 
 # ***********************************************************************
 # OdeGeoConst: Geodesic ODE solver; 1st order; const. curv.
@@ -110,3 +110,104 @@ class OdeAdjConst( OdeBaseConst ):
 
         return vals
 
+# ***********************************************************************
+# OdeGeoNN: Geodesic ODE solver; Geo-NN model
+# ***********************************************************************
+
+class OdeGeoNN(OdeBaseNN):
+
+    def fun( self, t, y ):
+
+        nDims    = self.nDims
+        timeInc  = self.timeInc
+        nTimes   = self.nTimes
+        srcTerm  = self.srcTerm
+        srcVec   = np.zeros( shape = ( nDims ) , dtype = 'd' )
+        tsId     = int( t / timeInc )
+        Gamma    = self.Gamma
+
+        if srcTerm is not None and tsId < nTimes:
+            for m in range( nDims ):
+                srcVec[m] = srcTerm[m][tsId]
+                
+        vals = -np.tensordot( Gamma[tsId],
+                              np.tensordot( y, y, axes = 0 ),
+                              ( ( 1, 2 ), ( 0, 1 ) ) )
+        vals += srcVec
+        
+        return vals
+
+    def jac( self, t, y ):
+                       
+        nDims    = self.nDims
+        timeInc  = self.timeInc
+        tsId     = int( t / timeInc )
+        Gamma    = self.Gamma
+
+        vals = -2.0 * np.tensordot( Gamma[tsId], y, axes = ( (2), (0) ) )
+
+        return vals
+
+# ***********************************************************************
+# OdeAdjNN: Adjoint Geodesic solver; Geo-NN model
+# ***********************************************************************
+
+class OdeAdjNN(OdeBaseNN):
+
+    def fun( self, t, v ):
+
+        nDims    = self.nDims
+        timeInc  = self.timeInc
+        nTimes   = self.nTimes
+        actSol   = self.actSol
+        adjSol   = self.adjSol
+        varCoefs = self.varCoefs
+        atnCoefs = self.atnCoefs
+
+        tsId     = int( t / timeInc )
+        Gamma    = self.Gamma
+
+        vals     = np.zeros( shape = ( nDims ) , dtype = 'd' )
+        tsId     = int( t / timeInc )
+
+        assert tsId < nTimes, 'tsId should be smaller than nTimes!'
+
+        adjVec  = np.zeros( shape = ( nDims ), dtype = 'd' )
+        actVec  = np.zeros( shape = ( nDims ), dtype = 'd' )        
+
+        for a in range( nDims ):
+            adjVec[a] = adjSol[a][tsId]
+            actVec[a] = actSol[a][tsId]
+
+        vals = 2.0 * np.tensordot( Gamma[tsId],
+                                   np.tensordot( v, adjVec, axes = 0 ),
+                                   ( ( 0, 2 ), ( 0, 1 ) ) ) + \
+                                   atnCoefs[tsId] * varCoefs * \
+                                   ( adjVec - actVec )
+        
+        return vals
+
+    def jac( self, t, v ):
+
+        nDims   = self.nDims
+        timeInc = self.timeInc
+        nTimes  = self.nTimes
+        adjSol  = self.adjSol
+
+        vals    = np.zeros( shape = ( nDims, nDims ), dtype = 'd' )
+        tsId    = int( t / timeInc )
+ 
+        assert tsId < nTimes, 'tsId should be smaller than nTimes!'
+
+        Gamma    = self.Gamma
+        
+        adjVec  = np.zeros( shape = ( nDims ), dtype = 'd' )
+
+        for a in range( nDims ):
+            adjVec[a] = adjSol[a][tsId]
+
+        vals = 2.0 * np.tensordot( Gamma[tsId], adjVec, ( (2), (0) ) )
+        vals = np.transpose( vals )
+
+        return vals
+    

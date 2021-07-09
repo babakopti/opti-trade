@@ -478,9 +478,9 @@ def getDailyKibotData( etfs        = [],
         nRows = tmpDf.shape[0]
         
         logger.info( 'Got %d rows for %s!', nRows, symbol )
-
+        print(tmpDf)
         if nRows < minRows:
-            logger.warning( resp.text )
+            #logger.warning( resp.text )
             logger.warning( 'Skipping %s as it has only %d rows!',
                             symbols,
                             nRows  )
@@ -564,6 +564,7 @@ def getYahooData( etfs        = [],
                   minRows     = 2,
                   output      = 'price',
                   interpolate = True,
+                  interval    = '1m',
                   logger      = None   ):
 
     t0       = time.time()
@@ -598,7 +599,8 @@ def getYahooData( etfs        = [],
     if len( symbols ) == 0:
         logger.warning( 'No symbol is given!' )
         return None
-    
+
+    symList = []
     for symbol in symbols:
 
         logger.info( 'Reading symbol %s...' % symbol )
@@ -616,7 +618,7 @@ def getYahooData( etfs        = [],
         for itr in range( maxTries ):
             try:
                 tick  = yf.Ticker( ySymbol )
-                tmpDf = tick.history( period = period, interval = '1m' )
+                tmpDf = tick.history( period = period, interval = interval )
                 break
             except:
                 time.sleep( 5 )
@@ -630,6 +632,8 @@ def getYahooData( etfs        = [],
         
         tmpDf[ 'Date' ] = tmpDf.index
         tmpDf[ 'Date' ] = tmpDf.Date.apply( tmpFunc )
+        
+        tmpDf = tmpDf.reset_index(drop=True)
         
         cols = [ 'Date',
                  'Open',
@@ -687,14 +691,15 @@ def getYahooData( etfs        = [],
             df = df.merge( tmpDf,
                            how = 'outer',
                            on  = [ 'Date' ] )
-
+        symList.append(symbol)
+        
     if df.shape[0] == 0:
         logger.warning( 'Empty data frame!' )
         return df
 
     df[ 'Date' ] = df.Date.apply( pd.to_datetime )
     
-    df = df[ [ 'Date' ] + symbols ]
+    df = df[ [ 'Date' ] + symList ]
     df = df.reset_index( drop = True )
     df = df.sort_values( [ 'Date' ], ascending = [ True ] )
 
@@ -705,7 +710,7 @@ def getYahooData( etfs        = [],
     df = df.reset_index( drop = True )
     
     logger.info( 'Getting %d symbols took %0.2f seconds!',
-                 len( symbols ), 
+                 len( symList ), 
                  time.time() - t0 )
     
     return df

@@ -135,7 +135,6 @@ class EcoMfdCBase:
 
         nDims            = self.nDims
         self.endSol      = np.zeros( shape = ( nDims ), dtype = 'd' )
-        self.bcSol       = np.zeros( shape = ( nDims ), dtype = 'd' )
         self.stdVec      = np.zeros( shape = ( nDims ), dtype = 'd' )        
         self.varOffsets  = np.zeros( shape = ( nDims ), dtype = 'd' )
 
@@ -321,34 +320,38 @@ class EcoMfdCBase:
 
         return
 
-    def setGammaVec( self ):
+    def setParams( self ):
 
         self.logger.info( 'Running continuous adjoint optimization to set Christoffel symbols...' )
 
         t0 = time.time()
 
         if self.optType == 'GD':
-            sFlag = self.setGammaVecGD()
+            sFlag = self.setParamsGD()
         else:
 
             options  = { 'gtol'       : self.optGTol, 
                          'ftol'       : self.optFTol, 
-                         'maxiter'    : self.maxOptItrs, 
+                         'maxiter'    : self.maxOptItrs,
+                         'eps'        : 0.1,
                          'disp'       : True              }
 
             try:
+                bounds = [(-1.0, 1.0) for i in range(self.nParams)]
                 optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 
-                                                  x0       = self.GammaVec, 
+                                                  x0       = self.params,
                                                   method   = self.optType, 
                                                   jac      = self.getGrad,
+                                                  bounds   = bounds,
                                                   options  = options          )
                 sFlag   = optObj.success
     
-                self.GammaVec = optObj.x
+                self.params = optObj.x
 
                 self.logger.info( 'Success: %s', str( sFlag ) )
 
-            except:
+            except Exception as exc:
+                self.logger.error(exc)
                 sFlag = False
 
         self.statHash[ 'totTime' ] = time.time() - t0
@@ -360,7 +363,7 @@ class EcoMfdCBase:
         
         return sFlag
 
-    def setGammaVecGD( self ):
+    def setParamsGD( self ):
 
         if self.stepSize is None:
             stepSize = 1.0
@@ -372,8 +375,8 @@ class EcoMfdCBase:
 
         for itr in range( self.maxOptItrs ):
                 
-            grad     = self.getGrad( self.GammaVec )
-            funcVal  = self.getObjFunc( self.GammaVec )   
+            grad     = self.getGrad( self.params )
+            funcVal  = self.getObjFunc( self.params )   
 
             if itr == 0:
                 funcVal0  = funcVal
@@ -382,7 +385,7 @@ class EcoMfdCBase:
             if lsFlag:
                 obj = scipy.optimize.line_search( f        = self.getObjFunc, 
                                                   myfprime = self.getGrad, 
-                                                  xk       = self.GammaVec,
+                                                  xk       = self.params,
                                                   pk       = -grad, 
                                                   gfk      = grad,
                                                   old_fval = funcVal,
@@ -411,7 +414,7 @@ class EcoMfdCBase:
                 self.logger.info( 'Converged at iteration %d; rel. func. val. = %.8f', itr + 1, tmp )
                 return True
 
-            self.GammaVec = self.GammaVec - stepSize * grad
+            self.params = self.params - stepSize * grad
 
         gc.collect()
         
@@ -421,14 +424,14 @@ class EcoMfdCBase:
 
         nDims  = self.nDims
         actSol = self.actSol
-        odeObj  = self.getSol( self.GammaVec )
+        odeObj  = self.getSol( self.params )
         sol     = odeObj.getSol()
 
         for varId in range( nDims ):
             tmpVec = ( sol[varId][:] - actSol[varId][:] )**2
             self.stdVec[varId] = np.sqrt( np.mean( tmpVec ) )
 
-    def getObjFunc( self, GammaVec ):
+    def getObjFunc( self, params ):
 
         self.statHash[ 'funCnt' ] += 1
 
@@ -441,7 +444,7 @@ class EcoMfdCBase:
         atnCoefs = self.atnCoefs        
         tmpVec   = self.tmpVec.copy()
 
-        odeObj  = self.getSol( GammaVec )
+        odeObj  = self.getSol(params)
         
         if odeObj is None:
             return np.inf
@@ -455,8 +458,8 @@ class EcoMfdCBase:
 
         val = 0.5 * trapz( tmpVec, dx = 1.0 )
 
-        tmp1  = np.linalg.norm( GammaVec, 1 )
-        tmp2  = np.linalg.norm( GammaVec )
+        tmp1  = np.linalg.norm( params, 1 )
+        tmp2  = np.linalg.norm( params )
         val  += regCoef * ( regL1Wt * tmp1 + ( 1.0 - regL1Wt ) * tmp2**2 )
 
         del sol
@@ -533,7 +536,7 @@ class EcoMfdCBase:
         if  funcValFct > 0:
             funcValFct = 1.0 / funcValFct
 
-        odeObj  = self.getSol( self.GammaVec )
+        odeObj  = self.getSol( self.params )
         
         if odeObj is None:
             return -np.inf
@@ -674,7 +677,7 @@ class EcoMfdCBase:
 
         t0 = time.time()
         
-        odeObj = self.getSol( self.GammaVec )
+        odeObj = self.getSol( self.params )
 
         if odeObj is None:
             return np.inf
@@ -703,7 +706,7 @@ class EcoMfdCBase:
         times   = np.linspace( 0, nSteps, nTimes )
         bcTime  = times[-1]
         actSol  = self.actSol
-        odeObj  = self.getSol( self.GammaVec )
+        odeObj  = self.getSol( self.params )
         sol     = odeObj.getSol()
         coefs   = np.zeros( shape = ( nDims ), dtype = 'd' )
 
@@ -739,7 +742,7 @@ class EcoMfdCBase:
 
         if rType == 'trn':
             actSol  = self.actSol
-            odeObj  = self.getSol( self.GammaVec )
+            odeObj  = self.getSol( self.params )
             trnFlag = True
         elif rType == 'oos':
             actSol  = self.actOosSol
@@ -802,7 +805,7 @@ class EcoMfdCBase:
         
         nDims    = self.nDims
         velNames = self.velNames
-        odeObj   = self.getSol( self.GammaVec )
+        odeObj   = self.getSol( self.params )
         sol      = odeObj.getSol()
         actSol   = self.actSol
 
@@ -886,11 +889,11 @@ class EcoMfdCBase:
     def setActs( self ):
         pass
 
-    def getSol( self, GammaVec ):
+    def getSol( self, params ):
         pass
 
-    def getAdjSol( self, GammaVec ):
+    def getAdjSol( self, params):
         pass
 
-    def getGrad( self, GammaVec ):
+    def getGrad( self, params):
         pass
