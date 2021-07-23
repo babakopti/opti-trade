@@ -117,7 +117,7 @@ class OdeBaseConst:
                                           y0       = self.bcVec, 
                                           t_span   = timeSpan,
                                           t_eval   = timeEval,
-                                          method   = self.intgType, 
+                                          method   = self.intgType,
                                           rtol     = self.tol            )
         else:
             res = sp.integrate.solve_ivp( fun      = self.fun, 
@@ -128,8 +128,12 @@ class OdeBaseConst:
                                           rtol     = self.tol            )
             
         sFlag = res.success
+        
+        if not sFlag:
+            print(res)
+            print(self.Gamma)
 
-        assert sFlag, 'Failed to solve the ODE!'
+        assert sFlag, 'Failed to solve the ODE: %s' % res.message
         
         assert res.y.shape[0] == nDims,  'Internal error!'
         assert res.y.shape[1] == nTimes, 'Internal error!'
