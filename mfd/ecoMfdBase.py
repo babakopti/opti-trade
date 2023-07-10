@@ -333,9 +333,11 @@ class EcoMfdCBase:
             options  = { 'gtol'       : self.optGTol, 
                          'ftol'       : self.optFTol, 
                          'maxiter'    : self.maxOptItrs,
-                         'eps'        : 0.1,
+                         'eps'        : 0.001,
                          'disp'       : True              }
 
+            tmp_params = np.load(open("/Users/babak/Desktop/params.npy", "rb"))
+            print("Babak val:", self.getObjFunc(tmp_params)); #sys.exit()
             try:
                 bounds = [(-1.0, 1.0) for i in range(self.nParams)]
                 optObj = scipy.optimize.minimize( fun      = self.getObjFunc, 

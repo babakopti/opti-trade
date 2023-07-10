@@ -1,4 +1,4 @@
-# ***********************************************************************
+1# ***********************************************************************
 # Import libraries
 # ***********************************************************************
 
@@ -8,6 +8,14 @@ import time
 import datetime
 import numpy as np
 import pandas as pd
+
+from sklearn.metrics import (
+    explained_variance_score,
+    mean_squared_error,
+    mean_absolute_error,
+    mean_absolute_percentage_error,
+    r2_score,
+)
 
 from utils import getDf
 
@@ -63,6 +71,30 @@ GammaVec =  mfdMod.ecoMfd.params[:nGammaVec]
 print("Final Max Gamma:", max(GammaVec))
 print("Final Min Gamma:", min(GammaVec))
 
+print(mfdMod.ecoMfd.params)
 #mfdMod.ecoMfd.pltResults( rType = 'trn', pType = pType )
 mfdMod.ecoMfd.pltResults( rType = 'all', pType = "vel" )
 
+odeObj    = mfdMod.ecoMfd.getSol(mfdMod.ecoMfd.params)
+oosOdeObj = mfdMod.ecoMfd.getOosSol()
+sol       = odeObj.getSol()
+oosSol    = oosOdeObj.getSol()
+
+np.save(open("/Users/babak/Desktop/X_train.npy", "wb"), mfdMod.ecoMfd.actSol.transpose())
+np.save(open("/Users/babak/Desktop/X_test.npy", "wb"), mfdMod.ecoMfd.actOosSol.transpose())
+# np.save(open("/Users/babak/Desktop/X_train_prd_old.npy", "wb"), sol.transpose())
+# np.save(open("/Users/babak/Desktop/X_test_prd_old.npy", "wb"), oosSol.transpose())
+
+for m in range(mfdMod.ecoMfd.nDims):
+    
+    y_true_train = mfdMod.ecoMfd.actSol[m]
+    y_true_test = mfdMod.ecoMfd.actOosSol[m]
+    y_pred_train = sol[m]
+    y_pred_test = oosSol[m]
+
+    print(
+        r2_score(y_true_train, y_pred_train),
+        r2_score(y_true_test, y_pred_test)
+    )
+    
+np.save(open("/Users/babak/Desktop/params.npy", "wb"), mfdMod.ecoMfd.params)
