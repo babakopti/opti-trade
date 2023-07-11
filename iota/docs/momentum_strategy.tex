@@ -1,0 +1,100 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{natbib}
+
+\title{A Momentum Asset Allocation Strategy}
+
+\author{Babak Emami}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}\label{section:introduction}
+
+In what follows, a momentum based asset allocation strategy is
+proposed. The idea is to maximize portfolio return, while the
+associated portfolio risk, presented by the variance of the portfolio
+return, is kept within a given limit.
+
+\section{Mathematical Framework}
+\label{section:framework}
+
+The return of any portfolio is calculated as,
+
+\begin{equation}\label{eqn:port-return}
+  r = \sum_{i=1}^{K} w_i r_i
+\end{equation}
+
+where the portfolio consists of $K$ assets, $w_i$ and $r_i$ are the
+weight and return of asset $i \in \{1,...,M\}$, respectively.
+
+The optimization problem is formulated as,
+
+\begin{equation}\label{eqn:objective-func-1}
+  \min_{{\bf{w}}} f({\bf{w}}) 
+\end{equation}
+
+where the objective function $f$ is defined as,
+
+\begin{equation}\label{eqn:objective-func-1}
+  f({\bf{w}}) = -E[r]
+\end{equation}
+
+subject to
+
+\begin{equation}\label{eqn:constraints-1}
+  VAR(r) \le \alpha^2 VAR(r_{SP})
+\end{equation}
+
+where $r_{SP}$ is the return of S\&P500 index or any other index and
+$\alpha$ is a model hyper-parameter. Note that the above constraint
+ensures that risk associated with portfolio is constrained. Choosing
+an $\alpha < 1$ ensures that the portfolio is more conservative than
+S\&P500 index, whereas an $\alpha > 1$ indicates that a higher risk
+is tolerated in order to get a higher return.
+
+We compute the expection $E[r]$ and variance $VAR(r)$ of portfolio
+over a period of time using $M$ overlapping sub-windows. This enures that
+minimzation is not affected by a unique financial event that happend
+in that period of time. The optimization problem then reduces to,
+
+\begin{equation}\label{eqn:objective-func-2}
+  \min_{{\bf{w}}} -\frac{1}{M} \sum_{m=1}^{M} \sum_{i=1}^{K} w_i \bar{r_i}^{(m)}
+\end{equation}
+
+subject to $M$ constraints
+
+\begin{equation}\label{eqn:constraints-2}
+  C^{(m)}({\bf{w}}) \ge 0
+\end{equation}
+
+for all $m \in \{1,...,M\}$, where
+
+\begin{equation}\label{eqn:constraints-def}
+  C^{(m)}({\bf{w}}) = \alpha^2 VAR(r_{SP}^{(m)}) - \sum_{i=1}^{K} \sum_{j=1}^{K} w_i w_j COV(r_i^{(m)}, r_j^{(m)})
+\end{equation}
+
+Note that $r_{SP}^{(m)}$ is the return of S\&P 500 index (or any other
+index of choice) computed on sub-window $m$, and $r_i^{(m)}$ is the
+return of asset $i$ calculated on sub-window $m$; $m \in \{1,...,M\}$.
+
+The gradient of the objective function is calculated as,
+
+\begin{equation}\label{eqn:obj-gradient}
+  \frac{\partial f}{\partial w_l} = -\frac{1}{M} \sum_{m=1}^{M} \bar{r_l}^{(m)}
+\end{equation}
+
+and the graidient of each constraint function $C^{(m)}$ is calculated as,
+
+\begin{equation}\label{eqn:constraints-gradient}
+  \frac{\partial C^{(m)}}{\partial w_l} = -2 \sum_{i=1}^{K} w_i COV(r_l^{(m)}, r_i^{(m)})
+\end{equation}
+
+\section{Results}\label{section:results}
+
+
+\end{document}
+

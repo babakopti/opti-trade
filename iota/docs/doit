@@ -1,0 +1,4 @@
+latex momentum_strategy.tex
+latex momentum_strategy.tex
+pdflatex --shell-escape --file-line-error --synctex=1 momentum_strategy
+
