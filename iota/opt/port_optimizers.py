@@ -1,12 +1,12 @@
 import os
 import sys
-
-sys.path.append("..")
-
+import datetime
 import numpy as np
 import pandas as pd
 import scipy as sp
 from scipy.optimize import minimize
+
+sys.path.append("..")
 
 from utl.utl import get_logger, timer
 
@@ -52,7 +52,7 @@ class MomentPortOpt:
         self.variance_limit_indicator = variance_limit_indicator
         self.variance_limit_mode = variance_limit_mode
         self.max_asset_weight = max_asset_weight
-        
+
         assert variance_limit_mode in ["average", "all"], "Mode not known!"
 
         if logger is None:
@@ -97,7 +97,7 @@ class MomentPortOpt:
         constraints = self._get_constraints(min_date, max_date)
 
         results = minimize(
-            fun=lambda x: self._get_exp_return(x, min_date, max_date)
+            fun=lambda x: self._get_exp_return(x, min_date, max_date),
             x0=init_weights,
             method="SLSQP",
             tol=1.0e-6,
@@ -120,7 +120,7 @@ class MomentPortOpt:
                 weight_hash[asset] = weights[i]
 
         return weight_hash
-    
+
     def _get_exp_return(self, weights, min_date, max_date):
 
         min_date = pd.to_datetime(min_date)
@@ -157,16 +157,23 @@ class MomentPortOpt:
 
     def _get_constraints(self, min_date, max_date):
 
+        constraints = [
+            {
+                "type": "eq",
+                "fun": lambda x: sum(x) - 1.0,
+                "jac": lambda x: np.ones(shape=(len(x))),
+            }
+        ]
         sub_win_dates = self._get_sub_win_dates(min_date, max_date)
 
-        num_sub_wins = len(sum_win_dates)
+        num_sub_wins = len(sub_win_dates)
 
-        assert len(num_sub_wins) > 0, "Internal error!"
+        assert num_sub_wins > 0, "Internal error!"
 
         funcs = []
         jacs = []
         alpha = self.variance_limit_alpha
-        for m in range(len(sub_win_dates)):
+        for m in range(num_sub_wins):
             funcs.append(
                 lambda x: alpha ** 2 * self._get_ind_variance(m, sub_win_dates)
                 - self._get_port_variance(x, m, sub_win_dates)
@@ -178,27 +185,26 @@ class MomentPortOpt:
             jac = (
                 lambda x: -sum([jacs[m](x) for m in range(num_sub_wins)]) / num_sub_wins
             )
-            constratints = [
+            constraints.append(
                 {
                     "type": "ineq",
-                    "func": func,
+                    "fun": func,
                     "jac": jac,
                 }
-            ]
+            )
         elif self.variance_limit_mode == "all":
-            constratints = []
             for m in range(num_sub_wins):
-                constratints.append(
+                constraints.append(
                     {
                         "type": "ineq",
-                        "func": funcs[m],
+                        "fun": funcs[m],
                         "jac": jacs[m],
                     }
                 )
         else:
             assert False, "Mode not known!"
 
-        return constratints
+        return constraints
 
     def _get_sub_win_dates(self, min_date, max_date):
 
