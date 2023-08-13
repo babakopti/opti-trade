@@ -94,16 +94,19 @@ class MomentPortOpt:
         init_weights = np.ones(shape=(num_assets), dtype=np.float64)
         init_weights /= num_assets
 
-        constraints = self._get_constraints(min_date, max_date)
+        sub_win_dates = self._get_sub_win_dates(min_date, max_date)
+        
+        constraints = self._get_constraints(sub_win_dates)
 
         results = minimize(
-            fun=lambda x: self._get_exp_return(x, min_date, max_date),
+            fun=lambda x: -self._get_exp_return(x, sub_win_dates),
+            jac=lambda x: -self._get_exp_return_jac(x, sub_win_dates),
             x0=init_weights,
             method="SLSQP",
             tol=1.0e-6,
             constraints=constraints,
-            bounds=[(0.0, self.max_asset_weight)] * num_assets,
-            options={"maxiter": 10000},
+            #bounds=[(0.0, self.max_asset_weight)] * num_assets,
+            options={"maxiter": 10000, "disp": True},
         )
 
         self.logger.info(results["message"])
@@ -121,20 +124,17 @@ class MomentPortOpt:
 
         return weight_hash
 
-    def _get_exp_return(self, weights, min_date, max_date):
+    def _get_exp_return(self, weights, sub_win_dates):
 
-        min_date = pd.to_datetime(min_date)
-        max_date = pd.to_datetime(max_date)
         weights = np.array(weights)
 
         return_df = self.return_df
-        beg_date = min_date
         exp_return = 0.0
-        m = 0
-        while beg_date <= max_date - datetime.timedelta(days=self.min_num_sub_win_days):
+        num_sub_wins = len(sub_win_dates)
+        for m in range(num_sub_wins):
 
-            end_date = beg_date + datetime.timedelta(days=self.num_sub_win_days)
-            end_date = min(end_date, max_date)
+            beg_date = sub_win_dates[m][0]
+            end_date = sub_win_dates[m][1]
 
             tmp_df = return_df[
                 (return_df["Date"] >= beg_date) & (return_df["Date"] <= end_date)
@@ -142,20 +142,41 @@ class MomentPortOpt:
             for i, asset in enumerate(self.asset_universe):
                 exp_return += weights[i] * tmp_df[asset].mean()
 
-            m += 1
-            beg_date += datetime.timedelta(
-                days=self.num_sub_win_days - self.num_olap_days
-            )
-
-        fct = m
+        fct = num_sub_wins
         if fct > 0:
             fct = 1.0 / fct
 
         exp_return *= fct
 
-        return -exp_return
+        return exp_return
 
-    def _get_constraints(self, min_date, max_date):
+    def _get_exp_return_jac(self, weights, sub_win_dates):
+
+        weights = np.array(weights)
+
+        return_df = self.return_df
+        exp_return_jac = np.zeros(shape=(len(weights)))
+        num_sub_wins = len(sub_win_dates)
+        for m in range(num_sub_wins):
+
+            beg_date = sub_win_dates[m][0]
+            end_date = sub_win_dates[m][1]
+
+            tmp_df = return_df[
+                (return_df["Date"] >= beg_date) & (return_df["Date"] <= end_date)
+            ]
+            for i, asset in enumerate(self.asset_universe):
+                exp_return_jac[i] += tmp_df[asset].mean()
+
+        fct = num_sub_wins
+        if fct > 0:
+            fct = 1.0 / fct
+
+        exp_return_jac *= fct
+
+        return exp_return_jac
+
+    def _get_constraints(self, sub_win_dates):
 
         constraints = [
             {
@@ -164,7 +185,6 @@ class MomentPortOpt:
                 "jac": lambda x: np.ones(shape=(len(x))),
             }
         ]
-        sub_win_dates = self._get_sub_win_dates(min_date, max_date)
 
         num_sub_wins = len(sub_win_dates)
 
